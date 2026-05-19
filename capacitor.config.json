@@ -1,0 +1,20 @@
+{
+  "appId": "com.lexiquest.app",
+  "appName": "LexiQuest",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": true
+  },
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchAutoHide": true,
+      "launchShowDuration": 2000,
+      "backgroundColor": "#0D0D0D",
+      "androidSplashResourceName": "splash",
+      "showSpinner": false
+    }
+  }
+}
