@@ -41,6 +41,10 @@ LQ.defaultState = function () {
     mockHistory: [],
     achievements: [],
     uid: null,
+    lessonProgress: {},
+    commitmentDays: 14,
+    commitmentStart: null,
+    tutorHistory: [],
   };
 };
 
@@ -124,6 +128,10 @@ LQ.saveState = function (S) {
         displayName: s.displayName,
         mockHistory: s.mockHistory,
         activityByDay: s.activityByDay,
+        lessonProgress: s.lessonProgress,
+        commitmentDays: s.commitmentDays,
+        commitmentStart: s.commitmentStart,
+        tutorHistory: s.tutorHistory || [],
       })
     );
     if (LQ.Firebase && LQ.Firebase.sync) LQ.Firebase.sync();

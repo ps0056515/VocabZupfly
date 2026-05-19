@@ -1,5 +1,8 @@
 window.LQ = window.LQ || {};
 
+/* study.js must win over any stale cached features.js that redefines initMock */
+if (LQ.initMockStudy) LQ.initMock = LQ.initMockStudy;
+
 LQ.hideSplash = function () {
   try {
     var cap = window.Capacitor;
@@ -47,6 +50,8 @@ LQ.boot = async function () {
       LQ.renderOnboarding();
     } else {
       LQ.goTo('home');
+      if (LQ.renderLearningPath) LQ.renderLearningPath();
+      LQ.updateGreeting();
       if (LQ.WORDS.length) {
         LQ.toast(LQ.WORDS.length + ' words ready');
       }

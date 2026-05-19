@@ -1,5 +1,15 @@
 window.LQ = window.LQ || {};
+LQ.H = 'div';
 let _tt;
+
+LQ.esc = function (s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+};
 
 LQ.toast = function (msg) {
   const el = document.getElementById('toast');
@@ -49,12 +59,21 @@ LQ.updateGoal = function () {
   if (gn) gn.textContent = LQ.S.goalNew;
 };
 
+LQ.updateGreeting = function () {
+  const el = document.querySelector('.greeting');
+  if (!el) return;
+  const h = new Date().getHours();
+  const t = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+  el.textContent = t + ' 👋';
+};
+
 LQ.syncHomeUI = function () {
   const xd = document.getElementById('xp-display');
   const xf = document.getElementById('xp-fill');
   if (xd) xd.textContent = LQ.S.xp + ' XP';
   if (xf) xf.style.width = Math.min(100, Math.round((LQ.S.xp / LQ.S.xpMax) * 100)) + '%';
   LQ.updateGoal();
+  LQ.updateGreeting();
   LQ.renderStreakUI();
   const prem = document.getElementById('premium-badge');
   if (prem) prem.style.display = LQ.S.premium ? 'inline-flex' : 'none';
@@ -84,7 +103,11 @@ LQ.goTo = function (screen) {
   if (inner) inner.scrollTop = 0;
 
   const handlers = {
-    home: () => LQ.syncHomeUI(),
+    home: () => {
+      LQ.syncHomeUI();
+      if (LQ.renderLearningPath) LQ.renderLearningPath();
+    },
+    lesson: () => LQ.renderLessonScreen && LQ.renderLessonScreen(),
     flashcard: () => LQ.renderFC(),
     quiz: () => LQ.initQuiz(),
     wordbank: () => LQ.renderWB(),
@@ -96,6 +119,7 @@ LQ.goTo = function (screen) {
     speak: () => LQ.initSpeak(),
     settings: () => LQ.renderSettings(),
     onboarding: () => LQ.renderOnboarding(),
+    tutor: () => LQ.initTutor && LQ.initTutor(),
   };
   if (handlers[screen]) handlers[screen]();
 };
