@@ -34,8 +34,20 @@ const server = http.createServer(async (req, res) => {
   let body = '';
   for await (const chunk of req) body += chunk;
   try {
-    const { message, context } = JSON.parse(body);
-    const text = localReply(message, context || {});
+    const payload = JSON.parse(body);
+    const message = payload.message || 'Hello';
+    const context = payload.context || {};
+    let text;
+    if (payload.type === 'mnemonic' && payload.word) {
+      text =
+        'Remember **' +
+        payload.word +
+        '**: ' +
+        (payload.def || '').split('.')[0] +
+        ' — picture one vivid scene and say it twice.';
+    } else {
+      text = localReply(message, context);
+    }
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ text }));
   } catch (e) {

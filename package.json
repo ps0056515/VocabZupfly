@@ -10,7 +10,9 @@
     "cap:sync": "npm run prepare:web && npx cap sync",
     "android": "npm run cap:sync && npx cap open android",
     "android:run": "npm run cap:sync && npx cap run android",
-    "android:build": "npm run cap:sync && cd android && gradlew.bat assembleDebug"
+    "android:build": "npm run cap:sync && cd android && gradlew.bat assembleDebug",
+    "tutor:api": "node scripts/tutor-api-example.mjs",
+    "dev": "npx --yes serve . -l 3456"
   },
   "dependencies": {
     "@capacitor-community/text-to-speech": "^6.1.0",

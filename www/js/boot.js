@@ -25,6 +25,7 @@ LQ.boot = async function () {
     }
 
     LQ.S = LQ.loadState();
+    if (LQ.applyAllFeatures) LQ.applyAllFeatures();
     LQ.WORDS.forEach(function (w) {
       if (!LQ.S.mastery[w.word]) LQ.S.mastery[w.word] = 'new';
       if (!LQ.S.srs[w.word]) LQ.S.srs[w.word] = LQ.initSrsEntry();
@@ -41,7 +42,7 @@ LQ.boot = async function () {
       window.speechSynthesis.onvoiceschanged = function () {};
     }
 
-    if (!LQ.S.onboardingComplete) {
+    if (!LQ.S.onboardingComplete && !(LQ.Config && LQ.Config.enableAllFeatures)) {
       document.querySelectorAll('.screen').forEach(function (s) {
         s.classList.remove('active');
       });

@@ -268,22 +268,48 @@ LQ.genLeagueBoard = function () {
 LQ.renderSettings = function () {
   const wrap = document.getElementById('settings-wrap');
   if (!wrap) return;
+  const exam = LQ.S.examFocus || 'GRE';
+  const exams = ['GRE', 'GMAT', 'IELTS', 'ALL'];
+  const examChips = exams
+    .map(function (e) {
+      return (
+        '<button type="button" class="ob-chip' +
+        (exam === e ? ' active' : '') +
+        '" onclick="setExamFocus(\'' +
+        e +
+        '\')">' +
+        e +
+        '</button>'
+      );
+    })
+    .join('');
+  const allOn = LQ.Config && LQ.Config.enableAllFeatures;
   wrap.innerHTML =
     '<h3 style="color:#fff;margin-bottom:12px">Settings</h3>' +
-    '<p style="color:#888;font-size:13px">Exam: <b style="color:#fff">' +
-    LQ.S.examFocus +
-    '</b></p>' +
+    (allOn
+      ? '<p style="color:var(--lime);font-size:13px;margin-bottom:12px">✓ All features enabled (dev mode)</p>'
+      : '') +
+    '<p style="color:#888;font-size:12px;margin-bottom:8px">Exam focus</p>' +
+    '<div style="margin-bottom:14px">' +
+    examChips +
+    '</div>' +
     '<p style="color:#888;font-size:13px;margin:8px 0">Goal: <b style="color:#fff">' +
     (LQ.S.commitmentDays || 14) +
-    ' days</b></p>' +
-    '<p style="color:#888;font-size:13px;margin:8px 0">Premium: <b style="color:var(--lime)">' +
+    ' days</b> · Daily target <b style="color:#fff">' +
+    (LQ.S.goalTarget || 15) +
+    '</b></p>' +
+    '<p style="color:#888;font-size:13px;margin:8px 0">Premium deck: <b style="color:var(--lime)">' +
     (LQ.S.premium ? 'Unlocked' : 'Locked') +
     '</b></p>' +
     '<p style="color:#888;font-size:13px;margin:8px 0">AI Tutor: <b style="color:var(--lime)">' +
-    (LQ.Config.tutorEndpoint || LQ.Config.aiEndpoint ? 'API connected' : 'Built-in (offline)') +
+    (LQ.Config.tutorEndpoint || LQ.Config.aiEndpoint ? 'API + built-in fallback' : 'Built-in') +
+    '</b></p>' +
+    '<p style="color:#888;font-size:13px;margin:8px 0">Learning path: <b style="color:#fff">' +
+    (allOn ? 'All lessons open' : 'Linear unlock') +
     '</b></p>' +
     '<input id="prem-code" placeholder="Premium code" style="width:100%;padding:12px;border-radius:12px;border:1px solid #333;background:#1a1a1a;color:#fff;margin:8px 0">' +
     '<button class="quiz-next show" onclick="LQ.unlockPremium()">Unlock premium deck</button>' +
+    '<button class="quiz-next show" style="margin-top:10px;background:#333;color:#fff" onclick="LQ.applyAllFeatures&&LQ.applyAllFeatures();LQ.renderSettings();LQ.toast(\'All features applied\')">Enable all features now</button>' +
     '<button class="quiz-next show" style="margin-top:10px;background:#333;color:#fff" onclick="LQ.Firebase.signIn&&LQ.Firebase.signIn()">☁️ Sync (Firebase)</button>' +
     '<button class="quiz-next show" style="margin-top:10px;background:#333;color:#fff" onclick="LQ.toggleNotif()">Notifications: ' +
     (LQ.S.notifOn ? 'On' : 'Off') +

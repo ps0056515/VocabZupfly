@@ -86,7 +86,7 @@ LQ.recordActivity = function (word, rating) {
 };
 
 LQ.goTo = function (screen) {
-  if (screen === 'flashcard' && !LQ.S.premium) {
+  if (screen === 'flashcard' && !LQ.S.premium && !(LQ.Config && LQ.Config.enableAllFeatures)) {
     const w = LQ.currentFcWord();
     if (w && w.premium) {
       LQ.toast('Premium deck — unlock in Settings');
@@ -95,10 +95,13 @@ LQ.goTo = function (screen) {
   }
   document.querySelectorAll('.screen').forEach((s) => s.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach((n) => n.classList.remove('active'));
+  document.querySelectorAll('.desktop-rail-item').forEach((n) => n.classList.remove('active'));
   const sc = document.getElementById('screen-' + screen);
   if (sc) sc.classList.add('active');
   const nav = document.getElementById('nav-' + screen);
   if (nav) nav.classList.add('active');
+  const rail = document.getElementById('desktop-nav-' + screen);
+  if (rail) rail.classList.add('active');
   const inner = document.getElementById('app-inner');
   if (inner) inner.scrollTop = 0;
 

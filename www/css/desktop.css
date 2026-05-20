@@ -1,0 +1,222 @@
+/**
+ * LexiQuest — Desktop web layout (≥900px, not native app)
+ * Full-viewport dashboard: sidebar + content, no phone mockup or promo column.
+ */
+
+body.web-desktop {
+  background: #e8e4dc;
+}
+
+body.web-desktop .desktop-shell {
+  display: flex;
+  width: 100%;
+  max-width: none;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  gap: 0;
+  align-items: stretch;
+  background: #e8e4dc;
+}
+
+body.web-desktop .promo-side {
+  display: none !important;
+}
+
+body.web-desktop .phone-frame {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  padding: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+body.web-desktop .phone-screen {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  border-radius: 0;
+  overflow: hidden;
+  background: #f5f3ee;
+}
+
+body.web-desktop .app-shell {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  border-radius: 0;
+  overflow: hidden;
+}
+
+body.web-desktop .app-main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  background: #f5f3ee;
+}
+
+body.web-desktop .app-inner {
+  flex: 1;
+  height: auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+/* Sidebar */
+body.web-desktop .desktop-rail {
+  width: 252px;
+  flex-shrink: 0;
+  flex-direction: column;
+  padding: 24px 14px;
+  gap: 2px;
+  background: #111;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+body.web-desktop .desktop-rail-brand {
+  padding: 4px 14px 28px;
+  font-size: 22px;
+}
+
+body.web-desktop .desktop-rail-item {
+  padding: 11px 14px;
+  font-size: 14px;
+  border-radius: 10px;
+}
+
+body.web-desktop .nav-bar {
+  display: none !important;
+}
+
+/* ── Home dashboard ── */
+body.web-desktop #screen-home.active {
+  flex-direction: column;
+  background: #f5f3ee;
+}
+
+body.web-desktop #screen-home .home-bg.air-home {
+  flex-shrink: 0;
+  border-radius: 0;
+  padding: 32px 48px 28px;
+  background: linear-gradient(125deg, #141428 0%, #1a2744 45%, #0d2840 100%);
+}
+
+body.web-desktop #screen-home .home-topbar {
+  margin-bottom: 24px;
+}
+
+body.web-desktop #screen-home .home-topbar .greeting {
+  font-size: 14px;
+}
+
+body.web-desktop #screen-home .home-topbar .home-title {
+  font-family: var(--head);
+  font-size: 32px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.8px;
+  margin-top: 4px;
+  line-height: 1.1;
+}
+
+body.web-desktop .home-stats-row {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr;
+  gap: 16px;
+  align-items: stretch;
+}
+
+body.web-desktop .home-stats-row .streak-banner {
+  margin-bottom: 0;
+}
+
+body.web-desktop .home-stats-row .xp-section {
+  margin-bottom: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  padding: 16px 20px;
+}
+
+body.web-desktop #screen-home .home-body.air-body {
+  flex: 1;
+  padding: 32px 48px 48px;
+  max-width: 1680px;
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+body.web-desktop #screen-home .section-hd.light {
+  margin-bottom: 16px;
+}
+
+body.web-desktop #screen-home .section-hd.light h2 {
+  font-size: 22px;
+}
+
+body.web-desktop .home-title-mobile {
+  display: none !important;
+}
+
+/* Quick actions grid */
+body.web-desktop .mode-grid-scroll {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(172px, 1fr));
+  gap: 14px;
+  overflow: visible;
+}
+
+body.web-desktop .mode-grid-scroll .mode-card {
+  min-width: 0;
+  padding: 20px 16px;
+}
+
+body.web-desktop #screen-home .goal-card {
+  margin-top: 8px;
+}
+
+/* Inner screens — use full content area */
+body.web-desktop .screen:not(#screen-home) {
+  min-height: 100%;
+}
+
+body.web-desktop #screen-tutor.active {
+  min-height: 100%;
+}
+
+body.web-desktop #screen-tutor .tutor-messages {
+  max-height: none;
+}
+
+body.web-desktop .screen-panel,
+body.web-desktop .fc-header,
+body.web-desktop .quiz-topbar,
+body.web-desktop .wb-header,
+body.web-desktop .prog-header {
+  padding-left: 48px;
+  padding-right: 48px;
+}
+
+body.web-desktop .quiz-bg,
+body.web-desktop .tutor-header {
+  padding-left: 48px;
+  padding-right: 48px;
+}
+
+body.web-desktop .quiz-body,
+body.web-desktop .tutor-chips,
+body.web-desktop .tutor-input-row {
+  padding-left: 48px;
+  padding-right: 48px;
+}

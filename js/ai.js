@@ -25,11 +25,20 @@ LQ.loadAIHint = async function () {
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ word: w.word, def: w.def }),
+        body: JSON.stringify({
+          type: 'mnemonic',
+          word: w.word,
+          def: w.def,
+          message: 'Give a short mnemonic for ' + w.word,
+          context: LQ.tutorContext ? LQ.tutorContext() : {},
+        }),
       });
       const data = await res.json();
       txt = data.text || data.hint;
     } catch (e) {}
+  }
+  if (!txt && LQ.askTutor) {
+    txt = await LQ.askTutor('Give a one-sentence mnemonic for ' + w.word);
   }
   if (!txt) {
     await new Promise((r) => setTimeout(r, 400));

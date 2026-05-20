@@ -34,6 +34,7 @@ LQ.lessonsForChapter = function (chapterId) {
 };
 
 LQ.isLessonUnlocked = function (lessonId) {
+  if (LQ.Config && LQ.Config.enableAllFeatures) return true;
   LQ.S.lessonProgress = LQ.S.lessonProgress || {};
   const all = [];
   LQ.CHAPTERS.forEach((ch) => {
@@ -55,30 +56,89 @@ LQ.renderLearningPath = function () {
   const wrap = document.getElementById('path-wrap');
   if (!wrap) return;
   LQ.S.lessonProgress = LQ.S.lessonProgress || {};
+  wrap.className = 'path-wrap path-board';
+  var hint = document.querySelector('.path-board-hint');
+  if (!hint && wrap.parentNode) {
+    hint = document.createElement('p');
+    hint.className = 'path-board-hint';
+    wrap.parentNode.insertBefore(hint, wrap);
+  }
+  if (hint) {
+    hint.textContent = LQ.isWebDesktop && LQ.isWebDesktop()
+      ? 'Five chapters · scroll horizontally · click a lesson card to start'
+      : '';
+    hint.style.display = LQ.isWebDesktop && LQ.isWebDesktop() ? 'block' : 'none';
+  }
+  const H = LQ.H;
   let html = '';
-  LQ.CHAPTERS.forEach((ch, ci) => {
+  LQ.CHAPTERS.forEach(function (ch) {
     const lessons = LQ.lessonsForChapter(ch.id);
-    const done = lessons.filter((l) => LQ.S.lessonProgress[l.id]).length;
+    const done = lessons.filter(function (l) {
+      return LQ.S.lessonProgress[l.id];
+    }).length;
+    const pct = lessons.length ? Math.round((done / lessons.length) * 100) : 0;
     html +=
-      '<' + LQ.H + ' class="path-chapter">' +
-      '<' + LQ.H + ' class="path-ch-head">' +
-      '<span class="path-ch-icon">' + ch.icon + '</span>' +
-      '<' + LQ.H + ' class="path-ch-meta"><h3>' + ch.title + '</h3><p>' + ch.subtitle + ' · ' + done + '/' + lessons.length + '</' + LQ.H + '>' +
-      '</' + LQ.H + '>' +
-      '<' + LQ.H + ' class="path-nodes">';
-    lessons.forEach((les, li) => {
+      '<article class="kanban-col" data-chapter="' +
+      ch.id +
+      '">' +
+      '<header class="kanban-col-head">' +
+      '<span class="kanban-col-icon" aria-hidden="true">' +
+      ch.icon +
+      '</span>' +
+      '<' +
+      H +
+      ' class="kanban-col-titles">' +
+      '<h3 class="kanban-col-title">' +
+      LQ.esc(ch.title) +
+      '</h3>' +
+      '<p class="kanban-col-sub">' +
+      LQ.esc(ch.subtitle) +
+      '</p></' +
+      H +
+      '>' +
+      '<span class="kanban-col-count">' +
+      done +
+      '/' +
+      lessons.length +
+      '</span></header>' +
+      '<' +
+      H +
+      ' class="kanban-col-bar" role="progressbar" aria-valuenow="' +
+      pct +
+      '"><' +
+      H +
+      ' class="kanban-col-bar-fill" style="width:' +
+      pct +
+      '%"></' +
+      H +
+      '></' +
+      H +
+      '>' +
+      '<' +
+      H +
+      ' class="kanban-col-cards">';
+    lessons.forEach(function (les, li) {
       const unlocked = LQ.isLessonUnlocked(les.id);
       const complete = !!LQ.S.lessonProgress[les.id];
       const cls = complete ? 'done' : unlocked ? 'active' : 'locked';
+      const badge = complete ? 'Done' : unlocked ? 'Start' : 'Locked';
       html +=
-        '<button type="button" class="path-node ' + cls + '" ' +
-        (unlocked ? 'onclick="LQ.startLesson(\'' + les.id + '\')"' : 'disabled') + '>' +
-        '<span class="path-node-dot">' + (complete ? '✓' : li + 1) + '</span>' +
-        '<span class="path-node-title">' + les.title + '</span>' +
-        (unlocked && !complete ? '<span class="path-node-cta">Start</span>' : '') +
-        '</button>';
+        '<button type="button" class="kanban-lesson ' +
+        cls +
+        '" ' +
+        (unlocked ? 'onclick="LQ.startLesson(\'' + les.id + '\')"' : 'disabled') +
+        '>' +
+        '<span class="kanban-lesson-num">' +
+        (complete ? '\u2713' : String(li + 1)) +
+        '</span>' +
+        '<span class="kanban-lesson-name">' +
+        LQ.esc(les.title) +
+        '</span>' +
+        '<span class="kanban-lesson-badge">' +
+        badge +
+        '</span></button>';
     });
-    html += '</' + LQ.H + '></' + LQ.H + '>';
+    html += '</' + H + '></article>';
   });
   wrap.innerHTML = html;
   const commit = document.getElementById('commit-banner');

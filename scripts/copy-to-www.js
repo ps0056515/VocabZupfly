@@ -29,4 +29,5 @@ fs.mkdirSync(path.join(root, 'www'), { recursive: true });
 fs.copyFileSync(src, dest);
 copyDir('js');
 copyDir('data');
-console.log('Copied lexiquest.html → www/index.html + js/ + data/');
+copyDir('css');
+console.log('Copied lexiquest.html → www/index.html + js/ + data/ + css/');

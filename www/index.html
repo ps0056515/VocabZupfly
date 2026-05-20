@@ -721,7 +721,7 @@ body.native-app .status-bar{
 .home-bg.air-home .xp-bar{background:rgba(0,0,0,.08)}
 .commit-banner{display:none;align-items:center;gap:12px;background:#fff;border-radius:14px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:var(--ink);box-shadow:0 2px 12px rgba(0,0,0,.06)}
 .commit-icon{font-size:24px}
-.path-wrap{display:flex;flex-direction:column;gap:20px;margin-bottom:24px}
+.path-wrap:not(.path-board){display:flex;flex-direction:column;gap:20px;margin-bottom:24px}
 .path-chapter{background:#fff;border-radius:var(--r-lg);padding:16px;box-shadow:0 2px 16px rgba(0,0,0,.05)}
 .path-ch-head{display:flex;align-items:center;gap:12px;margin-bottom:14px}
 .path-ch-icon{font-size:28px;width:48px;height:48px;border-radius:14px;background:#F5F3EE;display:flex;align-items:center;justify-content:center}
@@ -738,6 +738,22 @@ body.native-app .status-bar{
 .path-node.locked .path-node-dot{background:#DDD;color:#888}
 .path-node-title{flex:1;font-size:14px;font-weight:600;color:var(--ink)}
 .path-node-cta{font-size:11px;font-weight:700;color:var(--lime-dk);text-transform:uppercase;letter-spacing:.5px}
+.path-col-meta{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.path-col-count{font-size:11px;font-weight:700;color:var(--muted);white-space:nowrap}
+.path-col-bar-wrap{flex:1;height:6px;background:rgba(0,0,0,.06);border-radius:99px;overflow:hidden}
+.path-col-bar{height:100%;background:linear-gradient(90deg,var(--lime),var(--sky));border-radius:99px;transition:width .35s ease}
+.path-node-badge{
+  font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;
+  padding:4px 8px;border-radius:6px;margin-left:auto;flex-shrink:0;
+}
+.path-node-badge.active{background:rgba(200,245,60,.35);color:var(--lime-dk)}
+.path-node-badge.done{background:rgba(61,214,140,.2);color:#1a8f5a}
+.path-node-badge.locked{background:rgba(0,0,0,.06);color:var(--muted)}
+
+.home-stats-row{display:flex;flex-direction:column;gap:0}
+.home-title{display:none}
+body.web-desktop .home-title{display:block}
+
 .section-hd.light h2{color:var(--ink)}
 .home-body.air-body{background:#F5F3EE;padding-bottom:100px}
 
@@ -863,7 +879,24 @@ body.native-app .status-bar{
 #tutor-send:disabled{opacity:.5}
 .mode-card.tutor{background:linear-gradient(145deg,#2a1050,#0D1B2A);color:#fff;border:1px solid rgba(200,245,60,.15)}
 
+/* ── Platform UI: mobile vs web desktop vs native APK ── */
+.mobile-only-ui{display:block}
+.desktop-only-ui{display:none!important}
+.app-shell{display:contents}
+.app-main{display:contents}
+
+body.web-mobile .mobile-only-ui{display:block}
+body.web-mobile .desktop-only-ui{display:none!important}
+
+body.web-desktop .mobile-only-ui{display:none!important}
+body.web-desktop .desktop-only-ui{display:flex!important}
+
+body.native-app .mobile-only-ui{display:block}
+body.native-app .desktop-only-ui{display:none!important}
+
 </style>
+<link rel="stylesheet" href="css/kanban.css?v=20260519g">
+<link rel="stylesheet" href="css/desktop.css?v=20260519g">
 </head>
 <body>
 
@@ -882,9 +915,9 @@ body.native-app .status-bar{
 
   <!-- PHONE -->
   <div class="phone-frame">
-    <div class="phone-notch"></div>
+    <div class="phone-notch mobile-only-ui"></div>
     <div class="phone-screen">
-      <div class="status-bar">
+      <div class="status-bar mobile-only-ui">
         <span class="status-time">9:41</span>
         <div class="status-icons">
           <span>●●●</span>
@@ -893,6 +926,36 @@ body.native-app .status-bar{
         </div>
       </div>
 
+      <div class="app-shell">
+        <nav class="desktop-rail desktop-only-ui" aria-label="Main navigation">
+          <div class="desktop-rail-brand">Lexi<span>Quest</span></div>
+          <button type="button" class="desktop-rail-item active" id="desktop-nav-home" onclick="goTo('home')">
+            <span class="rail-icon">🏠</span> Home
+          </button>
+          <button type="button" class="desktop-rail-item" id="desktop-nav-tutor" onclick="goTo('tutor')">
+            <span class="rail-icon">✦</span> AI Tutor
+          </button>
+          <button type="button" class="desktop-rail-item" id="desktop-nav-flashcard" onclick="goTo('flashcard')">
+            <span class="rail-icon">🃏</span> Flashcards
+          </button>
+          <button type="button" class="desktop-rail-item" id="desktop-nav-quiz" onclick="goTo('quiz')">
+            <span class="rail-icon">🧠</span> Quiz
+          </button>
+          <button type="button" class="desktop-rail-item" id="desktop-nav-wordbank" onclick="goTo('wordbank')">
+            <span class="rail-icon">📖</span> Word Bank
+          </button>
+          <div class="desktop-rail-sep desktop-only-ui"></div>
+          <button type="button" class="desktop-rail-item" id="desktop-nav-mock" onclick="goTo('mock')">
+            <span class="rail-icon">⏱️</span> Mock Test
+          </button>
+          <button type="button" class="desktop-rail-item" id="desktop-nav-progress" onclick="goTo('progress')">
+            <span class="rail-icon">📊</span> Progress
+          </button>
+          <button type="button" class="desktop-rail-item" id="desktop-nav-settings" onclick="goTo('settings')">
+            <span class="rail-icon">⚙️</span> Settings
+          </button>
+        </nav>
+        <div class="app-main">
       <div class="app-inner" id="app-inner">
 
         <!-- ══ HOME ══ -->
@@ -901,7 +964,8 @@ body.native-app .status-bar{
             <div class="home-topbar">
               <div>
                 <div class="greeting">Good morning 👋</div>
-                <div style="font-family:var(--head);font-size:18px;font-weight:700;color:var(--ink);letter-spacing:-0.3px;margin-top:2px;">Your learning path</div>
+                <div class="home-title">Your learning path</div>
+                <div class="home-title-mobile" style="font-family:var(--head);font-size:18px;font-weight:700;color:var(--ink);letter-spacing:-0.3px;margin-top:2px;">Your learning path</div>
               </div>
               <div class="avatar">🦊</div>
             </div>
@@ -1186,8 +1250,8 @@ body.native-app .status-bar{
         </div>
       </div>
 
-      <!-- NAV -->
-      <div class="nav-bar">
+      <!-- NAV (mobile + APK) -->
+      <div class="nav-bar mobile-only-ui">
         <button class="nav-item active" onclick="goTo('home')" id="nav-home">
           <div class="nav-icon-wrap">
             <span class="nav-icon">🏠</span>
@@ -1208,6 +1272,8 @@ body.native-app .status-bar{
         </button>
       </div>
 
+        </div><!-- app-main -->
+      </div><!-- app-shell -->
     </div><!-- phone-screen -->
   </div><!-- phone-frame -->
 </div>
@@ -1227,22 +1293,24 @@ body.native-app .status-bar{
 <div class="xp-burst" id="xp-burst"></div>
 
 
-<script src="js/config.js?v=20260519b"></script>
-<script src="js/words.js?v=20260519b"></script>
-<script src="js/srs.js?v=20260519b"></script>
-<script src="js/streak.js?v=20260519b"></script>
-<script src="js/state.js?v=20260519b"></script>
-<script src="js/core.js?v=20260519b"></script>
-<script src="js/ai.js?v=20260519b"></script>
-<script src="js/speech.js?v=20260519b"></script>
-<script src="js/firebase-sync.js?v=20260519b"></script>
-<script src="js/notifications.js?v=20260519b"></script>
-<script src="js/celebrate.js?v=20260519b"></script>
-<script src="js/lessons.js?v=20260519b"></script>
-<script src="js/features.js?v=20260519b"></script>
-<script src="js/tutor.js?v=20260519b"></script>
-<script src="js/study.js?v=20260519b"></script>
-<script src="js/boot.js?v=20260519b"></script>
-<script src="js/native-bridge.js?v=20260519b"></script>
+<script src="js/config.js?v=20260519f"></script>
+<script src="js/platform.js?v=20260519f"></script>
+<script src="js/unlock.js?v=20260519f"></script>
+<script src="js/words.js?v=20260519f"></script>
+<script src="js/srs.js?v=20260519f"></script>
+<script src="js/streak.js?v=20260519f"></script>
+<script src="js/state.js?v=20260519f"></script>
+<script src="js/core.js?v=20260519f"></script>
+<script src="js/ai.js?v=20260519f"></script>
+<script src="js/speech.js?v=20260519f"></script>
+<script src="js/firebase-sync.js?v=20260519f"></script>
+<script src="js/notifications.js?v=20260519f"></script>
+<script src="js/celebrate.js?v=20260519f"></script>
+<script src="js/lessons.js?v=20260519g"></script>
+<script src="js/features.js?v=20260519f"></script>
+<script src="js/tutor.js?v=20260519f"></script>
+<script src="js/study.js?v=20260519f"></script>
+<script src="js/boot.js?v=20260519f"></script>
+<script src="js/native-bridge.js?v=20260519f"></script>
 </body>
 </html>
