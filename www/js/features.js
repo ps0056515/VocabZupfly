@@ -284,11 +284,34 @@ LQ.renderSettings = function () {
     })
     .join('');
   const allOn = LQ.Config && LQ.Config.enableAllFeatures;
+  const native = LQ.isNativeApp && LQ.isNativeApp();
+  const layout = LQ.getBrowserLayoutPref ? LQ.getBrowserLayoutPref() : 'auto';
+  const layoutBlock = native
+    ? ''
+    : '<p style="color:#888;font-size:12px;margin-bottom:8px">Browser layout</p>' +
+      '<div style="margin-bottom:14px">' +
+      ['auto', 'phone', 'web']
+        .map(function (m) {
+          var lbl = m === 'auto' ? 'Auto' : m === 'phone' ? 'Phone' : 'Web';
+          return (
+            '<button type="button" class="ob-chip' +
+            (layout === m ? ' active' : '') +
+            '" onclick="LQ.setBrowserLayout(\'' +
+            m +
+            '\');LQ.renderSettings()">' +
+            lbl +
+            '</button>'
+          );
+        })
+        .join('') +
+      '</div>' +
+      '<p style="color:#666;font-size:11px;margin:-6px 0 14px">Phone = app mockup · Web = sidebar dashboard · Auto follows window width</p>';
   wrap.innerHTML =
     '<h3 style="color:#fff;margin-bottom:12px">Settings</h3>' +
     (allOn
       ? '<p style="color:var(--lime);font-size:13px;margin-bottom:12px">✓ All features enabled (dev mode)</p>'
       : '') +
+    layoutBlock +
     '<p style="color:#888;font-size:12px;margin-bottom:8px">Exam focus</p>' +
     '<div style="margin-bottom:14px">' +
     examChips +

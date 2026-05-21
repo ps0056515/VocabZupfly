@@ -21,10 +21,13 @@ LQ.boot = async function () {
     ]);
 
     if (!LQ.WORDS.length) {
-      console.warn('No words loaded — check data/words.json');
+      console.warn('No words loaded — check data/words-merged.json');
     }
 
+    if (LQ.ensurePathData) LQ.ensurePathData();
+
     LQ.S = LQ.loadState();
+    if (LQ.applyPlatformUI) LQ.applyPlatformUI();
     if (LQ.applyAllFeatures) LQ.applyAllFeatures();
     LQ.WORDS.forEach(function (w) {
       if (!LQ.S.mastery[w.word]) LQ.S.mastery[w.word] = 'new';

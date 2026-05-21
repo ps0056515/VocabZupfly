@@ -4,59 +4,75 @@ LQ.EXAM_TIPS = [
   { title: 'GRE tip', body: 'On Text Completion, learn word tone (positive/negative/neutral) — not just definitions.' },
   { title: 'GMAT tip', body: 'Critical Reasoning rewards precise vocabulary: "mitigate" vs "eliminate" changes answer choices.' },
   { title: 'IELTS tip', body: 'Writing Band 7+ needs less common collocations — pair new words with natural phrases.' },
-  { title: 'Usage tip', body: 'Read the example sentence aloud; rhythm helps you recall words under time pressure.' },
+  { title: 'Group tip', body: 'Words in the same PDF group are often synonyms or antonyms — learn them together.' },
   { title: 'Memory tip', body: 'Link a vivid image to the root: "ephemeral" → mayfly that lives one day.' },
 ];
 
-LQ.CHAPTERS = [
-  { id: 'c1', title: 'Foundations', icon: '🌱', subtitle: 'High-frequency core' },
-  { id: 'c2', title: 'Verbs in Context', icon: '⚡', subtitle: 'Action & argument words' },
-  { id: 'c3', title: 'Tone & Attitude', icon: '🎭', subtitle: 'Adjectives that shape meaning' },
-  { id: 'c4', title: 'Academic Precision', icon: '🎓', subtitle: 'Formal register' },
-  { id: 'c5', title: 'Exam Sprint', icon: '🏁', subtitle: 'Mixed review' },
-];
+LQ.CHAPTERS = [];
 
 LQ.lessonsForChapter = function (chapterId) {
-  const titles = [
-    ['Warm-up', 'Essentials I', 'Essentials II'],
-    ['Power verbs', 'Cause & effect', 'Contrast'],
-    ['Positive tone', 'Negative tone', 'Neutral tone'],
-    ['Science & logic', 'Business', 'Arts'],
-    ['Speed round', 'Challenge', 'Boss review'],
-  ];
-  const idx = LQ.CHAPTERS.findIndex((c) => c.id === chapterId);
-  const names = titles[idx] || titles[0];
-  return names.map((title, i) => ({
-    id: chapterId + '-l' + (i + 1),
-    title,
-    chapterId,
-  }));
+  if (!LQ.ensurePathData()) return [];
+  var lst = LQ.WORD_LISTS.lists.find(function (l) {
+    return l.id === chapterId;
+  });
+  if (!lst) return [];
+  return lst.groups.map(function (g) {
+    var short = g.title.length > 28 ? g.title.slice(0, 26) + '…' : g.title;
+    return {
+      id: g.id,
+      title: 'G' + g.groupNum + ' · ' + short,
+      fullTitle: g.title,
+      chapterId: chapterId,
+      groupNum: g.groupNum,
+      wordCount: g.words.length,
+    };
+  });
 };
 
 LQ.isLessonUnlocked = function (lessonId) {
   if (LQ.Config && LQ.Config.enableAllFeatures) return true;
+  if (!LQ.ensurePathData()) return true;
   LQ.S.lessonProgress = LQ.S.lessonProgress || {};
-  const all = [];
-  LQ.CHAPTERS.forEach((ch) => {
-    LQ.lessonsForChapter(ch.id).forEach((l) => all.push(l.id));
+  var all = [];
+  LQ.CHAPTERS.forEach(function (ch) {
+    LQ.lessonsForChapter(ch.id).forEach(function (l) {
+      all.push(l.id);
+    });
   });
-  const i = all.indexOf(lessonId);
+  var i = all.indexOf(lessonId);
   if (i <= 0) return true;
   return !!LQ.S.lessonProgress[all[i - 1]];
 };
 
 LQ.wordsForLesson = function (lessonId) {
-  const all = LQ.getWords().filter((w) => !w.premium || LQ.S.premium);
-  const hash = lessonId.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
-  const start = hash % Math.max(1, all.length - 8);
-  return LQ.shuffle(all.slice(start).concat(all.slice(0, start))).slice(0, 5);
+  var hit = LQ.findGroup(lessonId);
+  if (!hit) {
+    var all = LQ.getWords().filter(function (w) {
+      return !w.premium || LQ.S.premium;
+    });
+    return LQ.shuffle(all).slice(0, 5);
+  }
+  var meta = { groupTitle: hit.group.title, listTitle: hit.list.title };
+  var words = hit.group.words.map(function (entry) {
+    return LQ.resolveWord(entry.word, meta);
+  });
+  words = LQ.shuffle(words);
+  var max = 10;
+  if (words.length <= max) return words;
+  return words.slice(0, max);
 };
 
 LQ.renderLearningPath = function () {
-  const wrap = document.getElementById('path-wrap');
+  var wrap = document.getElementById('path-wrap');
   if (!wrap) return;
+  if (!LQ.ensurePathData()) {
+    wrap.className = 'path-wrap';
+    wrap.innerHTML =
+      '<p style="color:var(--muted);font-size:14px;padding:12px 0">Loading word lists…</p>';
+    return;
+  }
   LQ.S.lessonProgress = LQ.S.lessonProgress || {};
-  wrap.className = 'path-wrap path-board';
+  wrap.className = 'path-wrap path-board path-board-lists';
   var hint = document.querySelector('.path-board-hint');
   if (!hint && wrap.parentNode) {
     hint = document.createElement('p');
@@ -64,22 +80,25 @@ LQ.renderLearningPath = function () {
     wrap.parentNode.insertBefore(hint, wrap);
   }
   if (hint) {
-    hint.textContent = LQ.isWebDesktop && LQ.isWebDesktop()
-      ? 'Five chapters · scroll horizontally · click a lesson card to start'
-      : '';
+    hint.textContent =
+      LQ.isWebDesktop && LQ.isWebDesktop()
+        ? '13 lists from Word Lists.pdf · scroll horizontally · each group is a lesson'
+        : '';
     hint.style.display = LQ.isWebDesktop && LQ.isWebDesktop() ? 'block' : 'none';
   }
-  const H = LQ.H;
-  let html = '';
+  var H = LQ.H;
+  var html = '';
   LQ.CHAPTERS.forEach(function (ch) {
-    const lessons = LQ.lessonsForChapter(ch.id);
-    const done = lessons.filter(function (l) {
+    var lessons = LQ.lessonsForChapter(ch.id);
+    var done = lessons.filter(function (l) {
       return LQ.S.lessonProgress[l.id];
     }).length;
-    const pct = lessons.length ? Math.round((done / lessons.length) * 100) : 0;
+    var pct = lessons.length ? Math.round((done / lessons.length) * 100) : 0;
     html +=
-      '<article class="kanban-col" data-chapter="' +
+      '<article class="kanban-col kanban-col-list" data-chapter="' +
       ch.id +
+      '" data-list-color="' +
+      (ch.color || 'lavender') +
       '">' +
       '<header class="kanban-col-head">' +
       '<span class="kanban-col-icon" aria-hidden="true">' +
@@ -118,22 +137,27 @@ LQ.renderLearningPath = function () {
       H +
       ' class="kanban-col-cards">';
     lessons.forEach(function (les, li) {
-      const unlocked = LQ.isLessonUnlocked(les.id);
-      const complete = !!LQ.S.lessonProgress[les.id];
-      const cls = complete ? 'done' : unlocked ? 'active' : 'locked';
-      const badge = complete ? 'Done' : unlocked ? 'Start' : 'Locked';
+      var unlocked = LQ.isLessonUnlocked(les.id);
+      var complete = !!LQ.S.lessonProgress[les.id];
+      var cls = complete ? 'done' : unlocked ? 'active' : 'locked';
+      var badge = complete ? 'Done' : unlocked ? 'Start' : 'Locked';
       html +=
         '<button type="button" class="kanban-lesson ' +
         cls +
+        '" title="' +
+        LQ.esc(les.fullTitle || les.title) +
         '" ' +
         (unlocked ? 'onclick="LQ.startLesson(\'' + les.id + '\')"' : 'disabled') +
         '>' +
         '<span class="kanban-lesson-num">' +
-        (complete ? '\u2713' : String(li + 1)) +
+        (complete ? '\u2713' : 'G' + les.groupNum) +
         '</span>' +
         '<span class="kanban-lesson-name">' +
-        LQ.esc(les.title) +
+        LQ.esc(les.title.replace(/^G\d+\s·\s/, '')) +
         '</span>' +
+        '<span class="kanban-lesson-meta">' +
+        les.wordCount +
+        'w</span>' +
         '<span class="kanban-lesson-badge">' +
         badge +
         '</span></button>';
@@ -141,13 +165,23 @@ LQ.renderLearningPath = function () {
     html += '</' + H + '></article>';
   });
   wrap.innerHTML = html;
-  const commit = document.getElementById('commit-banner');
+  var commit = document.getElementById('commit-banner');
   if (commit && LQ.S.commitmentDays) {
-    const start = LQ.S.commitmentStart ? new Date(LQ.S.commitmentStart) : new Date();
-    const elapsed = Math.floor((Date.now() - start.getTime()) / 86400000) + 1;
+    var start = LQ.S.commitmentStart ? new Date(LQ.S.commitmentStart) : new Date();
+    var elapsed = Math.floor((Date.now() - start.getTime()) / 86400000) + 1;
     commit.innerHTML =
       '<span class="commit-icon">🎯</span>' +
-      '<' + LQ.H + '><strong>' + LQ.S.commitmentDays + '-day goal</strong><br>Day ' + Math.min(elapsed, LQ.S.commitmentDays) + ' of ' + LQ.S.commitmentDays + '</' + LQ.H + '>';
+      '<' +
+      LQ.H +
+      '><strong>' +
+      LQ.S.commitmentDays +
+      '-day goal</strong><br>Day ' +
+      Math.min(elapsed, LQ.S.commitmentDays) +
+      ' of ' +
+      LQ.S.commitmentDays +
+      '</' +
+      LQ.H +
+      '>';
     commit.style.display = 'flex';
   }
 };
@@ -159,6 +193,12 @@ LQ.startLesson = function (lessonId) {
   }
   LQ._lessonId = lessonId;
   LQ._lessonWords = LQ.wordsForLesson(lessonId);
+  if (!LQ._lessonWords.length) {
+    LQ.toast('No words in this group');
+    return;
+  }
+  var hit = LQ.findGroup(lessonId);
+  LQ._lessonTitle = hit ? hit.group.title : 'Lesson';
   LQ._lessonPhase = 'learn';
   LQ._learnIdx = 0;
   LQ._exIdx = 0;
@@ -170,27 +210,37 @@ LQ.startLesson = function (lessonId) {
 };
 
 LQ.buildLessonExercises = function (words) {
-  const ex = [];
-  words.forEach((w, i) => {
-    if (i % 3 === 0) ex.push({ type: 'match', words: words.slice(i, i + 3).length >= 3 ? words.slice(i, i + 3) : words });
+  var ex = [];
+  words.forEach(function (w, i) {
+    if (i % 3 === 0)
+      ex.push({
+        type: 'match',
+        words: words.slice(i, i + 3).length >= 3 ? words.slice(i, i + 3) : words,
+      });
     else if (i % 3 === 1) ex.push({ type: 'mcq', word: w, mode: 'def' });
     else ex.push({ type: 'mcq', word: w, mode: 'word' });
   });
-  return ex.slice(0, Math.max(4, Math.min(6, words.length + 1)));
+  return ex.slice(0, Math.max(4, Math.min(8, words.length + 1)));
 };
 
 LQ.renderLessonScreen = function () {
-  const wrap = document.getElementById('lesson-wrap');
-  const prog = document.getElementById('lesson-prog-fill');
-  const hearts = document.getElementById('lesson-hearts');
+  var wrap = document.getElementById('lesson-wrap');
+  var prog = document.getElementById('lesson-prog-fill');
+  var hearts = document.getElementById('lesson-hearts');
   if (!wrap) return;
-  const total = LQ._lessonWords.length + LQ._exercises.length;
-  let current = LQ._learnIdx;
+  var label = document.getElementById('lesson-group-label');
+  if (label) label.textContent = LQ._lessonTitle || '';
+  var total = LQ._lessonWords.length + LQ._exercises.length;
+  var current = LQ._learnIdx;
   if (LQ._lessonPhase === 'practice') current = LQ._lessonWords.length + LQ._exIdx;
   if (LQ._lessonPhase === 'tip') current = total - 1;
   if (prog) prog.style.width = Math.round((current / total) * 100) + '%';
   if (hearts) {
-    hearts.innerHTML = [0, 1, 2].map((i) => '<span class="heart ' + (i >= LQ._lessonHearts ? 'dead' : '') + '">❤️</span>').join('');
+    hearts.innerHTML = [0, 1, 2]
+      .map(function (i) {
+        return '<span class="heart ' + (i >= LQ._lessonHearts ? 'dead' : '') + '">❤️</span>';
+      })
+      .join('');
   }
 
   if (LQ._lessonPhase === 'learn') {
@@ -205,7 +255,7 @@ LQ.renderLessonScreen = function () {
 };
 
 LQ.renderLearnSlide = function (wrap) {
-  const w = LQ._lessonWords[LQ._learnIdx];
+  var w = LQ._lessonWords[LQ._learnIdx];
   if (!w) {
     LQ._lessonPhase = 'practice';
     LQ._exIdx = 0;
@@ -213,15 +263,27 @@ LQ.renderLearnSlide = function (wrap) {
     return;
   }
   wrap.innerHTML =
-    '<p class="lesson-phase-label">Learn</p>' +
-    '<' + LQ.H + ' class="learn-card">' +
+    '<p class="lesson-phase-label">Learn · ' + LQ.esc(LQ._lessonTitle || '') + '</p>' +
+    '<' +
+    LQ.H +
+    ' class="learn-card">' +
     '<span class="learn-badge">New word</span>' +
-    '<h2 class="learn-word">' + w.word + '</h2>' +
-    '<p class="learn-phon">' + w.phonetic + ' · ' + w.pos + '</p>' +
-    '<p class="learn-def">' + w.def + '</p>' +
-    '<p class="learn-ex">"' + w.example + '"</p>' +
-    '<' + LQ.H + ' class="learn-syn"><strong>Synonyms:</strong> ' + w.syn + '</' + LQ.H + '>' +
-    '</' + LQ.H + '>' +
+    '<h2 class="learn-word">' +
+    LQ.esc(w.word) +
+    '</h2>' +
+    (w.phonetic ? '<p class="learn-phon">' + LQ.esc(w.phonetic) + ' · ' + LQ.esc(w.pos) + '</p>' : '') +
+    '<p class="learn-def">' +
+    w.def +
+    '</p>' +
+    '<p class="learn-ex">"' +
+    w.example +
+    '"</p>' +
+    (w.syn
+      ? '<' + LQ.H + ' class="learn-syn"><strong>Synonyms:</strong> ' + LQ.esc(w.syn) + '</' + LQ.H + '>'
+      : '') +
+    '</' +
+    LQ.H +
+    '>' +
     '<button class="lesson-cta" onclick="LQ.advanceLearn()">Got it →</button>';
 };
 
@@ -235,19 +297,26 @@ LQ.advanceLearn = function () {
 };
 
 LQ.renderTipSlide = function (wrap) {
-  const tip = LQ.EXAM_TIPS[Math.floor(Math.random() * LQ.EXAM_TIPS.length)];
+  var tip = LQ.EXAM_TIPS[Math.floor(Math.random() * LQ.EXAM_TIPS.length)];
   wrap.innerHTML =
     '<p class="lesson-phase-label">Exam insight</p>' +
-    '<' + LQ.H + ' class="tip-card">' +
+    '<' +
+    LQ.H +
+    ' class="tip-card">' +
     '<span class="tip-illus">💡</span>' +
-    '<h3>' + tip.title + '</h3>' +
-    '<p>' + tip.body + '</p>' +
-    '</' + LQ.H + '>' +
+    '<h3>' +
+    tip.title +
+    '</h3>' +
+    '<p>' +
+    tip.body +
+    '</p></' +
+    LQ.H +
+    '>' +
     '<button class="lesson-cta" onclick="LQ.finishLesson()">Finish lesson</button>';
 };
 
 LQ.renderExercise = function (wrap) {
-  const ex = LQ._exercises[LQ._exIdx];
+  var ex = LQ._exercises[LQ._exIdx];
   if (!ex) {
     LQ._lessonPhase = 'tip';
     LQ.renderLessonScreen();
@@ -261,32 +330,64 @@ LQ.renderExercise = function (wrap) {
 };
 
 LQ.renderMcqExercise = function (wrap, ex) {
-  const w = ex.word;
-  const pool = LQ.shuffle(LQ.getWords().filter((x) => x.word !== w.word)).slice(0, 3);
-  const opts = LQ.shuffle(pool.concat([w]));
-  const question = ex.mode === 'def' ? 'What does <strong>' + LQ.esc(w.word) + '</strong> mean?' : 'Which word matches this definition?';
-  const prompt = ex.mode === 'def' ? '' : '<p class="lesson-prompt-def">' + LQ.esc(w.def) + '</p>';
+  var w = ex.word;
+  var pool = LQ.shuffle(
+    LQ.getWords()
+      .filter(function (x) {
+        return x.word !== w.word && x.def;
+      })
+      .slice(0, 40)
+  ).slice(0, 3);
+  while (pool.length < 3) {
+    pool.push({
+      word: '—',
+      def: 'No distractor',
+    });
+  }
+  var opts = LQ.shuffle(pool.concat([w]));
+  var question =
+    ex.mode === 'def'
+      ? 'What does <strong>' + LQ.esc(w.word) + '</strong> mean?'
+      : 'Which word matches this definition?';
+  var prompt = ex.mode === 'def' ? '' : '<p class="lesson-prompt-def">' + w.def + '</p>';
   wrap.innerHTML =
     '<p class="lesson-phase-label">Practice</p>' +
-    '<p class="lesson-question">' + question + '</p>' + prompt +
-    opts.map((o, i) => {
-      const label = ex.mode === 'def' ? o.def : o.word;
-      return '<button type="button" class="lesson-opt" onclick="LQ.answerLessonMcq(' + i + ')">' + LQ.esc(label) + '</button>';
-    }).join('') +
-    '<' + LQ.H + ' class="lesson-feedback" id="lesson-fb"></' + LQ.H + '>';
+    '<p class="lesson-question">' +
+    question +
+    '</p>' +
+    prompt +
+    opts
+      .map(function (o, i) {
+        var label = ex.mode === 'def' ? o.def : o.word;
+        return (
+          '<button type="button" class="lesson-opt" onclick="LQ.answerLessonMcq(' +
+          i +
+          ')">' +
+          LQ.esc(label) +
+          '</button>'
+        );
+      })
+      .join('') +
+    '<' +
+    LQ.H +
+    ' class="lesson-feedback" id="lesson-fb"></' +
+    LQ.H +
+    '>';
   LQ._currentOpts = opts;
   LQ._currentWord = w;
   LQ._currentMode = ex.mode;
 };
 
 LQ.answerLessonMcq = function (idx) {
-  const fb = document.getElementById('lesson-fb');
-  const correct = LQ._currentOpts[idx].word === LQ._currentWord.word;
+  var fb = document.getElementById('lesson-fb');
+  var correct = LQ._currentOpts[idx].word === LQ._currentWord.word;
   if (fb) {
     fb.className = 'lesson-feedback show ' + (correct ? 'ok' : 'fail');
     fb.textContent = correct ? 'Correct!' : 'Answer: ' + LQ._currentWord.word;
   }
-  document.querySelectorAll('.lesson-opt').forEach((b) => (b.disabled = true));
+  document.querySelectorAll('.lesson-opt').forEach(function (b) {
+    b.disabled = true;
+  });
   if (correct) {
     LQ._lessonXp += 15;
     LQ.scheduleSrs(LQ._currentWord.word, 'good');
@@ -300,29 +401,68 @@ LQ.answerLessonMcq = function (idx) {
       return;
     }
   }
-  setTimeout(function () {
-    LQ._exIdx++;
-    LQ.renderLessonScreen();
-  }, correct ? 600 : 1000);
+  setTimeout(
+    function () {
+      LQ._exIdx++;
+      LQ.renderLessonScreen();
+    },
+    correct ? 600 : 1000
+  );
 };
 
 LQ.renderMatchExercise = function (wrap, ex) {
-  const words = ex.words.slice(0, 4);
+  var words = ex.words.slice(0, 4);
   LQ._matchWords = words;
   LQ._matchSelected = null;
   LQ._matchPairs = 0;
-  const defs = LQ.shuffle(words.map((w) => ({ id: w.word, text: w.def })));
+  var defs = LQ.shuffle(
+    words.map(function (w) {
+      return { id: w.word, text: w.def };
+    })
+  );
   wrap.innerHTML =
     '<p class="lesson-phase-label">Match pairs</p>' +
     '<p class="lesson-question">Tap a word, then its definition</p>' +
-    '<' + LQ.H + ' class="match-grid">' +
-    '<' + LQ.H + ' class="match-col" id="match-words">' +
-    words.map((w) => '<button type="button" class="match-tile" data-side="word" data-id="' + LQ.esc(w.word) + '">' + LQ.esc(w.word) + '</button>').join('') +
-    '</' + LQ.H + '>' +
-    '<' + LQ.H + ' class="match-col" id="match-defs">' +
-    defs.map((d) => '<button type="button" class="match-tile" data-side="def" data-id="' + LQ.esc(d.id) + '">' + LQ.esc(d.text) + '</button>').join('') +
-    '</' + LQ.H + '></' + LQ.H + '>';
-  wrap.querySelectorAll('.match-tile').forEach((btn) => {
+    '<' +
+    LQ.H +
+    ' class="match-grid">' +
+    '<' +
+    LQ.H +
+    ' class="match-col" id="match-words">' +
+    words
+      .map(function (w) {
+        return (
+          '<button type="button" class="match-tile" data-side="word" data-id="' +
+          LQ.esc(w.word) +
+          '">' +
+          LQ.esc(w.word) +
+          '</button>'
+        );
+      })
+      .join('') +
+    '</' +
+    LQ.H +
+    '>' +
+    '<' +
+    LQ.H +
+    ' class="match-col" id="match-defs">' +
+    defs
+      .map(function (d) {
+        return (
+          '<button type="button" class="match-tile" data-side="def" data-id="' +
+          LQ.esc(d.id) +
+          '">' +
+          LQ.esc(d.text) +
+          '</button>'
+        );
+      })
+      .join('') +
+    '</' +
+    LQ.H +
+    '></' +
+    LQ.H +
+    '>';
+  wrap.querySelectorAll('.match-tile').forEach(function (btn) {
     btn.onclick = function () {
       LQ.onMatchTap(btn);
     };
@@ -331,20 +471,20 @@ LQ.renderMatchExercise = function (wrap, ex) {
 
 LQ.onMatchTap = function (btn) {
   if (btn.classList.contains('matched')) return;
-  const side = btn.dataset.side;
-  const id = btn.dataset.id;
+  var side = btn.dataset.side;
+  var id = btn.dataset.id;
   if (!LQ._matchSelected) {
-    LQ._matchSelected = { side, id, el: btn };
+    LQ._matchSelected = { side: side, id: id, el: btn };
     btn.classList.add('selected');
     return;
   }
   if (LQ._matchSelected.side === side) {
     LQ._matchSelected.el.classList.remove('selected');
-    LQ._matchSelected = { side, id, el: btn };
+    LQ._matchSelected = { side: side, id: id, el: btn };
     btn.classList.add('selected');
     return;
   }
-  const match = LQ._matchSelected.id === id && LQ._matchSelected.side !== side;
+  var match = LQ._matchSelected.id === id && LQ._matchSelected.side !== side;
   if (match) {
     btn.classList.add('matched');
     LQ._matchSelected.el.classList.add('matched');
@@ -372,7 +512,7 @@ LQ.onMatchTap = function (btn) {
 LQ.finishLesson = function () {
   LQ.S.lessonProgress = LQ.S.lessonProgress || {};
   LQ.S.lessonProgress[LQ._lessonId] = true;
-  const bonus = 40 + LQ._lessonXp;
+  var bonus = 40 + LQ._lessonXp;
   LQ.S.xp += bonus;
   LQ.S.leagueXp = (LQ.S.leagueXp || 0) + bonus;
   if (LQ.S.xp >= LQ.S.xpMax) {
@@ -391,7 +531,7 @@ LQ.finishLesson = function () {
     LQ.renderLearningPath();
   };
   LQ.showLessonComplete(bonus, {
-    title: 'Lesson complete!',
-    sub: 'You unlocked the next step on your path.',
+    title: 'Group complete!',
+    sub: LQ._lessonTitle ? 'Finished: ' + LQ._lessonTitle : 'Next group unlocked.',
   });
 };

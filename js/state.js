@@ -45,6 +45,8 @@ LQ.defaultState = function () {
     commitmentDays: 14,
     commitmentStart: null,
     tutorHistory: [],
+    /** Browser only: auto | phone | web */
+    browserLayout: 'auto',
   };
 };
 
@@ -132,6 +134,7 @@ LQ.saveState = function (S) {
         commitmentDays: s.commitmentDays,
         commitmentStart: s.commitmentStart,
         tutorHistory: s.tutorHistory || [],
+        browserLayout: s.browserLayout || 'auto',
       })
     );
     if (LQ.Firebase && LQ.Firebase.sync) LQ.Firebase.sync();

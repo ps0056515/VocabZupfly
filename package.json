@@ -5,6 +5,7 @@
   "scripts": {
     "copy:web": "node scripts/copy-to-www.js",
     "copy:fonts": "node scripts/copy-fonts.js",
+    "parse:words": "python scripts/parse-word-lists-pdf.py",
     "prepare:web": "npm run copy:web && npm run copy:fonts",
     "assets:android": "npx capacitor-assets generate --iconBackgroundColor \"#0D0D0D\" --splashBackgroundColor \"#0D0D0D\" --android",
     "cap:sync": "npm run prepare:web && npx cap sync",

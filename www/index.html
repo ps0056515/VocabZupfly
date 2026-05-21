@@ -754,6 +754,31 @@ body.native-app .status-bar{
 .home-title{display:none}
 body.web-desktop .home-title{display:block}
 
+/* Browser layout switcher (home top bar) */
+body.native-app .layout-switcher{display:none!important}
+.home-topbar-actions{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.layout-switcher{
+  display:flex;align-items:center;gap:2px;
+  background:rgba(255,255,255,.12);border-radius:10px;padding:3px;
+  flex-shrink:0;
+}
+body.web-desktop .layout-switcher{background:rgba(0,0,0,.06)}
+.layout-btn{
+  border:none;background:transparent;color:rgba(255,255,255,.75);
+  font-family:var(--body);font-size:10px;font-weight:700;
+  padding:6px 10px;border-radius:8px;cursor:pointer;
+  letter-spacing:.3px;text-transform:uppercase;
+  transition:background .15s,color .15s;
+}
+body.web-desktop .layout-btn{color:var(--muted)}
+.layout-btn:hover{background:rgba(255,255,255,.1)}
+body.web-desktop .layout-btn:hover{background:rgba(0,0,0,.06)}
+.layout-btn.active{
+  background:#fff;color:var(--ink);
+  box-shadow:0 1px 6px rgba(0,0,0,.12);
+}
+body.web-desktop .layout-btn.active{background:var(--ink);color:#fff}
+
 .section-hd.light h2{color:var(--ink)}
 .home-body.air-body{background:#F5F3EE;padding-bottom:100px}
 
@@ -763,6 +788,7 @@ body.web-desktop .home-title{display:block}
 .lesson-prog{flex:1;height:8px;background:rgba(0,0,0,.08);border-radius:99px;overflow:hidden}
 .lesson-prog-fill{height:100%;background:linear-gradient(90deg,var(--lime),var(--sky));border-radius:99px;transition:width .35s ease;width:0}
 .lesson-hearts{display:flex;gap:2px}
+.lesson-group-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);padding:0 20px 4px;margin:0}
 .lesson-wrap{padding:12px 20px 24px;flex:1}
 .lesson-phase-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:12px}
 .learn-card{background:#fff;border-radius:24px;padding:24px 20px;box-shadow:0 4px 24px rgba(0,0,0,.06);margin-bottom:20px}
@@ -895,7 +921,7 @@ body.native-app .mobile-only-ui{display:block}
 body.native-app .desktop-only-ui{display:none!important}
 
 </style>
-<link rel="stylesheet" href="css/kanban.css?v=20260519g">
+<link rel="stylesheet" href="css/kanban.css?v=20260520a">
 <link rel="stylesheet" href="css/desktop.css?v=20260519g">
 </head>
 <body>
@@ -1184,6 +1210,7 @@ body.native-app .desktop-only-ui{display:none!important}
             <div class="lesson-prog"><div class="lesson-prog-fill" id="lesson-prog-fill"></div></div>
             <div class="lesson-hearts" id="lesson-hearts"></div>
           </div>
+          <p class="lesson-group-label" id="lesson-group-label"></p>
           <div class="lesson-wrap" id="lesson-wrap"></div>
         </div>
 
@@ -1294,23 +1321,23 @@ body.native-app .desktop-only-ui{display:none!important}
 
 
 <script src="js/config.js?v=20260519f"></script>
-<script src="js/platform.js?v=20260519f"></script>
+<script src="js/platform.js?v=20260519h"></script>
 <script src="js/unlock.js?v=20260519f"></script>
-<script src="js/words.js?v=20260519f"></script>
+<script src="js/words.js?v=20260520a"></script>
 <script src="js/srs.js?v=20260519f"></script>
 <script src="js/streak.js?v=20260519f"></script>
-<script src="js/state.js?v=20260519f"></script>
-<script src="js/core.js?v=20260519f"></script>
+<script src="js/state.js?v=20260520b"></script>
+<script src="js/core.js?v=20260520b"></script>
 <script src="js/ai.js?v=20260519f"></script>
 <script src="js/speech.js?v=20260519f"></script>
 <script src="js/firebase-sync.js?v=20260519f"></script>
 <script src="js/notifications.js?v=20260519f"></script>
 <script src="js/celebrate.js?v=20260519f"></script>
-<script src="js/lessons.js?v=20260519g"></script>
-<script src="js/features.js?v=20260519f"></script>
+<script src="js/lessons.js?v=20260520a"></script>
+<script src="js/features.js?v=20260519h"></script>
 <script src="js/tutor.js?v=20260519f"></script>
 <script src="js/study.js?v=20260519f"></script>
-<script src="js/boot.js?v=20260519f"></script>
+<script src="js/boot.js?v=20260520b"></script>
 <script src="js/native-bridge.js?v=20260519f"></script>
 </body>
 </html>

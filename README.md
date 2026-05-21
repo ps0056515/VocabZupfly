@@ -9,4 +9,4 @@ Vocabulary trainer for GRE, GMAT, and IELTS.
 
 **Workflow:** Edit `lexiquest.html` → `npm run android` (copies to `www/`, fonts, sync, opens Android Studio).
 
-**Go live:** [GO-LIVE.md](./GO-LIVE.md) · Privacy policy: `www/privacy-policy.html`
+**Deploy to a server:** [DEPLOYMENT.md](./DEPLOYMENT.md) · **Go live (Play Store):** [GO-LIVE.md](./GO-LIVE.md) · Privacy policy: `www/privacy-policy.html`
