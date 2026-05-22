@@ -1,11 +1,11 @@
 {
   "source": "Word Lists.pdf",
-  "version": 1,
+  "version": 2,
   "listCount": 13,
   "groupCount": 293,
-  "wordCount": 1541,
-  "uniqueWords": 1521,
-  "stubCount": 1282,
+  "wordCount": 1561,
+  "uniqueWords": 1541,
+  "stubCount": 1302,
   "lists": [
     {
       "id": "list-1",
@@ -33,6 +33,11 @@
               "word": "Foresight",
               "index": 3,
               "role": "normal"
+            },
+            {
+              "word": "Foresee",
+              "index": 3,
+              "role": "variant"
             },
             {
               "word": "Foretell",
@@ -178,6 +183,11 @@
               "role": "normal"
             },
             {
+              "word": "Enlightenment",
+              "index": 3,
+              "role": "variant"
+            },
+            {
               "word": "Pundit",
               "index": 4,
               "role": "normal"
@@ -186,6 +196,11 @@
               "word": "Refined",
               "index": 5,
               "role": "normal"
+            },
+            {
+              "word": "Refinement",
+              "index": 5,
+              "role": "variant"
             }
           ]
         },
@@ -548,9 +563,19 @@
               "role": "normal"
             },
             {
+              "word": "Elusive",
+              "index": 4,
+              "role": "variant"
+            },
+            {
               "word": "Evade",
               "index": 5,
               "role": "normal"
+            },
+            {
+              "word": "Evasive",
+              "index": 5,
+              "role": "variant"
             },
             {
               "word": "Shirk",
@@ -2120,6 +2145,11 @@
               "role": "normal"
             },
             {
+              "word": "Detachment",
+              "index": 1,
+              "role": "variant"
+            },
+            {
               "word": "Disinterested",
               "index": 2,
               "role": "normal"
@@ -2172,12 +2202,22 @@
               "role": "normal"
             },
             {
+              "word": "Frivolity",
+              "index": 3,
+              "role": "variant"
+            },
+            {
               "word": "Levity",
               "index": 4,
               "role": "normal"
             },
             {
               "word": "Grave",
+              "index": 5,
+              "role": "antonym"
+            },
+            {
+              "word": "Gravity",
               "index": 5,
               "role": "antonym"
             }
@@ -2494,6 +2534,11 @@
               "word": "Discontinue",
               "index": 4,
               "role": "normal"
+            },
+            {
+              "word": "Discontinuity",
+              "index": 4,
+              "role": "variant"
             },
             {
               "word": "Terminate",
@@ -2919,6 +2964,11 @@
               "role": "normal"
             },
             {
+              "word": "Ardent",
+              "index": 1,
+              "role": "variant"
+            },
+            {
               "word": "Avid",
               "index": 2,
               "role": "normal"
@@ -2949,6 +2999,11 @@
               "role": "normal"
             },
             {
+              "word": "Fervor",
+              "index": 7,
+              "role": "variant"
+            },
+            {
               "word": "Impassioned",
               "index": 8,
               "role": "normal"
@@ -2962,6 +3017,11 @@
               "word": "Zealous",
               "index": 10,
               "role": "normal"
+            },
+            {
+              "word": "Zest",
+              "index": 10,
+              "role": "variant"
             },
             {
               "word": "Dampen",
@@ -4004,6 +4064,11 @@
               "role": "normal"
             },
             {
+              "word": "Ambition",
+              "index": 1,
+              "role": "variant"
+            },
+            {
               "word": "Aspiration",
               "index": 2,
               "role": "normal"
@@ -4604,6 +4669,11 @@
               "role": "normal"
             },
             {
+              "word": "Testimony",
+              "index": 6,
+              "role": "variant"
+            },
+            {
               "word": "Validate",
               "index": 7,
               "role": "normal"
@@ -4728,6 +4798,11 @@
               "word": "Pre-Eminent",
               "index": 3,
               "role": "normal"
+            },
+            {
+              "word": "Preeminence",
+              "index": 3,
+              "role": "variant"
             },
             {
               "word": "Stature",
@@ -7613,6 +7688,11 @@
               "role": "normal"
             },
             {
+              "word": "Ironic",
+              "index": 1,
+              "role": "variant"
+            },
+            {
               "word": "Paradox",
               "index": 2,
               "role": "normal"
@@ -8708,6 +8788,11 @@
               "role": "normal"
             },
             {
+              "word": "Allusion",
+              "index": 1,
+              "role": "variant"
+            },
+            {
               "word": "Implicit",
               "index": 2,
               "role": "normal"
@@ -8797,6 +8882,11 @@
               "word": "Candid",
               "index": 1,
               "role": "normal"
+            },
+            {
+              "word": "Candor",
+              "index": 1,
+              "role": "variant"
             },
             {
               "word": "Forthright",
@@ -9422,6 +9512,11 @@
               "role": "normal"
             },
             {
+              "word": "Impediment",
+              "index": 7,
+              "role": "variant"
+            },
+            {
               "word": "Inhibit",
               "index": 8,
               "role": "normal"
@@ -9622,6 +9717,11 @@
               "word": "Allege",
               "index": 1,
               "role": "normal"
+            },
+            {
+              "word": "Allegation",
+              "index": 1,
+              "role": "variant"
             },
             {
               "word": "Implicate",

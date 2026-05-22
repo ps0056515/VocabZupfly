@@ -1137,6 +1137,27 @@
     "groupRole": "normal"
   },
   {
+    "word": "Allegation",
+    "phonetic": "",
+    "pos": "word",
+    "def": "Vocabulary word from List 13 · TO BLAME/ ACCUSE/CHARGE.",
+    "example": "Study <em>allegation</em> in context — group: TO BLAME/ ACCUSE/CHARGE.",
+    "syn": "",
+    "ant": "",
+    "tags": [
+      "GRE",
+      "GMAT",
+      "IELTS"
+    ],
+    "premium": false,
+    "stub": true,
+    "list": 13,
+    "listId": "list-13",
+    "group": "L13-G14",
+    "groupTitle": "TO BLAME/ ACCUSE/CHARGE",
+    "groupRole": "variant"
+  },
+  {
     "word": "Allege",
     "phonetic": "",
     "pos": "word",
@@ -1217,6 +1238,27 @@
     "group": "L11-G11",
     "groupTitle": "TEMPT (-)",
     "groupRole": "normal"
+  },
+  {
+    "word": "Allusion",
+    "phonetic": "",
+    "pos": "word",
+    "def": "Vocabulary word from List 12 · HINT/INDIRECT REFERENCE.",
+    "example": "Study <em>allusion</em> in context — group: HINT/INDIRECT REFERENCE.",
+    "syn": "",
+    "ant": "",
+    "tags": [
+      "GRE",
+      "GMAT",
+      "IELTS"
+    ],
+    "premium": false,
+    "stub": true,
+    "list": 12,
+    "listId": "list-12",
+    "group": "L12-G6",
+    "groupTitle": "HINT/INDIRECT REFERENCE",
+    "groupRole": "variant"
   },
   {
     "word": "Ally",
@@ -1340,6 +1382,27 @@
     "group": "L5-G13",
     "groupTitle": "UNCLEAR IN MEANING",
     "groupRole": "normal"
+  },
+  {
+    "word": "Ambition",
+    "phonetic": "",
+    "pos": "word",
+    "def": "Vocabulary word from List 5 · COMPETITIVENESS.",
+    "example": "Study <em>ambition</em> in context — group: COMPETITIVENESS.",
+    "syn": "",
+    "ant": "",
+    "tags": [
+      "GRE",
+      "GMAT",
+      "IELTS"
+    ],
+    "premium": false,
+    "stub": true,
+    "list": 5,
+    "listId": "list-5",
+    "group": "L5-G26",
+    "groupTitle": "COMPETITIVENESS",
+    "groupRole": "variant"
   },
   {
     "word": "Ambitious",
@@ -2171,6 +2234,27 @@
     "group": "L11-G13",
     "groupTitle": "BEST EXAMPLE",
     "groupRole": "normal"
+  },
+  {
+    "word": "Ardent",
+    "phonetic": "",
+    "pos": "word",
+    "def": "Vocabulary word from List 4 · ENTHUSIASTIC/ EXCITED.",
+    "example": "Study <em>ardent</em> in context — group: ENTHUSIASTIC/ EXCITED.",
+    "syn": "",
+    "ant": "",
+    "tags": [
+      "GRE",
+      "GMAT",
+      "IELTS"
+    ],
+    "premium": false,
+    "stub": true,
+    "list": 4,
+    "listId": "list-4",
+    "group": "L4-G12",
+    "groupTitle": "ENTHUSIASTIC/ EXCITED",
+    "groupRole": "variant"
   },
   {
     "word": "Ardor",
@@ -4189,6 +4273,27 @@
     "group": "L12-G9",
     "groupTitle": "FRANK",
     "groupRole": "normal"
+  },
+  {
+    "word": "Candor",
+    "phonetic": "",
+    "pos": "word",
+    "def": "Vocabulary word from List 12 · FRANK.",
+    "example": "Study <em>candor</em> in context — group: FRANK.",
+    "syn": "",
+    "ant": "",
+    "tags": [
+      "GRE",
+      "GMAT",
+      "IELTS"
+    ],
+    "premium": false,
+    "stub": true,
+    "list": 12,
+    "listId": "list-12",
+    "group": "L12-G9",
+    "groupTitle": "FRANK",
+    "groupRole": "variant"
   },
   {
     "word": "Canons",
@@ -8165,6 +8270,27 @@
     "groupRole": "normal"
   },
   {
+    "word": "Detachment",
+    "phonetic": "",
+    "pos": "word",
+    "def": "Vocabulary word from List 3 · UNBIASED/ IMPARTIAL.",
+    "example": "Study <em>detachment</em> in context — group: UNBIASED/ IMPARTIAL.",
+    "syn": "",
+    "ant": "",
+    "tags": [
+      "GRE",
+      "GMAT",
+      "IELTS"
+    ],
+    "premium": false,
+    "stub": true,
+    "list": 3,
+    "listId": "list-3",
+    "group": "L3-G14",
+    "groupTitle": "UNBIASED/ IMPARTIAL",
+    "groupRole": "variant"
+  },
+  {
     "word": "Deter",
     "phonetic": "",
     "pos": "word",
@@ -8743,6 +8869,27 @@
     "group": "L4-G3",
     "groupTitle": "END/STOP",
     "groupRole": "normal"
+  },
+  {
+    "word": "Discontinuity",
+    "phonetic": "",
+    "pos": "word",
+    "def": "Vocabulary word from List 4 · END/STOP.",
+    "example": "Study <em>discontinuity</em> in context — group: END/STOP.",
+    "syn": "",
+    "ant": "",
+    "tags": [
+      "GRE",
+      "GMAT",
+      "IELTS"
+    ],
+    "premium": false,
+    "stub": true,
+    "list": 4,
+    "listId": "list-4",
+    "group": "L4-G3",
+    "groupTitle": "END/STOP",
+    "groupRole": "variant"
   },
   {
     "word": "Discord",
@@ -10041,6 +10188,27 @@
     "groupRole": "normal"
   },
   {
+    "word": "Elusive",
+    "phonetic": "",
+    "pos": "word",
+    "def": "Vocabulary word from List 1 · AVOID/DODGE.",
+    "example": "Study <em>elusive</em> in context — group: AVOID/DODGE.",
+    "syn": "",
+    "ant": "",
+    "tags": [
+      "GRE",
+      "GMAT",
+      "IELTS"
+    ],
+    "premium": false,
+    "stub": true,
+    "list": 1,
+    "listId": "list-1",
+    "group": "L1-G15",
+    "groupTitle": "AVOID/DODGE",
+    "groupRole": "variant"
+  },
+  {
     "word": "Emancipate",
     "phonetic": "",
     "pos": "word",
@@ -10464,6 +10632,27 @@
     "group": "L1-G5",
     "groupTitle": "DETAILED KNOWLEDGE/ INTELLECTUAL",
     "groupRole": "normal"
+  },
+  {
+    "word": "Enlightenment",
+    "phonetic": "",
+    "pos": "word",
+    "def": "Vocabulary word from List 1 · DETAILED KNOWLEDGE/ INTELLECTUAL.",
+    "example": "Study <em>enlightenment</em> in context — group: DETAILED KNOWLEDGE/ INTELLECTUAL.",
+    "syn": "",
+    "ant": "",
+    "tags": [
+      "GRE",
+      "GMAT",
+      "IELTS"
+    ],
+    "premium": false,
+    "stub": true,
+    "list": 1,
+    "listId": "list-1",
+    "group": "L1-G5",
+    "groupTitle": "DETAILED KNOWLEDGE/ INTELLECTUAL",
+    "groupRole": "variant"
   },
   {
     "word": "Ennui",
@@ -11076,6 +11265,27 @@
     "group": "L4-G1",
     "groupTitle": "SHORT LIVED",
     "groupRole": "normal"
+  },
+  {
+    "word": "Evasive",
+    "phonetic": "",
+    "pos": "word",
+    "def": "Vocabulary word from List 1 · AVOID/DODGE.",
+    "example": "Study <em>evasive</em> in context — group: AVOID/DODGE.",
+    "syn": "",
+    "ant": "",
+    "tags": [
+      "GRE",
+      "GMAT",
+      "IELTS"
+    ],
+    "premium": false,
+    "stub": true,
+    "list": 1,
+    "listId": "list-1",
+    "group": "L1-G15",
+    "groupTitle": "AVOID/DODGE",
+    "groupRole": "variant"
   },
   {
     "word": "Evenhanded",
@@ -12125,6 +12335,27 @@
     "groupRole": "normal"
   },
   {
+    "word": "Fervor",
+    "phonetic": "",
+    "pos": "word",
+    "def": "Vocabulary word from List 4 · ENTHUSIASTIC/ EXCITED.",
+    "example": "Study <em>fervor</em> in context — group: ENTHUSIASTIC/ EXCITED.",
+    "syn": "",
+    "ant": "",
+    "tags": [
+      "GRE",
+      "GMAT",
+      "IELTS"
+    ],
+    "premium": false,
+    "stub": true,
+    "list": 4,
+    "listId": "list-4",
+    "group": "L4-G12",
+    "groupTitle": "ENTHUSIASTIC/ EXCITED",
+    "groupRole": "variant"
+  },
+  {
     "word": "Fetter",
     "phonetic": "",
     "pos": "word",
@@ -12683,6 +12914,27 @@
     "groupRole": "normal"
   },
   {
+    "word": "Foresee",
+    "phonetic": "",
+    "pos": "word",
+    "def": "Vocabulary word from List 1 · PREDICTION.",
+    "example": "Study <em>foresee</em> in context — group: PREDICTION.",
+    "syn": "",
+    "ant": "",
+    "tags": [
+      "GRE",
+      "GMAT",
+      "IELTS"
+    ],
+    "premium": false,
+    "stub": true,
+    "list": 1,
+    "listId": "list-1",
+    "group": "L1-G1",
+    "groupTitle": "PREDICTION",
+    "groupRole": "variant"
+  },
+  {
     "word": "Foreshadow",
     "phonetic": "",
     "pos": "word",
@@ -13035,6 +13287,27 @@
     "group": "L4-G10",
     "groupTitle": "UNIMPORTANT/ TRIVIAL",
     "groupRole": "normal"
+  },
+  {
+    "word": "Frivolity",
+    "phonetic": "",
+    "pos": "word",
+    "def": "Vocabulary word from List 3 · DISRESPECTFULLY CASUAL/ NON-SERIOUS.",
+    "example": "Study <em>frivolity</em> in context — group: DISRESPECTFULLY CASUAL/ NON-SERIOUS.",
+    "syn": "",
+    "ant": "",
+    "tags": [
+      "GRE",
+      "GMAT",
+      "IELTS"
+    ],
+    "premium": false,
+    "stub": true,
+    "list": 3,
+    "listId": "list-3",
+    "group": "L3-G15",
+    "groupTitle": "DISRESPECTFULLY CASUAL/ NON-SERIOUS",
+    "groupRole": "variant"
   },
   {
     "word": "Frivolous",
@@ -13541,6 +13814,27 @@
     "pos": "word",
     "def": "Vocabulary word from List 3 · DISRESPECTFULLY CASUAL/ NON-SERIOUS.",
     "example": "Study <em>grave</em> in context — group: DISRESPECTFULLY CASUAL/ NON-SERIOUS.",
+    "syn": "",
+    "ant": "opposite cluster",
+    "tags": [
+      "GRE",
+      "GMAT",
+      "IELTS"
+    ],
+    "premium": false,
+    "stub": true,
+    "list": 3,
+    "listId": "list-3",
+    "group": "L3-G15",
+    "groupTitle": "DISRESPECTFULLY CASUAL/ NON-SERIOUS",
+    "groupRole": "antonym"
+  },
+  {
+    "word": "Gravity",
+    "phonetic": "",
+    "pos": "word",
+    "def": "Vocabulary word from List 3 · DISRESPECTFULLY CASUAL/ NON-SERIOUS.",
+    "example": "Study <em>gravity</em> in context — group: DISRESPECTFULLY CASUAL/ NON-SERIOUS.",
     "syn": "",
     "ant": "opposite cluster",
     "tags": [
@@ -14686,6 +14980,27 @@
     "group": "L13-G8",
     "groupTitle": "RESTRICT/STOP/ PREVENT",
     "groupRole": "normal"
+  },
+  {
+    "word": "Impediment",
+    "phonetic": "",
+    "pos": "word",
+    "def": "Vocabulary word from List 13 · RESTRICT/STOP/ PREVENT.",
+    "example": "Study <em>impediment</em> in context — group: RESTRICT/STOP/ PREVENT.",
+    "syn": "",
+    "ant": "",
+    "tags": [
+      "GRE",
+      "GMAT",
+      "IELTS"
+    ],
+    "premium": false,
+    "stub": true,
+    "list": 13,
+    "listId": "list-13",
+    "group": "L13-G8",
+    "groupTitle": "RESTRICT/STOP/ PREVENT",
+    "groupRole": "variant"
   },
   {
     "word": "Imperative",
@@ -17136,6 +17451,27 @@
     "group": "L9-G12",
     "groupTitle": "TO IRRITATE/ MAKE ANGRY",
     "groupRole": "normal"
+  },
+  {
+    "word": "Ironic",
+    "phonetic": "",
+    "pos": "word",
+    "def": "Vocabulary word from List 10 · CONTRADICT ITSELF.",
+    "example": "Study <em>ironic</em> in context — group: CONTRADICT ITSELF.",
+    "syn": "",
+    "ant": "",
+    "tags": [
+      "GRE",
+      "GMAT",
+      "IELTS"
+    ],
+    "premium": false,
+    "stub": true,
+    "list": 10,
+    "listId": "list-10",
+    "group": "L10-G16",
+    "groupTitle": "CONTRADICT ITSELF",
+    "groupRole": "variant"
   },
   {
     "word": "Irony",
@@ -22430,6 +22766,27 @@
     "groupRole": "normal"
   },
   {
+    "word": "Preeminence",
+    "phonetic": "",
+    "pos": "word",
+    "def": "Vocabulary word from List 6 · FAMOUS/SUPERIOR.",
+    "example": "Study <em>preeminence</em> in context — group: FAMOUS/SUPERIOR.",
+    "syn": "",
+    "ant": "",
+    "tags": [
+      "GRE",
+      "GMAT",
+      "IELTS"
+    ],
+    "premium": false,
+    "stub": true,
+    "list": 6,
+    "listId": "list-6",
+    "group": "L6-G16",
+    "groupTitle": "FAMOUS/SUPERIOR",
+    "groupRole": "variant"
+  },
+  {
     "word": "Preempt",
     "phonetic": "",
     "pos": "word",
@@ -24347,6 +24704,27 @@
     "group": "L1-G5",
     "groupTitle": "DETAILED KNOWLEDGE/ INTELLECTUAL",
     "groupRole": "normal"
+  },
+  {
+    "word": "Refinement",
+    "phonetic": "",
+    "pos": "word",
+    "def": "Vocabulary word from List 1 · DETAILED KNOWLEDGE/ INTELLECTUAL.",
+    "example": "Study <em>refinement</em> in context — group: DETAILED KNOWLEDGE/ INTELLECTUAL.",
+    "syn": "",
+    "ant": "",
+    "tags": [
+      "GRE",
+      "GMAT",
+      "IELTS"
+    ],
+    "premium": false,
+    "stub": true,
+    "list": 1,
+    "listId": "list-1",
+    "group": "L1-G5",
+    "groupTitle": "DETAILED KNOWLEDGE/ INTELLECTUAL",
+    "groupRole": "variant"
   },
   {
     "word": "Reflect",
@@ -28735,6 +29113,27 @@
     "groupRole": "normal"
   },
   {
+    "word": "Testimony",
+    "phonetic": "",
+    "pos": "word",
+    "def": "Vocabulary word from List 6 · CONFIRM/ APPROVE.",
+    "example": "Study <em>testimony</em> in context — group: CONFIRM/ APPROVE.",
+    "syn": "",
+    "ant": "",
+    "tags": [
+      "GRE",
+      "GMAT",
+      "IELTS"
+    ],
+    "premium": false,
+    "stub": true,
+    "list": 6,
+    "listId": "list-6",
+    "group": "L6-G13",
+    "groupTitle": "CONFIRM/ APPROVE",
+    "groupRole": "variant"
+  },
+  {
     "word": "Testiness",
     "phonetic": "",
     "pos": "word",
@@ -31284,5 +31683,26 @@
     "group": "L4-G12",
     "groupTitle": "ENTHUSIASTIC/ EXCITED",
     "groupRole": "normal"
+  },
+  {
+    "word": "Zest",
+    "phonetic": "",
+    "pos": "word",
+    "def": "Vocabulary word from List 4 · ENTHUSIASTIC/ EXCITED.",
+    "example": "Study <em>zest</em> in context — group: ENTHUSIASTIC/ EXCITED.",
+    "syn": "",
+    "ant": "",
+    "tags": [
+      "GRE",
+      "GMAT",
+      "IELTS"
+    ],
+    "premium": false,
+    "stub": true,
+    "list": 4,
+    "listId": "list-4",
+    "group": "L4-G12",
+    "groupTitle": "ENTHUSIASTIC/ EXCITED",
+    "groupRole": "variant"
   }
 ]
