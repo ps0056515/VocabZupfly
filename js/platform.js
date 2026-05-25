@@ -26,6 +26,7 @@ LQ.setBrowserLayout = function (mode) {
   LQ.S.browserLayout = mode;
   LQ.saveState();
   LQ.applyPlatformUI();
+  if (LQ.syncHomeUI) LQ.syncHomeUI();
   if (LQ.toast) {
     var msg =
       mode === 'auto'
@@ -49,41 +50,19 @@ LQ.applyPlatformUI = function () {
   else if (desktop) body.classList.add('web-desktop');
   else body.classList.add('web-mobile');
 
+  body.classList.add('portal-theme');
+
   LQ.platform = native ? 'native' : desktop ? 'web-desktop' : 'web-mobile';
 
   var meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', desktop ? '#F5F3EE' : '#0D0D0D');
+  if (meta) meta.setAttribute('content', '#f7f9f8');
 
   if (LQ.renderLayoutSwitcher) LQ.renderLayoutSwitcher();
-  if (LQ.renderLearningPath) LQ.renderLearningPath();
+  if (LQ.renderWordListsPage) LQ.renderWordListsPage();
 };
 
 LQ.renderLayoutSwitcher = function () {
   if (LQ.isNativeApp()) return;
-  var host = document.querySelector('#screen-home .home-topbar');
-  if (!host) return;
-
-  var actions = document.getElementById('home-topbar-actions');
-  if (!actions) {
-    actions = document.createElement('div');
-    actions.id = 'home-topbar-actions';
-    actions.className = 'home-topbar-actions';
-    var avatar = host.querySelector('.avatar');
-    if (avatar) {
-      host.appendChild(actions);
-      actions.appendChild(avatar);
-    } else host.appendChild(actions);
-  }
-
-  var el = document.getElementById('layout-switcher');
-  if (!el) {
-    el = document.createElement('div');
-    el.id = 'layout-switcher';
-    el.className = 'layout-switcher';
-    el.setAttribute('role', 'group');
-    el.setAttribute('aria-label', 'Browser layout');
-    actions.insertBefore(el, actions.firstChild);
-  }
 
   var pref = LQ.getBrowserLayoutPref();
   var modes = [
@@ -91,7 +70,7 @@ LQ.renderLayoutSwitcher = function () {
     { id: 'phone', label: 'Phone', title: 'Phone mockup & bottom nav' },
     { id: 'web', label: 'Web', title: 'Full-width dashboard' },
   ];
-  el.innerHTML = modes
+  var buttons = modes
     .map(function (m) {
       return (
         '<button type="button" class="layout-btn' +
@@ -106,6 +85,43 @@ LQ.renderLayoutSwitcher = function () {
       );
     })
     .join('');
+
+  var isMobileLayout = !LQ.isWebDesktop();
+  var floatHost = document.getElementById('layout-switcher-float');
+  if (!floatHost) {
+    floatHost = document.createElement('div');
+    floatHost.id = 'layout-switcher-float';
+    floatHost.className = 'layout-switcher-float';
+    document.body.appendChild(floatHost);
+  }
+
+  if (isMobileLayout) {
+    floatHost.innerHTML =
+      '<div class="layout-switcher layout-switcher-persistent" role="group" aria-label="Browser layout">' +
+      buttons +
+      '</div>';
+    floatHost.hidden = false;
+  } else {
+    floatHost.innerHTML = '';
+    floatHost.hidden = true;
+  }
+
+  var host =
+    document.querySelector('#screen-home .portal-header-actions') ||
+    document.querySelector('#screen-vocab .portal-header-actions');
+  if (!host) return;
+
+  var el = document.getElementById('layout-switcher');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'layout-switcher';
+    el.className = 'layout-switcher';
+    el.setAttribute('role', 'group');
+    el.setAttribute('aria-label', 'Browser layout');
+    host.insertBefore(el, host.firstChild);
+  }
+  el.innerHTML = isMobileLayout ? '' : buttons;
+  el.style.display = isMobileLayout ? 'none' : '';
 };
 
 LQ.initPlatformUI = function () {

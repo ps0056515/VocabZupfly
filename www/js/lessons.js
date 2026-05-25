@@ -62,109 +62,123 @@ LQ.wordsForLesson = function (lessonId) {
   return words.slice(0, max);
 };
 
-LQ.renderLearningPath = function () {
-  var wrap = document.getElementById('path-wrap');
-  if (!wrap) return;
+LQ.renderWordListsPage = function () {
+  var sidebar = document.getElementById('lists-sidebar');
+  var groupsEl = document.getElementById('lists-groups');
+  var headEl = document.getElementById('lists-main-head');
+  if (!sidebar || !groupsEl) return;
   if (!LQ.ensurePathData()) {
-    wrap.className = 'path-wrap';
-    wrap.innerHTML =
+    groupsEl.innerHTML =
       '<p style="color:var(--muted);font-size:14px;padding:12px 0">Loading word lists…</p>';
     return;
   }
   LQ.S.lessonProgress = LQ.S.lessonProgress || {};
-  wrap.className = 'path-wrap path-board path-board-lists';
-  var hint = document.querySelector('.path-board-hint');
-  if (!hint && wrap.parentNode) {
-    hint = document.createElement('p');
-    hint.className = 'path-board-hint';
-    wrap.parentNode.insertBefore(hint, wrap);
+  var chapters = LQ.getOrderedChapters ? LQ.getOrderedChapters() : LQ.CHAPTERS;
+  if (!chapters.length) return;
+  if (LQ._pathListFilter === undefined || LQ._pathListFilter === 'all') {
+    LQ._pathListFilter = chapters[0].id;
   }
-  if (hint) {
-    hint.textContent =
-      LQ.isWebDesktop && LQ.isWebDesktop()
-        ? '13 lists from Word Lists.pdf · scroll horizontally · each group is a lesson'
-        : '';
-    hint.style.display = LQ.isWebDesktop && LQ.isWebDesktop() ? 'block' : 'none';
-  }
-  var H = LQ.H;
-  var html = '';
-  LQ.CHAPTERS.forEach(function (ch) {
-    var lessons = LQ.lessonsForChapter(ch.id);
-    var done = lessons.filter(function (l) {
-      return LQ.S.lessonProgress[l.id];
-    }).length;
-    var pct = lessons.length ? Math.round((done / lessons.length) * 100) : 0;
-    html +=
-      '<article class="kanban-col kanban-col-list" data-chapter="' +
-      ch.id +
-      '" data-list-color="' +
-      (ch.color || 'lavender') +
-      '">' +
-      '<header class="kanban-col-head">' +
-      '<span class="kanban-col-icon" aria-hidden="true">' +
+  var curId = LQ._pathListFilter;
+
+  sidebar.innerHTML = chapters
+    .map(function (ch) {
+      var lessons = LQ.lessonsForChapter(ch.id);
+      var done = lessons.filter(function (l) {
+        return LQ.S.lessonProgress[l.id];
+      }).length;
+      var pct = lessons.length ? Math.round((done / lessons.length) * 100) : 0;
+      var active = ch.id === curId ? ' active' : '';
+      return (
+        '<button type="button" class="lists-side-item' +
+        active +
+        '" onclick="LQ.filterPathList(\'' +
+        ch.id +
+        '\')">' +
+        '<span class="lists-side-icon" aria-hidden="true">' +
+        ch.icon +
+        '</span>' +
+        '<span class="lists-side-text">' +
+        '<span class="lists-side-name">' +
+        LQ.esc(ch.title) +
+        '</span>' +
+        '<span class="lists-side-sub">' +
+        done +
+        '/' +
+        lessons.length +
+        ' groups · ' +
+        pct +
+        '%</span></span></button>'
+      );
+    })
+    .join('');
+
+  var ch =
+    chapters.find(function (c) {
+      return c.id === curId;
+    }) || chapters[0];
+  var lessons = LQ.lessonsForChapter(ch.id);
+  var done = lessons.filter(function (l) {
+    return LQ.S.lessonProgress[l.id];
+  }).length;
+  var pct = lessons.length ? Math.round((done / lessons.length) * 100) : 0;
+
+  if (headEl) {
+    headEl.innerHTML =
+      '<div class="lists-head-top">' +
+      '<div class="lists-head-info">' +
+      '<span class="lists-head-icon" aria-hidden="true">' +
       ch.icon +
       '</span>' +
-      '<' +
-      H +
-      ' class="kanban-col-titles">' +
-      '<h3 class="kanban-col-title">' +
+      '<div><h2 class="lists-head-title">' +
       LQ.esc(ch.title) +
-      '</h3>' +
-      '<p class="kanban-col-sub">' +
+      '</h2>' +
+      '<p class="lists-head-sub">' +
       LQ.esc(ch.subtitle) +
-      '</p></' +
-      H +
-      '>' +
-      '<span class="kanban-col-count">' +
+      '</p></div></div>' +
+      '<span class="lists-head-count">' +
       done +
       '/' +
       lessons.length +
-      '</span></header>' +
-      '<' +
-      H +
-      ' class="kanban-col-bar" role="progressbar" aria-valuenow="' +
+      '</span></div>' +
+      '<div class="lists-head-bar" role="progressbar" aria-valuenow="' +
       pct +
-      '"><' +
-      H +
-      ' class="kanban-col-bar-fill" style="width:' +
+      '"><div class="lists-head-fill" style="width:' +
       pct +
-      '%"></' +
-      H +
-      '></' +
-      H +
-      '>' +
-      '<' +
-      H +
-      ' class="kanban-col-cards">';
-    lessons.forEach(function (les, li) {
+      '%"></div></div>';
+  }
+
+  groupsEl.innerHTML = lessons
+    .map(function (les) {
       var unlocked = LQ.isLessonUnlocked(les.id);
       var complete = !!LQ.S.lessonProgress[les.id];
-      var cls = complete ? 'done' : unlocked ? 'active' : 'locked';
+      var cls = complete ? 'done' : unlocked ? 'ready' : 'locked';
       var badge = complete ? 'Done' : unlocked ? 'Start' : 'Locked';
-      html +=
-        '<button type="button" class="kanban-lesson ' +
+      var theme = les.title.replace(/^G\d+\s·\s/, '');
+      return (
+        '<button type="button" class="lists-group-row ' +
         cls +
         '" title="' +
         LQ.esc(les.fullTitle || les.title) +
         '" ' +
         (unlocked ? 'onclick="LQ.startLesson(\'' + les.id + '\')"' : 'disabled') +
         '>' +
-        '<span class="kanban-lesson-num">' +
+        '<span class="lists-group-num">' +
         (complete ? '\u2713' : 'G' + les.groupNum) +
         '</span>' +
-        '<span class="kanban-lesson-name">' +
-        LQ.esc(les.title.replace(/^G\d+\s·\s/, '')) +
+        '<span class="lists-group-body">' +
+        '<span class="lists-group-name">' +
+        LQ.esc(theme) +
         '</span>' +
-        '<span class="kanban-lesson-meta">' +
+        '<span class="lists-group-meta">' +
         les.wordCount +
-        'w</span>' +
-        '<span class="kanban-lesson-badge">' +
+        ' words</span></span>' +
+        '<span class="lists-group-action">' +
         badge +
-        '</span></button>';
-    });
-    html += '</' + H + '></article>';
-  });
-  wrap.innerHTML = html;
+        '</span></button>'
+      );
+    })
+    .join('');
+
   var commit = document.getElementById('commit-banner');
   if (commit && LQ.S.commitmentDays) {
     var start = LQ.S.commitmentStart ? new Date(LQ.S.commitmentStart) : new Date();
@@ -184,6 +198,13 @@ LQ.renderLearningPath = function () {
       '>';
     commit.style.display = 'flex';
   }
+};
+
+LQ.renderLearningPath = LQ.renderWordListsPage;
+
+LQ.filterPathList = function (listId) {
+  LQ._pathListFilter = listId;
+  LQ.renderWordListsPage();
 };
 
 LQ.startLesson = function (lessonId) {
@@ -281,10 +302,27 @@ LQ.renderLearnSlide = function (wrap) {
     (w.syn
       ? '<' + LQ.H + ' class="learn-syn"><strong>Synonyms:</strong> ' + LQ.esc(w.syn) + '</' + LQ.H + '>'
       : '') +
+    (w.ant
+      ? '<' + LQ.H + ' class="learn-ant"><strong>Antonyms:</strong> ' + LQ.esc(w.ant) + '</' + LQ.H + '>'
+      : '') +
     '</' +
     LQ.H +
     '>' +
-    '<button class="lesson-cta" onclick="LQ.advanceLearn()">Got it →</button>';
+    '<div class="learn-actions">' +
+    '<button class="learn-act known" onclick="LQ.lessonMark(\'known\')">✓ Known</button>' +
+    '<button class="learn-act flag" onclick="LQ.lessonMark(\'flagged\')">🚩 Flag</button>' +
+    '<button class="lesson-cta" onclick="LQ.advanceLearn()">Next →</button>' +
+    '</div>';
+};
+
+LQ.lessonMark = function (status) {
+  var w = LQ._lessonWords[LQ._learnIdx];
+  if (!w) return;
+  if (status === 'known') LQ.setWordKnown(w.word);
+  else LQ.setWordFlagged(w.word);
+  LQ.gainXP(status === 'known' ? 12 : 8);
+  LQ.saveState();
+  LQ.advanceLearn();
 };
 
 LQ.advanceLearn = function () {

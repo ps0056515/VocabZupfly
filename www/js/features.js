@@ -3,9 +3,10 @@ window.LQ = window.LQ || {};
 /* ── PROGRESS ── */
 LQ.renderProgress = function () {
   const known = Object.values(LQ.S.mastery).filter((m) => m === 'known').length;
+  const flagged = Object.values(LQ.S.mastery).filter((m) => m === 'flagged').length;
   const learning = Object.values(LQ.S.mastery).filter((m) => m === 'learning').length;
   document.getElementById('p-known').textContent = known;
-  document.getElementById('p-learning').textContent = learning;
+  document.getElementById('p-learning').textContent = learning + flagged;
   document.getElementById('p-streak').textContent = LQ.S.streakCount || 0;
   const heat = LQ.S.activityHeat || LQ.buildActivityHeat();
   LQ.S.activityHeat = heat;
@@ -17,7 +18,7 @@ LQ.renderProgress = function () {
   const lessonsDone = Object.keys(LQ.S.lessonProgress || {}).filter((k) => LQ.S.lessonProgress[k]).length;
   sec.innerHTML =
     '<' + LQ.H + ' class="prog-card"><h3>28-Day Activity</h3><' + LQ.H + ' class="heatmap">' + heat.map((l) => '<' + LQ.H + ' class="hc l' + l + '"></' + LQ.H + '>').join('') + '</' + LQ.H + '></' + LQ.H + '>' +
-    '<' + LQ.H + ' class="prog-card"><h3>Mastery</h3><p>Known ' + known + ' · Learning ' + learning + ' · Lessons ' + lessonsDone + '</p></' + LQ.H + '>' +
+    '<' + LQ.H + ' class="prog-card"><h3>Mastery</h3><p>Known ' + known + ' · Flagged ' + flagged + ' · Learning ' + learning + ' · Lessons ' + lessonsDone + '</p></' + LQ.H + '>' +
     '<' + LQ.H + ' class="prog-card"><h3>Recent</h3>' + recent + '</' + LQ.H + '>';
 };
 
@@ -288,8 +289,11 @@ LQ.renderSettings = function () {
   const layout = LQ.getBrowserLayoutPref ? LQ.getBrowserLayoutPref() : 'auto';
   const layoutBlock = native
     ? ''
-    : '<p style="color:#888;font-size:12px;margin-bottom:8px">Browser layout</p>' +
-      '<div style="margin-bottom:14px">' +
+    : '<section class="settings-card">' +
+      '<div class="settings-card-head"><h3>Display</h3>' +
+      '<p>Choose how LexiQuest looks in your browser.</p></div>' +
+      '<div class="settings-card-body">' +
+      '<div class="settings-chip-row">' +
       ['auto', 'phone', 'web']
         .map(function (m) {
           var lbl = m === 'auto' ? 'Auto' : m === 'phone' ? 'Phone' : 'Web';
@@ -305,39 +309,83 @@ LQ.renderSettings = function () {
         })
         .join('') +
       '</div>' +
-      '<p style="color:#666;font-size:11px;margin:-6px 0 14px">Phone = app mockup · Web = sidebar dashboard · Auto follows window width</p>';
+      '<p class="settings-text">Auto follows window size · Phone shows bottom nav · Web shows sidebar.</p>' +
+      '</div></section>';
+
   wrap.innerHTML =
-    '<h3 style="color:#fff;margin-bottom:12px">Settings</h3>' +
     (allOn
-      ? '<p style="color:var(--lime);font-size:13px;margin-bottom:12px">✓ All features enabled (dev mode)</p>'
+      ? '<div class="settings-badge dev">✓ Dev mode — all features enabled</div>'
       : '') +
-    layoutBlock +
-    '<p style="color:#888;font-size:12px;margin-bottom:8px">Exam focus</p>' +
-    '<div style="margin-bottom:14px">' +
+    '<section class="settings-card">' +
+    '<div class="settings-card-head"><h3>Study profile</h3>' +
+    '<p>Set your exam focus, target date, and daily goals.</p></div>' +
+    '<div class="settings-card-body">' +
+    '<p class="settings-text" style="margin-top:0;font-weight:600;color:var(--text)">Exam focus</p>' +
+    '<div class="settings-chip-row">' +
     examChips +
     '</div>' +
-    '<p style="color:#888;font-size:13px;margin:8px 0">Goal: <b style="color:#fff">' +
+    '<p class="settings-text" style="font-weight:600;color:var(--text);margin-top:16px">Exam date</p>' +
+    '<div class="settings-field-row">' +
+    '<input type="date" id="exam-date-inp" class="settings-input" value="' +
+    (LQ.S.examDate || '') +
+    '">' +
+    '<button type="button" class="portal-btn show" onclick="LQ.saveExamDate()">Save</button>' +
+    '</div>' +
+    '<div class="settings-stat-grid">' +
+    '<div class="settings-stat"><span class="settings-stat-val">' +
     (LQ.S.commitmentDays || 14) +
-    ' days</b> · Daily target <b style="color:#fff">' +
+    '</span><span class="settings-stat-lbl">Day goal</span></div>' +
+    '<div class="settings-stat"><span class="settings-stat-val">' +
     (LQ.S.goalTarget || 15) +
-    '</b></p>' +
-    '<p style="color:#888;font-size:13px;margin:8px 0">Premium deck: <b style="color:var(--lime)">' +
-    (LQ.S.premium ? 'Unlocked' : 'Locked') +
-    '</b></p>' +
-    '<p style="color:#888;font-size:13px;margin:8px 0">AI Tutor: <b style="color:var(--lime)">' +
-    (LQ.Config.tutorEndpoint || LQ.Config.aiEndpoint ? 'API + built-in fallback' : 'Built-in') +
-    '</b></p>' +
-    '<p style="color:#888;font-size:13px;margin:8px 0">Learning path: <b style="color:#fff">' +
-    (allOn ? 'All lessons open' : 'Linear unlock') +
-    '</b></p>' +
-    '<input id="prem-code" placeholder="Premium code" style="width:100%;padding:12px;border-radius:12px;border:1px solid #333;background:#1a1a1a;color:#fff;margin:8px 0">' +
-    '<button class="quiz-next show" onclick="LQ.unlockPremium()">Unlock premium deck</button>' +
-    '<button class="quiz-next show" style="margin-top:10px;background:#333;color:#fff" onclick="LQ.applyAllFeatures&&LQ.applyAllFeatures();LQ.renderSettings();LQ.toast(\'All features applied\')">Enable all features now</button>' +
-    '<button class="quiz-next show" style="margin-top:10px;background:#333;color:#fff" onclick="LQ.Firebase.signIn&&LQ.Firebase.signIn()">☁️ Sync (Firebase)</button>' +
-    '<button class="quiz-next show" style="margin-top:10px;background:#333;color:#fff" onclick="LQ.toggleNotif()">Notifications: ' +
+    '</span><span class="settings-stat-lbl">Daily target</span></div>' +
+    '<div class="settings-stat"><span class="settings-stat-val">' +
+    (allOn ? 'Open' : 'Linear') +
+    '</span><span class="settings-stat-lbl">Lesson unlock</span></div>' +
+    '</div></div></section>' +
+    '<section class="settings-card">' +
+    '<div class="settings-card-head"><h3>Word lists</h3>' +
+    '<p>Rename lists and change their order. PDF content stays the same.</p></div>' +
+    '<div class="settings-card-body"><div id="list-settings-wrap"></div></div></section>' +
+    layoutBlock +
+    '<section class="settings-card">' +
+    '<div class="settings-card-head"><h3>Premium & sync</h3>' +
+    '<p>Unlock the full deck and back up your progress.</p></div>' +
+    '<div class="settings-card-body">' +
+    '<span class="settings-badge ' +
+    (LQ.S.premium ? 'ok' : 'locked') +
+    '">' +
+    (LQ.S.premium ? '✓ Premium unlocked' : '🔒 Premium locked') +
+    '</span>' +
+    '<div class="settings-field-row">' +
+    '<input id="prem-code" class="settings-input" placeholder="Enter premium code">' +
+    '<button type="button" class="portal-btn show" onclick="LQ.unlockPremium()">Unlock</button>' +
+    '</div></div></section>' +
+    '<section class="settings-card">' +
+    '<div class="settings-card-head"><h3>App preferences</h3>' +
+    '<p>Notifications, cloud sync, and tutor mode.</p></div>' +
+    '<div class="settings-card-body settings-action-stack">' +
+    '<p class="settings-text" style="margin:0">AI Tutor: <strong>' +
+    (LQ.Config.tutorEndpoint || LQ.Config.aiEndpoint ? 'API + fallback' : 'Built-in') +
+    '</strong></p>' +
+    '<button type="button" class="portal-btn portal-btn-secondary show" onclick="LQ.toggleNotif()">' +
+    'Notifications: ' +
     (LQ.S.notifOn ? 'On' : 'Off') +
     '</button>' +
-    '<a href="privacy-policy.html" style="display:block;text-align:center;margin-top:16px;color:#888;font-size:12px">Privacy Policy</a>';
+    '<button type="button" class="portal-btn portal-btn-secondary show" onclick="LQ.Firebase.signIn&&LQ.Firebase.signIn()">☁️ Sync with Firebase</button>' +
+    (allOn
+      ? ''
+      : '<button type="button" class="portal-btn portal-btn-secondary show" onclick="LQ.applyAllFeatures&&LQ.applyAllFeatures();LQ.renderSettings();LQ.toast(\'All features applied\')">Enable all features</button>') +
+    '</div></section>' +
+    '<div class="settings-foot"><a href="privacy-policy.html">Privacy Policy</a></div>';
+  if (LQ.renderListSettings) LQ.renderListSettings();
+};
+
+LQ.saveExamDate = function () {
+  var inp = document.getElementById('exam-date-inp');
+  LQ.S.examDate = inp && inp.value ? inp.value : '';
+  LQ.saveState();
+  LQ.toast('Exam date saved');
+  if (LQ.renderStudentDashboard) LQ.renderStudentDashboard();
 };
 
 LQ.unlockPremium = function () {

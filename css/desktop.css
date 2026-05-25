@@ -157,6 +157,20 @@ body.web-desktop #screen-home .home-body.air-body {
   box-sizing: border-box;
 }
 
+body.web-desktop .vocab-heroes {
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+body.web-desktop .dash-analytics {
+  grid-template-columns: 1fr 140px 120px;
+  gap: 20px;
+}
+
+body.web-desktop .dash-panel h3 {
+  font-size: 15px;
+}
+
 body.web-desktop #screen-home .section-hd.light {
   margin-bottom: 16px;
 }

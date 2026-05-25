@@ -779,8 +779,152 @@ body.web-desktop .layout-btn:hover{background:rgba(0,0,0,.06)}
 }
 body.web-desktop .layout-btn.active{background:var(--ink);color:#fff}
 
+/* Layout switcher — visible on portal light headers (phone browser mode) */
+body.portal-theme.web-mobile .layout-switcher{
+  background:rgba(0,0,0,.06);
+}
+body.portal-theme.web-mobile .layout-btn{
+  color:var(--muted);
+}
+body.portal-theme.web-mobile .layout-btn:hover{
+  background:rgba(0,0,0,.06);
+}
+body.portal-theme.web-mobile .layout-btn.active{
+  background:var(--brand);
+  color:#fff;
+  box-shadow:none;
+}
+
+/* Floating layout switcher — always reachable in phone browser mode */
+.layout-switcher-float{
+  display:none;
+  position:fixed;
+  top:max(10px, env(safe-area-inset-top, 10px));
+  right:10px;
+  z-index:10000;
+}
+body.portal-theme.web-mobile:not(.native-app) .layout-switcher-float{
+  display:block;
+}
+body.portal-theme.web-mobile .layout-switcher-persistent{
+  background:#fff;
+  border:1px solid rgba(0,0,0,.1);
+  border-radius:10px;
+  padding:3px;
+  box-shadow:0 4px 18px rgba(0,0,0,.14);
+}
+body.portal-theme.web-mobile .layout-switcher-persistent .layout-btn{
+  color:var(--muted);
+  font-size:9px;
+  padding:6px 8px;
+}
+body.portal-theme.web-mobile .layout-switcher-persistent .layout-btn.active{
+  background:#1a7a52;
+  color:#fff;
+}
+
 .section-hd.light h2{color:var(--ink)}
 .home-body.air-body{background:#F5F3EE;padding-bottom:100px}
+
+/* ── Jamboree-style vocab dashboard ── */
+.vocab-head-row{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px}
+.vocab-head-row .home-title-mobile{margin:0!important}
+.vocab-tagline{font-size:13px;color:var(--muted);font-weight:500;margin-top:4px;font-style:italic}
+.dash-search{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:12px;padding:10px 14px;margin-bottom:20px}
+.dash-search input{flex:1;border:none;background:transparent;font-family:var(--body);font-size:14px;outline:none;color:var(--ink)}
+.dash-search input::placeholder{color:var(--muted2)}
+.vocab-heroes{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:22px}
+@media(max-width:520px){.vocab-heroes{grid-template-columns:1fr}}
+.vocab-hero{background:#fff;border-radius:18px;padding:18px 16px;text-align:left;border:1px solid rgba(0,0,0,.06);cursor:pointer;font-family:var(--body);transition:transform .12s,box-shadow .15s;box-shadow:0 2px 12px rgba(0,0,0,.04)}
+.vocab-hero:active{transform:scale(.98)}
+.vocab-hero h3{font-family:var(--head);font-size:20px;font-weight:700;color:var(--ink);margin-bottom:6px}
+.vocab-hero p{font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:12px;min-height:54px}
+.vocab-hero-cta{font-size:12px;font-weight:700;color:var(--lime-dk);display:flex;align-items:center;gap:4px}
+.vocab-hero.learn{border-top:3px solid var(--lime)}
+.vocab-hero.revise{border-top:3px solid var(--sky)}
+.vocab-hero.test{border-top:3px solid var(--lavender)}
+.dash-analytics{display:grid;grid-template-columns:1fr auto auto;gap:14px;margin-bottom:22px;align-items:stretch}
+@media(max-width:720px){.dash-analytics{grid-template-columns:1fr}}
+.dash-panel{background:#fff;border-radius:16px;padding:16px;border:1px solid rgba(0,0,0,.06)}
+.dash-panel h3{font-family:var(--head);font-size:14px;font-weight:700;color:var(--ink);margin-bottom:12px}
+.dash-list-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:11px}
+.dash-list-label{width:52px;flex-shrink:0;color:var(--muted);font-weight:600}
+.dash-list-bar{flex:1;height:10px;background:rgba(200,245,60,.12);border-radius:99px;position:relative;overflow:hidden}
+.dash-list-bar-touched{position:absolute;left:0;top:0;height:100%;background:rgba(200,245,60,.35);border-radius:99px;transition:width .35s}
+.dash-list-bar-known{position:absolute;left:0;top:0;height:100%;background:var(--lime);border-radius:99px;transition:width .35s;z-index:1}
+.dash-status-col{display:flex;flex-direction:column;gap:8px;min-width:120px}
+.dash-status-box{background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:12px;padding:12px 14px;text-align:center}
+.dash-status-num{font-family:var(--head);font-size:22px;font-weight:700;color:var(--ink)}
+.dash-status-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-top:2px}
+.dash-quiz-ring-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:110px;padding:12px}
+.dash-quiz-ring{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:6px}
+.dash-quiz-ring-inner{width:52px;height:52px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--head);font-size:14px;font-weight:700;color:var(--ink)}
+.dash-quiz-lbl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.path-section{margin-top:8px;margin-bottom:24px}
+.path-section-sub{font-size:13px;color:var(--muted);line-height:1.5;margin:-6px 0 14px}
+.path-list-tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;max-height:72px;overflow-y:auto}
+.path-list-tab{border:1px solid rgba(0,0,0,.1);background:#fff;border-radius:99px;padding:7px 12px;font-family:var(--body);font-size:11px;font-weight:600;color:var(--muted);cursor:pointer}
+.path-list-tab.active{background:#1a7a52;color:#fff;border-color:#1a7a52}
+.path-list-meta{display:none;margin:-6px 0 12px;padding:10px 14px;background:#fff;border:1px solid rgba(0,0,0,.07);border-radius:12px}
+.path-list-meta.visible{display:block}
+.path-list-meta-row{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:12px;color:var(--muted);margin-bottom:8px}
+.path-list-meta-row strong{color:var(--ink);font-weight:700}
+.path-list-meta-bar{height:4px;background:#e9f5ef;border-radius:99px;overflow:hidden}
+.path-list-meta-fill{height:100%;background:linear-gradient(90deg,#1a7a52,#5a9e7c);border-radius:99px;transition:width .35s ease}
+.dash-path-section{max-width:1200px;margin:0 auto 28px;padding:20px 24px 0;border-top:1px solid rgba(0,0,0,.06)}
+.path-wrap.path-board-single{flex-direction:column;overflow-x:hidden}
+.path-wrap.path-board-single .kanban-col{flex:1 1 auto;min-width:0;max-width:100%;max-height:none;border:none;box-shadow:none;padding:0;background:transparent}
+.path-wrap.path-board-single .kanban-col-head,.path-wrap.path-board-single .kanban-col-bar{display:none}
+.more-tools-panel{display:none}
+.more-tools-panel.open{display:block}
+.learn-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.learn-actions .learn-act.skip{grid-column:1/-1}
+.learn-next-btn{margin-top:10px;width:100%}
+.learn-next-hint{font-size:11px;color:var(--muted);text-align:center;margin-top:6px}
+.learn-act{border:none;border-radius:12px;padding:14px 8px;font-family:var(--body);font-size:12px;font-weight:700;cursor:pointer}
+.learn-act.known{background:rgba(61,214,140,.2);color:#1a8f5a}
+.learn-act.flag{background:rgba(255,209,102,.25);color:#b8860b}
+.learn-act.skip{background:rgba(0,0,0,.06);color:var(--muted)}
+.learn-card-prompt{text-align:center;padding:32px 20px}
+.learn-hint{font-size:13px;color:var(--muted);line-height:1.5;margin-top:12px}
+.learn-syn,.learn-ant{font-size:13px;margin-top:10px;line-height:1.5}
+.learn-syn{color:var(--ink)}
+.learn-ant{color:#c44;border-left:3px solid #ffb4b4;padding-left:10px;background:rgba(255,107,107,.06);border-radius:0 8px 8px 0;padding-top:6px;padding-bottom:6px}
+.learn-list-bar{padding:0 20px 8px}
+.learn-list-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px}
+.learn-list-chips{display:flex;flex-wrap:wrap;gap:6px;max-height:88px;overflow-y:auto}
+.learn-list-chip{border:1px solid rgba(0,0,0,.1);background:#fff;border-radius:99px;padding:7px 12px;font-family:var(--body);font-size:11px;font-weight:600;color:var(--muted);cursor:pointer}
+.learn-list-chip.active{background:var(--lime);color:var(--ink);border-color:var(--lime)}
+.list-setting-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.list-setting-num{width:22px;font-size:12px;font-weight:700;color:#888;text-align:center;flex-shrink:0}
+.list-setting-input{flex:1;padding:10px 12px;border-radius:10px;border:1px solid #333;background:#1a1a1a;color:#fff;font-family:var(--body);font-size:13px}
+.list-setting-btns{display:flex;gap:4px;flex-shrink:0}
+.list-move-btn{width:32px;height:32px;border:none;border-radius:8px;background:#333;color:#fff;font-size:14px;cursor:pointer}
+.list-move-btn:disabled{opacity:.35;cursor:not-allowed}
+.lesson-cta-secondary{background:rgba(0,0,0,.06)!important;color:var(--ink)!important;margin-bottom:12px}
+.learn-empty{text-align:center;padding:40px 20px;color:var(--muted)}
+.learn-empty-icon{font-size:48px;margin-bottom:12px}
+.learn-empty h3{font-family:var(--head);color:var(--ink);margin-bottom:8px}
+#screen-learn,#screen-revise{background:#F5F3EE;min-height:100%}
+.revise-flip{perspective:1000px;height:280px;margin:16px 20px;cursor:pointer;position:relative}
+.revise-flip .revise-card{position:absolute;inset:0;backface-visibility:hidden;border-radius:24px;padding:28px 24px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;transition:transform .45s ease;box-shadow:0 8px 32px rgba(0,0,0,.08)}
+.revise-front{background:#fff}
+.revise-back{background:linear-gradient(145deg,#1a2744,#0d2840);color:#fff;transform:rotateY(180deg)}
+.revise-flip.flipped .revise-front{transform:rotateY(180deg)}
+.revise-flip.flipped .revise-back{transform:rotateY(0)}
+.revise-word{font-family:var(--head);font-size:36px;font-weight:700;color:var(--ink);letter-spacing:-1px}
+.revise-tag{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:12px}
+.revise-group{font-size:12px;color:var(--muted);margin-top:8px}
+.revise-def{font-size:17px;line-height:1.55;color:#fff}
+.revise-group-back,.revise-syn{font-size:12px;color:rgba(255,255,255,.6);margin-top:10px}
+.revise-actions{padding:0 20px 24px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.quiz-review{margin:0 0 16px;text-align:left}
+.quiz-review h3{font-family:var(--head);font-size:15px;color:#fff;margin-bottom:12px}
+.quiz-review-group{margin-bottom:14px}
+.quiz-review-group h4{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:rgba(255,255,255,.45);margin-bottom:6px}
+.quiz-review-word{display:block;width:100%;text-align:left;background:rgba(255,255,255,.06);border:none;border-radius:10px;padding:10px 12px;color:#fff;font-family:var(--body);font-size:14px;margin-bottom:6px;cursor:pointer}
+.quiz-review-word span{float:right;color:var(--lime);font-size:11px;font-weight:700}
+.quiz-review-empty{color:rgba(255,255,255,.5);font-size:14px;margin-bottom:16px;text-align:center}
 
 /* ── Lesson screen ── */
 #screen-lesson{background:#F5F3EE;min-height:100%}
@@ -923,6 +1067,8 @@ body.native-app .desktop-only-ui{display:none!important}
 </style>
 <link rel="stylesheet" href="css/kanban.css?v=20260520a">
 <link rel="stylesheet" href="css/desktop.css?v=20260519g">
+<link rel="stylesheet" href="css/portal.css?v=20260525c">
+<link rel="stylesheet" href="css/portal-pages.css?v=20260525d">
 </head>
 <body>
 
@@ -956,26 +1102,45 @@ body.native-app .desktop-only-ui{display:none!important}
         <nav class="desktop-rail desktop-only-ui" aria-label="Main navigation">
           <div class="desktop-rail-brand">Lexi<span>Quest</span></div>
           <button type="button" class="desktop-rail-item active" id="desktop-nav-home" onclick="goTo('home')">
-            <span class="rail-icon">🏠</span> Home
+            <span class="rail-icon">🏠</span> Dashboard
           </button>
-          <button type="button" class="desktop-rail-item" id="desktop-nav-tutor" onclick="goTo('tutor')">
-            <span class="rail-icon">✦</span> AI Tutor
+          <button type="button" class="desktop-rail-item" id="desktop-nav-vocab" onclick="goTo('vocab')">
+            <span class="rail-icon">📚</span> Vocabulary
           </button>
-          <button type="button" class="desktop-rail-item" id="desktop-nav-flashcard" onclick="goTo('flashcard')">
-            <span class="rail-icon">🃏</span> Flashcards
+          <button type="button" class="desktop-rail-item" id="desktop-nav-lists" onclick="goTo('lists')">
+            <span class="rail-icon">📋</span> Word Lists
+          </button>
+          <button type="button" class="desktop-rail-item" id="desktop-nav-learn" onclick="goTo('learn')">
+            <span class="rail-icon">✏️</span> Learn
+          </button>
+          <button type="button" class="desktop-rail-item" id="desktop-nav-revise" onclick="goTo('revise')">
+            <span class="rail-icon">🔄</span> Revise
           </button>
           <button type="button" class="desktop-rail-item" id="desktop-nav-quiz" onclick="goTo('quiz')">
-            <span class="rail-icon">🧠</span> Quiz
+            <span class="rail-icon">📝</span> Quiz
           </button>
           <button type="button" class="desktop-rail-item" id="desktop-nav-wordbank" onclick="goTo('wordbank')">
             <span class="rail-icon">📖</span> Word Bank
           </button>
           <div class="desktop-rail-sep desktop-only-ui"></div>
+          <button type="button" class="desktop-rail-item" id="desktop-nav-flashcard" onclick="goTo('flashcard')">
+            <span class="rail-icon">🃏</span> Flashcards
+          </button>
+          <button type="button" class="desktop-rail-item" id="desktop-nav-spelling" onclick="goTo('spelling')">
+            <span class="rail-icon">✍️</span> Spelling
+          </button>
+          <button type="button" class="desktop-rail-item" id="desktop-nav-drill" onclick="goTo('drill')">
+            <span class="rail-icon">🎯</span> Weak Drill
+          </button>
+          <button type="button" class="desktop-rail-item" id="desktop-nav-leagues" onclick="goTo('leagues')">
+            <span class="rail-icon">🏆</span> Rookie League
+          </button>
+          <div class="desktop-rail-sep desktop-only-ui"></div>
+          <button type="button" class="desktop-rail-item" id="desktop-nav-tutor" onclick="goTo('tutor')">
+            <span class="rail-icon">✦</span> AI Tutor
+          </button>
           <button type="button" class="desktop-rail-item" id="desktop-nav-mock" onclick="goTo('mock')">
             <span class="rail-icon">⏱️</span> Mock Test
-          </button>
-          <button type="button" class="desktop-rail-item" id="desktop-nav-progress" onclick="goTo('progress')">
-            <span class="rail-icon">📊</span> Progress
           </button>
           <button type="button" class="desktop-rail-item" id="desktop-nav-settings" onclick="goTo('settings')">
             <span class="rail-icon">⚙️</span> Settings
@@ -984,36 +1149,86 @@ body.native-app .desktop-only-ui{display:none!important}
         <div class="app-main">
       <div class="app-inner" id="app-inner">
 
-        <!-- ══ HOME ══ -->
+        <!-- ══ DASHBOARD (student home) ══ -->
         <div class="screen active" id="screen-home">
-          <div class="home-bg air-home">
-            <div class="home-topbar">
+          <div class="portal-header student-dash-header">
+            <div class="portal-header-row">
               <div>
-                <div class="greeting">Good morning 👋</div>
-                <div class="home-title">Your learning path</div>
-                <div class="home-title-mobile" style="font-family:var(--head);font-size:18px;font-weight:700;color:var(--ink);letter-spacing:-0.3px;margin-top:2px;">Your learning path</div>
+                <h1 class="portal-title">Dashboard</h1>
+                <p class="portal-tagline">Welcome back — pick up where you left off.</p>
+              </div>
+              <div class="portal-header-actions portal-header-utils">
+                <button type="button" class="portal-util-btn" onclick="LQ.toast('Walkthrough coming soon')">🎥 Portal Walkthrough</button>
+                <button type="button" class="portal-util-btn" onclick="LQ.toast('Email support@lexiquest.app')">📞 Get Support</button>
+                <div class="portal-avatar" title="Profile">👤</div>
+              </div>
+            </div>
+          </div>
+          <div class="student-dash-body" id="student-dash-body"></div>
+        </div>
+
+        <!-- ══ WORD LISTS (groups) ══ -->
+        <div class="screen" id="screen-lists">
+          <div class="portal-header lists-page-header">
+            <div class="portal-breadcrumb">Dashboard › <strong>Word Lists</strong></div>
+            <div class="portal-header-row">
+              <div>
+                <h1 class="portal-title">Word Lists</h1>
+                <p class="portal-tagline">Synonym clusters — study one group at a time</p>
+              </div>
+            </div>
+          </div>
+          <div class="lists-page">
+            <aside class="lists-sidebar" id="lists-sidebar" aria-label="Word lists"></aside>
+            <main class="lists-main">
+              <div class="lists-main-head" id="lists-main-head"></div>
+              <div class="lists-groups" id="lists-groups"></div>
+            </main>
+          </div>
+        </div>
+
+        <!-- ══ VOCABULARY ══ -->
+        <div class="screen" id="screen-vocab">
+          <div class="home-bg air-home portal-header">
+            <div class="portal-breadcrumb">Dashboard › <strong>Vocabulary</strong></div>
+            <div class="portal-header-row">
+              <div>
+                <h1 class="portal-title">Vocab</h1>
+                <p class="portal-tagline">Cram LESS, Learn MORE!</p>
+                <div class="portal-activity" id="portal-activity"></div>
+              </div>
+              <div class="portal-header-actions" id="portal-header-actions">
+                <div class="portal-search">
+                  <span aria-hidden="true">🔍</span>
+                  <input id="portal-search" placeholder="Search" autocomplete="off" onkeydown="if(event.key==='Enter')LQ.homeSearch(this.value)">
+                </div>
+                <div class="portal-avatar" title="Profile">👤</div>
+              </div>
+            </div>
+
+            <div class="home-topbar" style="display:none" aria-hidden="true">
+              <div class="vocab-head-row" style="flex:1;margin:0">
+                <div>
+                  <div class="greeting">Good morning 👋</div>
+                  <div class="home-title">Vocab</div>
+                </div>
               </div>
               <div class="avatar">🦊</div>
             </div>
 
-            <div class="streak-banner">
+            <div class="streak-banner" aria-hidden="true">
               <span class="streak-fire">🔥</span>
               <div class="streak-text">
                 <h3>7-Day Streak!</h3>
                 <p>Don't break it — study today</p>
               </div>
               <div class="streak-days">
-                <div class="sday done">M</div>
-                <div class="sday done">T</div>
-                <div class="sday done">W</div>
-                <div class="sday done">T</div>
-                <div class="sday done">F</div>
-                <div class="sday done">S</div>
-                <div class="sday">S</div>
+                <div class="sday done">M</div><div class="sday done">T</div><div class="sday done">W</div>
+                <div class="sday done">T</div><div class="sday done">F</div><div class="sday done">S</div><div class="sday">S</div>
               </div>
             </div>
 
-            <div class="xp-section">
+            <div class="xp-section" aria-hidden="true">
               <div class="xp-label-row">
                 <span>Level 4 · <strong id="xp-display">340 XP</strong></span>
                 <span>500 XP to Lv 5</span>
@@ -1024,63 +1239,71 @@ body.native-app .desktop-only-ui{display:none!important}
 
           <div class="home-body air-body">
             <div id="commit-banner" class="commit-banner"></div>
-            <div class="section-hd light"><h2>Your path</h2></div>
-            <div id="path-wrap" class="path-wrap"></div>
-            <div class="section-hd light"><h2>Quick practice</h2></div>
-            <div class="mode-grid mode-grid-scroll">
-              <button class="mode-card tutor" onclick="goTo('tutor')">
-                <span class="mode-card-badge" style="background:rgba(200,245,60,.25);color:var(--lime)">AI</span>
-                <span class="mode-card-icon">✦</span>
-                <span class="mode-card-title">AI Tutor</span>
-                <span class="mode-card-sub">Ask anything</span>
-              </button>
-              <button class="mode-card flashcard" onclick="goTo('flashcard')">
-                <span class="mode-card-icon">🃏</span>
-                <span class="mode-card-title">Flashcards</span>
-                <span class="mode-card-sub">Swipe to learn</span>
-              </button>
-              <button class="mode-card quiz" onclick="goTo('quiz')">
-                <span class="mode-card-badge">HOT</span>
-                <span class="mode-card-icon">🧠</span>
-                <span class="mode-card-title">Quiz Me</span>
-                <span class="mode-card-sub">4 options</span>
-              </button>
-              <button class="mode-card wordlist" onclick="goTo('wordbank')">
-                <span class="mode-card-icon">📖</span>
-                <span class="mode-card-title">Word Bank</span>
-                <span class="mode-card-sub">Browse all</span>
-              </button>
-              <button class="mode-card daily" onclick="goTo('spelling')">
-                <span class="mode-card-badge" style="background:rgba(255,209,102,0.25);color:#FFD166;">NEW</span>
-                <span class="mode-card-icon">✍️</span>
-                <span class="mode-card-title">Spelling</span>
-                <span class="mode-card-sub">Type it out</span>
-              </button>
-              <button class="mode-card mock" onclick="goTo('mock')"><span class="mode-card-icon">⏱️</span><span class="mode-card-title">Mock Test</span><span class="mode-card-sub">Timed</span></button>
-              <button class="mode-card drill" onclick="goTo('drill')"><span class="mode-card-icon">🎯</span><span class="mode-card-title">Weak Drill</span><span class="mode-card-sub">SRS</span></button>
-              <button class="mode-card league" onclick="goTo('leagues')"><span class="mode-card-icon">🏆</span><span class="mode-card-title">Rookie League</span><span class="mode-card-sub">Weekly XP</span></button>
-              <button class="mode-card speak" onclick="goTo('speak')"><span class="mode-card-icon">🎤</span><span class="mode-card-title">Speak</span><span class="mode-card-sub">Say it</span></button>
-              <button class="mode-card settings" onclick="goTo('settings')"><span class="mode-card-icon">⚙️</span><span class="mode-card-title">Settings</span><span class="mode-card-sub">Sync & Pro</span></button>
+
+            <div class="dash-search">
+              <span>🔍</span>
+              <input id="dash-search" placeholder="Search words…" onkeydown="if(event.key==='Enter')LQ.homeSearch(this.value)">
             </div>
 
-            <div class="section-hd"><h2>Today's Goal</h2></div>
-            <div class="goal-card">
-              <div class="goal-row">
-                <h3>Daily Target</h3>
-                <span class="goal-pct" id="goal-pct">40%</span>
+            <div class="vocab-heroes">
+              <button type="button" class="vocab-hero learn" onclick="goTo('learn')">
+                <h3>Learn</h3>
+                <p>Improve your vocabulary using our tried and tested methodology. Mark the word as known if you know its meaning, or flag it to revise later.</p>
+                <span class="vocab-hero-cta" id="hero-learn-count">Begin Learning</span>
+              </button>
+              <button type="button" class="vocab-hero revise" onclick="goTo('revise')">
+                <h3>Revise</h3>
+                <p>Use this flashcard app to quickly revise the words you have rated. Click to flip the card to check or confirm the word group.</p>
+                <span class="vocab-hero-cta" id="hero-revise-count">Start Revision</span>
+              </button>
+              <button type="button" class="vocab-hero test" onclick="goTo('quiz')">
+                <h3>Test</h3>
+                <p>Take quizzes to test yourself. Analyze your test performance in the review section to identify troublesome words and groups.</p>
+                <span class="vocab-hero-cta">Take Quiz</span>
+              </button>
+            </div>
+
+            <div class="dash-analytics">
+              <div class="dash-panel">
+                <h3>Vocabulary Progress</h3>
+                <div id="dash-list-bars"></div>
               </div>
-              <div class="goal-rings">
-                <div class="ring-item"><div class="ring-num" id="g-seen">6</div><div class="ring-lbl">Seen</div></div>
-                <div class="ring-item"><div class="ring-num" id="g-quiz">3</div><div class="ring-lbl">Quizzed</div></div>
-                <div class="ring-item"><div class="ring-num" id="g-new">2</div><div class="ring-lbl">New</div></div>
+              <div class="dash-status-col">
+                <div class="dash-status-box"><div class="dash-status-num" id="dash-known">0</div><div class="dash-status-lbl">Known</div></div>
+                <div class="dash-status-box"><div class="dash-status-num" id="dash-flagged">0</div><div class="dash-status-lbl">Flagged</div></div>
+                <div class="dash-status-box"><div class="dash-status-num" id="dash-unmarked">0</div><div class="dash-status-lbl">Unmarked</div></div>
               </div>
-              <div class="goal-bar"><div class="goal-fill" id="goal-fill" style="width:40%"></div></div>
+              <div class="dash-panel dash-quiz-ring-wrap">
+                <div class="dash-quiz-ring" id="dash-quiz-ring"><div class="dash-quiz-ring-inner" id="dash-quiz-acc">0%</div></div>
+                <div class="dash-quiz-lbl">Quiz Performance</div>
+              </div>
             </div>
           </div>
         </div>
 
+        <!-- ══ LEARN (Jamboree-style) ══ -->
+        <div class="screen" id="screen-learn">
+          <div class="lesson-top">
+            <button class="back-btn" style="background:rgba(0,0,0,.06);color:var(--ink)" onclick="goTo('vocab')">←</button>
+            <h2 style="font-family:var(--head);font-size:18px;font-weight:700;color:var(--ink);flex:1">Learn</h2>
+            <span id="learn-counter" style="font-size:12px;font-weight:700;color:var(--muted)">1 / 15</span>
+          </div>
+          <div class="learn-list-bar" id="learn-list-bar"></div>
+          <div class="lesson-wrap" id="learn-wrap"></div>
+        </div>
+
+        <!-- ══ REVISE (flip cards) ══ -->
+        <div class="screen" id="screen-revise">
+          <div class="lesson-top">
+            <button class="back-btn" style="background:rgba(0,0,0,.06);color:var(--ink)" onclick="goTo('vocab')">←</button>
+            <h2 style="font-family:var(--head);font-size:18px;font-weight:700;color:var(--ink);flex:1">Revise</h2>
+            <span id="revise-counter" style="font-size:12px;font-weight:700;color:var(--muted)">1 / 5</span>
+          </div>
+          <div id="revise-wrap"></div>
+        </div>
+
         <!-- ══ FLASHCARD ══ -->
-        <div class="screen" id="screen-flashcard" style="background:#0D0D0D;">
+        <div class="screen" id="screen-flashcard">
           <div class="fc-header">
             <button class="back-btn" onclick="goTo('home')">←</button>
             <h2>Flashcards</h2>
@@ -1120,7 +1343,7 @@ body.native-app .desktop-only-ui{display:none!important}
         </div>
 
         <!-- ══ AI TUTOR ══ -->
-        <div class="screen" id="screen-tutor" style="background:#0D0D0D">
+        <div class="screen" id="screen-tutor">
           <div class="tutor-header">
             <button class="back-btn" onclick="goTo('home')">←</button>
             <h2>AI Tutor</h2>
@@ -1135,11 +1358,11 @@ body.native-app .desktop-only-ui{display:none!important}
         </div>
 
         <!-- ══ QUIZ ══ -->
-        <div class="screen" id="screen-quiz" style="background:#0D0D0D;">
+        <div class="screen" id="screen-quiz">
           <div class="quiz-bg">
             <div class="quiz-topbar">
               <button class="back-btn" onclick="goTo('home')">←</button>
-              <span style="font-family:var(--head);font-size:18px;font-weight:600;color:#fff;flex:1;margin-left:4px;letter-spacing:-0.3px;">Quiz</span>
+              <span class="quiz-page-title">Quiz</span>
               <div class="quiz-lives" id="quiz-lives">
                 <span class="heart">❤️</span><span class="heart">❤️</span><span class="heart">❤️</span>
               </div>
@@ -1151,12 +1374,12 @@ body.native-app .desktop-only-ui{display:none!important}
         </div>
 
         <!-- ══ WORD BANK ══ -->
-        <div class="screen" id="screen-wordbank" style="background:#0D0D0D;">
+        <div class="screen" id="screen-wordbank">
           <div class="wb-header">
             <div class="wb-topbar">
               <button class="back-btn" onclick="goTo('home')">←</button>
               <h2>Word Bank</h2>
-              <span id="wb-count" style="background:var(--lime);color:var(--ink);font-size:11px;font-weight:700;padding:4px 10px;border-radius:99px;">0</span>
+              <span id="wb-count" class="portal-badge">0</span>
             </div>
             <div class="search-bar">
               <span>🔍</span>
@@ -1168,6 +1391,7 @@ body.native-app .desktop-only-ui{display:none!important}
               <button class="fchip" onclick="filterTag(this,'GMAT')">GMAT</button>
               <button class="fchip" onclick="filterTag(this,'IELTS')">IELTS</button>
               <button class="fchip" onclick="filterTag(this,'Known')">✓ Known</button>
+              <button class="fchip" onclick="filterTag(this,'Flagged')">🚩 Flagged</button>
               <button class="fchip" onclick="filterTag(this,'Learning')">~ Learning</button>
             </div>
           </div>
@@ -1175,7 +1399,7 @@ body.native-app .desktop-only-ui{display:none!important}
         </div>
 
         <!-- ══ PROGRESS ══ -->
-        <div class="screen" id="screen-progress" style="background:#0D0D0D;">
+        <div class="screen" id="screen-progress">
           <div class="prog-header">
             <div class="prog-topbar">
               <button class="back-btn" onclick="goTo('home')">←</button>
@@ -1206,7 +1430,7 @@ body.native-app .desktop-only-ui{display:none!important}
 
         <div class="screen" id="screen-lesson">
           <div class="lesson-top">
-            <button class="back-btn" style="background:rgba(0,0,0,.06);color:var(--ink)" onclick="goTo('home')">←</button>
+            <button class="back-btn" style="background:rgba(0,0,0,.06);color:var(--ink)" onclick="goTo('vocab')">←</button>
             <div class="lesson-prog"><div class="lesson-prog-fill" id="lesson-prog-fill"></div></div>
             <div class="lesson-hearts" id="lesson-hearts"></div>
           </div>
@@ -1215,25 +1439,36 @@ body.native-app .desktop-only-ui{display:none!important}
         </div>
 
         <div class="screen" id="screen-onboarding"><div id="onboarding-wrap"></div></div>
-        <div class="screen" id="screen-mock" style="background:#0D0D0D">
+        <div class="screen" id="screen-mock">
           <div class="quiz-bg">
             <div class="quiz-topbar">
               <button class="back-btn" onclick="goTo('home')">←</button>
-              <span style="font-family:var(--head);font-size:18px;font-weight:600;color:#fff;flex:1;margin-left:4px;letter-spacing:-0.3px;">Mock Test</span>
+              <span class="quiz-page-title">Mock Test</span>
               <span id="mock-timer" class="mock-timer" style="font-size:15px;margin:0;min-width:48px;text-align:right">10:00</span>
             </div>
             <div class="quiz-prog-row" id="mock-prog-row"></div>
             <div class="quiz-card" id="mock-card"></div>
           </div>
           <div class="quiz-body" id="mock-body"></div>
-        </div><div class="screen" id="screen-drill" style="background:#0D0D0D"><div class="fc-header"><button class="back-btn" onclick="goTo('home')">←</button><h2>Weak Drill</h2></div><div class="screen-panel" id="drill-wrap"></div></div>
-        <div class="screen" id="screen-leagues" style="background:#0D0D0D"><div class="fc-header"><button class="back-btn" onclick="goTo('home')">←</button><h2>Rookie League</h2></div><div class="screen-panel" id="league-wrap"></div></div>
-        <div class="screen" id="screen-speak" style="background:#0D0D0D"><div class="fc-header"><button class="back-btn" onclick="goTo('home')">←</button><h2>Speak</h2></div><div class="screen-panel" id="speak-wrap"></div></div>
-        <div class="screen" id="screen-settings" style="background:#0D0D0D"><div class="fc-header"><button class="back-btn" onclick="goTo('home')">←</button><h2>Settings</h2></div><div class="screen-panel" id="settings-wrap"></div></div>
+        </div><div class="screen" id="screen-drill"><div class="fc-header"><button class="back-btn" onclick="goTo('home')">←</button><h2>Weak Drill</h2></div><div class="screen-panel" id="drill-wrap"></div></div>
+        <div class="screen" id="screen-leagues"><div class="fc-header"><button class="back-btn" onclick="goTo('home')">←</button><h2>Rookie League</h2></div><div class="screen-panel" id="league-wrap"></div></div>
+        <div class="screen" id="screen-speak"><div class="fc-header"><button class="back-btn" onclick="goTo('home')">←</button><h2>Speak</h2></div><div class="screen-panel" id="speak-wrap"></div></div>
+        <div class="screen" id="screen-settings">
+          <div class="portal-header settings-page-header">
+            <div class="portal-breadcrumb">Dashboard › <strong>Settings</strong></div>
+            <div class="portal-header-row">
+              <div>
+                <h1 class="portal-title">Settings</h1>
+                <p class="portal-tagline">Customize your study profile & preferences</p>
+              </div>
+            </div>
+          </div>
+          <div class="settings-body" id="settings-wrap"></div>
+        </div>
 
 
         <!-- ══ SPELLING ══ -->
-        <div class="screen" id="screen-spelling" style="background:#0D0D0D;">
+        <div class="screen" id="screen-spelling">
           <div class="fc-header">
             <button class="back-btn" onclick="goTo('home')">←</button>
             <h2>Spelling Challenge</h2>
@@ -1283,7 +1518,13 @@ body.native-app .desktop-only-ui{display:none!important}
           <div class="nav-icon-wrap">
             <span class="nav-icon">🏠</span>
             <div class="notif-dot" id="notif-dot"></div>
-          </div>Home
+          </div>Dashboard
+        </button>
+        <button class="nav-item" onclick="goTo('vocab')" id="nav-vocab">
+          <span class="nav-icon">📚</span>Vocab
+        </button>
+        <button class="nav-item" onclick="goTo('quiz')" id="nav-quiz">
+          <span class="nav-icon">📝</span>Quiz
         </button>
         <button class="nav-item" onclick="goTo('flashcard')" id="nav-flashcard">
           <span class="nav-icon">🃏</span>Cards
@@ -1291,11 +1532,14 @@ body.native-app .desktop-only-ui{display:none!important}
         <button class="nav-item" onclick="goTo('spelling')" id="nav-spelling">
           <span class="nav-icon">✍️</span>Spell
         </button>
-        <button class="nav-item" onclick="goTo('wordbank')" id="nav-wordbank">
-          <span class="nav-icon">📖</span>Words
+        <button class="nav-item" onclick="goTo('drill')" id="nav-drill">
+          <span class="nav-icon">🎯</span>Drill
         </button>
-        <button class="nav-item" onclick="goTo('progress')" id="nav-progress">
-          <span class="nav-icon">📊</span>Stats
+        <button class="nav-item" onclick="goTo('lists')" id="nav-lists">
+          <span class="nav-icon">📋</span>Lists
+        </button>
+        <button class="nav-item" onclick="goTo('settings')" id="nav-settings">
+          <span class="nav-icon">⚙️</span>More
         </button>
       </div>
 
@@ -1334,6 +1578,8 @@ body.native-app .desktop-only-ui{display:none!important}
 <script src="js/notifications.js?v=20260519f"></script>
 <script src="js/celebrate.js?v=20260519f"></script>
 <script src="js/lessons.js?v=20260520a"></script>
+<script src="js/dashboard.js?v=20260525b"></script>
+<script src="js/vocab.js?v=20260525a"></script>
 <script src="js/features.js?v=20260519h"></script>
 <script src="js/tutor.js?v=20260519f"></script>
 <script src="js/study.js?v=20260519f"></script>

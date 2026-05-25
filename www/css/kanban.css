@@ -154,7 +154,7 @@ body.web-desktop .path-board-lists .kanban-col {
 
 .kanban-col-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--lime), var(--sky));
+  background: linear-gradient(90deg, #1a7a52, #5a9e7c);
   border-radius: 99px;
   transition: width 0.35s ease;
 }
@@ -194,8 +194,8 @@ body.web-desktop .path-board-lists .kanban-col {
 }
 
 .kanban-lesson.active {
-  background: linear-gradient(135deg, rgba(200, 245, 60, 0.2), rgba(78, 207, 248, 0.1));
-  border-color: rgba(200, 245, 60, 0.45);
+  background: rgba(26, 122, 82, 0.08);
+  border-color: rgba(26, 122, 82, 0.35);
 }
 
 .kanban-lesson.done {
@@ -253,8 +253,8 @@ body.web-desktop .path-board-lists .kanban-col {
 }
 
 .kanban-lesson.active .kanban-lesson-badge {
-  background: rgba(200, 245, 60, 0.35);
-  color: var(--lime-dk);
+  background: rgba(26, 122, 82, 0.15);
+  color: #1a7a52;
 }
 
 .kanban-lesson.done .kanban-lesson-badge {

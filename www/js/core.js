@@ -75,6 +75,25 @@ LQ.syncHomeUI = function () {
   LQ.updateGoal();
   LQ.updateGreeting();
   LQ.renderStreakUI();
+  const dash = document.getElementById('screen-home');
+  const vocab = document.getElementById('screen-vocab');
+  if (dash && dash.classList.contains('active') && LQ.renderStudentDashboard) LQ.renderStudentDashboard();
+  const lists = document.getElementById('screen-lists');
+  if (lists && lists.classList.contains('active') && LQ.renderWordListsPage) LQ.renderWordListsPage();
+  if (vocab && vocab.classList.contains('active') && LQ.renderVocabPage) LQ.renderVocabPage();
+  const act = document.getElementById('portal-activity');
+  if (act) {
+    act.innerHTML =
+      '<span class="portal-activity-item">🔥 <strong>' +
+      (LQ.S.streakCount || 0) +
+      '</strong> day streak</span>' +
+      '<span class="portal-activity-item">Level <strong>' +
+      (LQ.S.level || 1) +
+      '</strong></span>' +
+      '<span class="portal-activity-item"><strong>' +
+      (LQ.S.xp || 0) +
+      '</strong> XP</span>';
+  }
   const prem = document.getElementById('premium-badge');
   if (prem) prem.style.display = LQ.S.premium ? 'inline-flex' : 'none';
 };
@@ -108,8 +127,17 @@ LQ.goTo = function (screen) {
   const handlers = {
     home: () => {
       LQ.syncHomeUI();
-      if (LQ.renderLearningPath) LQ.renderLearningPath();
+      if (LQ.renderStudentDashboard) LQ.renderStudentDashboard();
     },
+    vocab: () => {
+      LQ.syncHomeUI();
+      if (LQ.renderVocabPage) LQ.renderVocabPage();
+    },
+    lists: () => {
+      if (LQ.renderWordListsPage) LQ.renderWordListsPage();
+    },
+    learn: () => LQ.initLearn && LQ.initLearn(),
+    revise: () => LQ.initRevise && LQ.initRevise(),
     lesson: () => LQ.renderLessonScreen && LQ.renderLessonScreen(),
     flashcard: () => LQ.renderFC(),
     quiz: () => LQ.initQuiz(),

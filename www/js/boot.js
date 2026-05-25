@@ -29,6 +29,7 @@ LQ.boot = async function () {
     LQ.S = LQ.loadState();
     if (LQ.applyPlatformUI) LQ.applyPlatformUI();
     if (LQ.applyAllFeatures) LQ.applyAllFeatures();
+    if (LQ.ensureListPrefs) LQ.ensureListPrefs();
     LQ.WORDS.forEach(function (w) {
       if (!LQ.S.mastery[w.word]) LQ.S.mastery[w.word] = 'new';
       if (!LQ.S.srs[w.word]) LQ.S.srs[w.word] = LQ.initSrsEntry();
@@ -55,6 +56,7 @@ LQ.boot = async function () {
     } else {
       LQ.goTo('home');
       if (LQ.renderLearningPath) LQ.renderLearningPath();
+      if (LQ.renderStudentDashboard) LQ.renderStudentDashboard();
       LQ.updateGreeting();
       if (LQ.WORDS.length) {
         LQ.toast(LQ.WORDS.length + ' words ready');

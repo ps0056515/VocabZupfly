@@ -57,6 +57,8 @@ LQ.initQuiz = function () {
   LQ.S.quizLives = 3;
   LQ.S.quizAnswered = false;
   LQ._qScore = 0;
+  LQ._quizMisses = [];
+  LQ._quizAnswered = 0;
   const pool = LQ.S.premium ? LQ.getWords() : LQ.getWords().filter((w) => !w.premium);
   LQ._qWords = LQ.shuffle(pool).slice(0, 15);
   LQ.S.quizIdx = 0;
@@ -106,6 +108,7 @@ LQ.nextQuiz = function () {
 LQ.checkQ = function (idx) {
   if (LQ.S.quizAnswered) return;
   LQ.S.quizAnswered = true;
+  LQ._quizAnswered = (LQ._quizAnswered || 0) + 1;
   const btns = document.querySelectorAll('.opt');
   const correct = LQ.S.quizOpts[idx].word === LQ.S.quizWord.word;
   if (btns[idx]) btns[idx].classList.add(correct ? 'correct' : 'wrong');
@@ -116,7 +119,14 @@ LQ.checkQ = function (idx) {
     fb.innerHTML = correct ? '✓ <b>' + LQ.esc(LQ.S.quizWord.word) + '</b>' : '✗ ' + LQ.esc(LQ.S.quizWord.def);
   }
   if (correct) { LQ.gainXP(20); LQ._qScore++; LQ.scheduleSrs(LQ.S.quizWord.word, 'good'); }
-  else { LQ.S.quizLives--; LQ.updateLives(); LQ.gainXP(5); if (LQ.S.quizLives <= 0) setTimeout(LQ.showQuizEnd, 800); }
+  else {
+    LQ.S.quizLives--;
+    LQ.updateLives();
+    LQ.gainXP(5);
+    LQ._quizMisses = LQ._quizMisses || [];
+    LQ._quizMisses.push(LQ.S.quizWord);
+    if (LQ.S.quizLives <= 0) setTimeout(LQ.showQuizEnd, 800);
+  }
   LQ.recordActivity(LQ.S.quizWord.word, correct ? 'good' : 'miss');
   const n = document.getElementById('qnext'); if (n) n.classList.add('show');
 };
@@ -124,14 +134,20 @@ LQ.checkQ = function (idx) {
 LQ.advanceQuiz = function () { LQ.S.quizIdx++; LQ.nextQuiz(); };
 
 LQ.showQuizEnd = function () {
-  const total = Math.min(10, LQ._qWords.length);
+  const total = LQ._quizAnswered || Math.min(10, LQ._qWords.length);
   LQ.S.goalQuiz = (LQ.S.goalQuiz || 0) + LQ._qScore;
   LQ.updateGoal();
+  if (LQ.recordQuizResult) LQ.recordQuizResult(LQ._qScore, total, LQ._quizMisses || []);
   LQ.saveState();
+  if (LQ.renderQuizReview) {
+    LQ.renderQuizReview(LQ._qScore, total, LQ._quizMisses || []);
+    if (LQ.renderVocabPage) LQ.renderVocabPage();
+    return;
+  }
   const card = document.getElementById('quiz-card');
   const body = document.getElementById('quiz-body');
-  if (card) card.innerHTML = '<p class="quiz-label">Done!</p><p class="quiz-word" style="font-size:48px">🏆</p><p style="color:#fff;font-size:22px;font-weight:700">' + LQ._qScore + '/' + total + '</p>';
-  if (body) body.innerHTML = '<button class="quiz-next show" onclick="LQ.initQuiz()">Again</button><button class="quiz-next show" style="margin-top:10px;background:rgba(255,255,255,.08);color:#fff" onclick="goTo(\'home\')">Home</button>';
+  if (card) card.innerHTML = '<p class="quiz-label">Done!</p><p class="quiz-word" style="font-size:48px">🏆</p><p class="quiz-word" style="font-size:22px">' + LQ._qScore + '/' + total + '</p>';
+  if (body) body.innerHTML = '<button class="quiz-next show" onclick="LQ.initQuiz()">Again</button><button class="quiz-next portal-btn-secondary show" style="margin-top:10px" onclick="goTo(\'home\')">Home</button>';
 };
 
 LQ.initSpelling = function () {
@@ -202,11 +218,23 @@ window.speakSpellWord = function () { LQ.speakSpellWord(); };
 
 LQ.wbTag = 'All'; LQ.wbQ = '';
 LQ.renderWB = function () {
-  const em = { new: '📍', learning: '📝', known: '⭐' };
+  const em = { new: '📍', learning: '📝', known: '⭐', flagged: '🚩' };
+  if (LQ._wbSearchPrefill) {
+    LQ.wbQ = LQ._wbSearchPrefill;
+    LQ._wbSearchPrefill = '';
+    const inp = document.getElementById('wb-search');
+    if (inp) inp.value = LQ.wbQ;
+  }
   const filtered = LQ.getWords().filter((w) => {
     if (LQ.wbTag === 'Premium' && (!w.premium || !LQ.S.premium)) return false;
     const mq = !LQ.wbQ || w.word.toLowerCase().includes(LQ.wbQ.toLowerCase()) || w.def.toLowerCase().includes(LQ.wbQ.toLowerCase());
-    const mt = LQ.wbTag === 'All' || (LQ.wbTag === 'Known' && LQ.S.mastery[w.word] === 'known') || (LQ.wbTag === 'Learning' && LQ.S.mastery[w.word] === 'learning') || w.tags.includes(LQ.wbTag);
+    const m = LQ.S.mastery[w.word] || 'new';
+    const mt =
+      LQ.wbTag === 'All' ||
+      (LQ.wbTag === 'Known' && m === 'known') ||
+      (LQ.wbTag === 'Flagged' && m === 'flagged') ||
+      (LQ.wbTag === 'Learning' && m === 'learning') ||
+      w.tags.includes(LQ.wbTag);
     return mq && mt;
   });
   const el = document.getElementById('wb-list');
@@ -401,11 +429,11 @@ LQ.endMock = function () {
   if (card) {
     card.innerHTML =
       '<p class="quiz-label">Mock complete</p><p class="quiz-word" style="font-size:48px">🏆</p>' +
-      '<p style="color:#fff;font-size:22px;font-weight:700">' + LQ._mockScore + '/' + total + ' · ' + pct + '%</p>';
+      '<p class="quiz-word" style="font-size:22px">' + LQ._mockScore + '/' + total + ' · ' + pct + '%</p>';
   }
   if (body) {
     body.innerHTML =
       '<button class="quiz-next show" onclick="LQ.initMock()">Try again</button>' +
-      '<button class="quiz-next show" style="margin-top:10px;background:rgba(255,255,255,.08);color:#fff" onclick="goTo(\'home\')">Home</button>';
+      '<button class="quiz-next portal-btn-secondary show" style="margin-top:10px" onclick="goTo(\'home\')">Home</button>';
   }
 };

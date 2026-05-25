@@ -47,6 +47,13 @@ LQ.defaultState = function () {
     tutorHistory: [],
     /** Browser only: auto | phone | web */
     browserLayout: 'auto',
+    quizStats: { correct: 0, total: 0 },
+    lastQuizMisses: [],
+    /** Custom list names + display order (list ids) */
+    listPrefs: { names: {}, order: null },
+    /** Learn filter: 'all' or list id e.g. list-1 */
+    learnListId: 'all',
+    examDate: '',
   };
 };
 
@@ -135,6 +142,11 @@ LQ.saveState = function (S) {
         commitmentStart: s.commitmentStart,
         tutorHistory: s.tutorHistory || [],
         browserLayout: s.browserLayout || 'auto',
+        quizStats: s.quizStats || { correct: 0, total: 0 },
+        lastQuizMisses: s.lastQuizMisses || [],
+        listPrefs: s.listPrefs || { names: {}, order: null },
+        learnListId: s.learnListId || 'all',
+        examDate: s.examDate || '',
       })
     );
     if (LQ.Firebase && LQ.Firebase.sync) LQ.Firebase.sync();
