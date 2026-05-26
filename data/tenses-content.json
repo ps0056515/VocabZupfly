@@ -1,0 +1,195 @@
+{
+  "sentence-repeating": [
+    { "text": "She has been studying English for three years." },
+    { "text": "They will have finished the project by next Friday." },
+    { "text": "I was reading when the phone rang." },
+    { "text": "He had already left before we arrived." },
+    { "text": "We are going to visit Paris next summer." },
+    { "text": "The children have been playing in the garden all morning." },
+    { "text": "She writes in her journal every evening." },
+    { "text": "By this time tomorrow, I will be flying to London." }
+  ],
+  "short-stories": [
+    {
+      "title": "A Rainy Morning",
+      "story": "Maya woke up to the sound of rain tapping on her window. She had planned to go jogging, but the weather changed her mind. Instead, she made tea and opened her grammar book. For an hour she practiced past perfect sentences. When the sun finally appeared, she felt ready for the day.",
+      "questions": [
+        {
+          "q": "Why did Maya change her plan?",
+          "options": ["She was tired", "It was raining", "She lost her shoes", "She had no tea"],
+          "answer": 1
+        },
+        {
+          "q": "What tense appears in 'She had planned to go jogging'?",
+          "options": ["Present simple", "Past perfect", "Future continuous", "Present perfect"],
+          "answer": 1
+        }
+      ]
+    },
+    {
+      "title": "The Job Interview",
+      "story": "Arjun had prepared for weeks. He had reviewed common interview questions and practiced answers in front of a mirror. On the day of the interview, he arrived early. While he was waiting, he noticed he was feeling calm. The interviewer smiled and said, 'Tell me about a time you solved a difficult problem.'",
+      "questions": [
+        {
+          "q": "How long had Arjun prepared?",
+          "options": ["One day", "Several weeks", "One hour", "He had not prepared"],
+          "answer": 1
+        }
+      ]
+    }
+  ],
+  "just-a-minute": [
+    { "topic": "Talk for one minute about what you did yesterday. Use past simple and past continuous." },
+    { "topic": "Describe your plans for next week using future tense forms." },
+    { "topic": "Explain your daily routine using present simple." },
+    { "topic": "Talk about something you have learned recently using present perfect." },
+    { "topic": "Describe a memorable trip and what you had done before you left." },
+    { "topic": "Discuss your goals for the next five years using will and going to." }
+  ],
+  "sentence-reading": [
+    { "text": "Present simple: Water boils at one hundred degrees Celsius." },
+    { "text": "Present continuous: She is working on her thesis this semester." },
+    { "text": "Past simple: They visited Rome last summer." },
+    { "text": "Past continuous: I was cooking dinner when the guests arrived." },
+    { "text": "Present perfect: We have lived here since 2019." },
+    { "text": "Past perfect: He had forgotten his keys before he reached the door." },
+    { "text": "Future simple: The train will depart at six o'clock." },
+    { "text": "Future continuous: This time next week, they will be travelling abroad." }
+  ],
+  "passage-comprehension": [
+    {
+      "passage": "Language learners often confuse present perfect and past simple. Present perfect connects the past to now: 'I have finished my homework.' Past simple describes a finished time: 'I finished my homework at five o'clock.' When you see words like 'yesterday' or 'last year', use past simple. When you see 'already', 'yet', or 'since', think present perfect.",
+      "questions": [
+        {
+          "q": "Which sentence uses present perfect correctly?",
+          "options": [
+            "I have seen him yesterday.",
+            "I have already eaten.",
+            "I eat already.",
+            "I saw him since Monday."
+          ],
+          "answer": 1
+        },
+        {
+          "q": "Past simple is best when the time is:",
+          "options": ["Unspecified", "Connected to now", "Finished and stated", "Always in the future"],
+          "answer": 2
+        }
+      ]
+    },
+    {
+      "passage": "Future forms in English include 'will' for decisions and predictions, 'going to' for plans, and present continuous for fixed arrangements. 'I will help you' suggests a spontaneous offer. 'I am going to study abroad' shows a plan. 'We are meeting the client on Tuesday' is a scheduled arrangement.",
+      "questions": [
+        {
+          "q": "'We are meeting the client on Tuesday' expresses:",
+          "options": ["A spontaneous decision", "A fixed arrangement", "A past habit", "A hypothetical"],
+          "answer": 1
+        }
+      ]
+    }
+  ],
+  "grammar": [
+    {
+      "q": "She ___ to the gym every Tuesday.",
+      "options": ["go", "goes", "going", "gone"],
+      "answer": 1,
+      "explain": "Present simple with third-person singular takes -s."
+    },
+    {
+      "q": "They ___ dinner when I called.",
+      "options": ["have", "had", "were having", "are having"],
+      "answer": 2,
+      "explain": "Past continuous for an action in progress when another action happened."
+    },
+    {
+      "q": "I ___ this book three times already.",
+      "options": ["read", "have read", "am reading", "was reading"],
+      "answer": 1,
+      "explain": "Present perfect with 'already' for life experience up to now."
+    },
+    {
+      "q": "By next month, she ___ here for ten years.",
+      "options": ["works", "will work", "will have worked", "worked"],
+      "answer": 2,
+      "explain": "Future perfect for duration completed before a future point."
+    },
+    {
+      "q": "He ___ his keys before he left the house.",
+      "options": ["loses", "lost", "had lost", "has lost"],
+      "answer": 2,
+      "explain": "Past perfect for an earlier past action."
+    },
+    {
+      "q": "We ___ to Italy next summer.",
+      "options": ["go", "are going", "went", "have gone"],
+      "answer": 1,
+      "explain": "Present continuous for a planned future arrangement."
+    },
+    {
+      "q": "At eight o'clock tonight, I ___ TV.",
+      "options": ["watch", "watched", "will watch", "will be watching"],
+      "answer": 3,
+      "explain": "Future continuous for an action in progress at a future time."
+    },
+    {
+      "q": "She ___ English since 2020.",
+      "options": ["studies", "studied", "has studied", "is studying"],
+      "answer": 2,
+      "explain": "Present perfect with 'since' for an action starting in the past and continuing."
+    }
+  ],
+  "essay-writing": [
+    {
+      "prompt": "Write a short paragraph (50+ words) about a habit you want to develop. Use present simple and future forms.",
+      "minWords": 50
+    },
+    {
+      "prompt": "Describe a challenge you overcame. Use past simple, past continuous, and past perfect where appropriate.",
+      "minWords": 50
+    },
+    {
+      "prompt": "Explain the difference between two tenses you find difficult. Give examples.",
+      "minWords": 40
+    },
+    {
+      "prompt": "Write about your plans for improving your English this year. Use going to, will, and present continuous.",
+      "minWords": 50
+    }
+  ],
+  "jumbled-sentences": [
+    {
+      "words": ["has", "She", "finished", "already", "homework", "her", "."],
+      "answer": "She has already finished her homework."
+    },
+    {
+      "words": ["was", "When", "I", "arrived", "they", "were", "eating", "dinner", "."],
+      "answer": "When I arrived they were eating dinner."
+    },
+    {
+      "words": ["will", "We", "by", "have", "the", "report", "submitted", "Friday", "."],
+      "answer": "We will have submitted the report by Friday."
+    },
+    {
+      "words": ["had", "He", "never", "seen", "snow", "before", "he", "moved", "to", "Canada", "."],
+      "answer": "He had never seen snow before he moved to Canada."
+    },
+    {
+      "words": ["are", "They", "meeting", "the", "team", "tomorrow", "morning", "."],
+      "answer": "They are meeting the team tomorrow morning."
+    },
+    {
+      "words": ["been", "I", "have", "for", "waiting", "an", "hour", "."],
+      "answer": "I have been waiting for an hour."
+    }
+  ],
+  "story-retelling": [
+    {
+      "title": "The Late Train",
+      "story": "Sara had packed her bag the night before. She set two alarms but still overslept. While she was rushing to the station, she realised she had forgotten her ticket. A kind stranger let her use a phone. She called her office and explained she would be late. The train had already left, so she took a taxi instead."
+    },
+    {
+      "title": "Learning to Cook",
+      "story": "David had never cooked before he moved out of his parents' home. At first he burned toast and overcooked pasta. He watched videos every evening and practiced on weekends. After three months he was making full meals. His friends were surprised when he invited them to dinner last Friday."
+    }
+  ]
+}

@@ -154,7 +154,7 @@ body.web-desktop .path-board-lists .kanban-col {
 
 .kanban-col-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, #1a7a52, #5a9e7c);
+  background: linear-gradient(90deg, #c0392b, #f5a623);
   border-radius: 99px;
   transition: width 0.35s ease;
 }
@@ -254,7 +254,7 @@ body.web-desktop .path-board-lists .kanban-col {
 
 .kanban-lesson.active .kanban-lesson-badge {
   background: rgba(26, 122, 82, 0.15);
-  color: #1a7a52;
+  color: #c0392b;
 }
 
 .kanban-lesson.done .kanban-lesson-badge {

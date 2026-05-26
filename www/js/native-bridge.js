@@ -26,10 +26,13 @@
     var App = cap.Plugins && cap.Plugins.App;
     if (App) {
       App.addListener('backButton', function () {
-        var active = document.querySelector('.screen.active');
-        var screen = active && active.id ? active.id.replace('screen-', '') : 'home';
-        if (screen !== 'home' && typeof window.goTo === 'function') {
-          window.goTo('home');
+        if (typeof window.LQ !== 'undefined' && LQ.goBack && LQ._currentScreen && LQ._currentScreen !== 'home') {
+          LQ.goBack();
+        } else if (typeof window.goTo === 'function') {
+          var active = document.querySelector('.screen.active');
+          var screen = active && active.id ? active.id.replace('screen-', '') : 'home';
+          if (screen !== 'home') goTo('home');
+          else App.exitApp();
         } else {
           App.exitApp();
         }

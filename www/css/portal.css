@@ -1,20 +1,20 @@
 /**
- * LexiQuest — Portal theme (Jamboree-inspired)
- * Clean white UI, forest green accent, professional ed-tech feel.
+ * LexiQuest — Portal theme (ZupFly-inspired)
+ * Navy + gold + primary red — aligned with https://zupfly.com
  */
 
 body.portal-theme {
-  --brand: #1a7a52;
-  --brand-dark: #145a3d;
-  --brand-light: #e9f5ef;
-  --brand-muted: #5a9e7c;
+  --brand: #c0392b;
+  --brand-dark: #a93225;
+  --brand-light: #fdecea;
+  --brand-muted: #f5a623;
   --surface: #ffffff;
-  --surface-2: #f7f9f8;
-  --border: #e4ebe7;
-  --text: #1a2e24;
-  --text-muted: #6b7c73;
-  --shadow-sm: 0 1px 3px rgba(26, 46, 36, 0.06);
-  --shadow-md: 0 4px 20px rgba(26, 46, 36, 0.08);
+  --surface-2: #f8fafc;
+  --border: #e2e8f0;
+  --text: #0f172a;
+  --text-muted: #64748b;
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 4px 20px rgba(15, 23, 42, 0.08);
   color-scheme: light;
 }
 
@@ -23,11 +23,11 @@ body.portal-theme .desktop-shell {
 }
 
 body.portal-theme .phone-screen {
-  background: #f7f9f8;
+  background: #f8fafc;
 }
 
 body.portal-theme .app-inner {
-  background: #f7f9f8;
+  background: #f8fafc;
 }
 
 /* ── Light sidebar (replaces dark rail) ── */
@@ -417,6 +417,63 @@ body.portal-theme .portal-activity-item {
 /* ── Student Dashboard (Jamboree-style) ── */
 body.portal-theme .student-dash-header {
   margin-bottom: 0;
+  padding: 14px 20px 14px !important;
+}
+
+body.portal-theme.web-desktop .student-dash-header {
+  padding: 16px 32px 14px !important;
+}
+
+body.portal-theme .student-dash-header .portal-header-row {
+  align-items: center;
+  gap: 12px;
+}
+
+body.portal-theme .student-dash-header .portal-title {
+  font-size: 22px;
+  letter-spacing: -0.35px;
+}
+
+body.portal-theme.web-desktop .student-dash-header .portal-title {
+  font-size: 24px;
+}
+
+body.portal-theme .student-dash-header .portal-tagline {
+  font-size: 12px;
+  margin-top: 2px;
+  line-height: 1.35;
+}
+
+body.portal-theme .student-dash-header .portal-header-utils {
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 8px;
+  max-width: none;
+  flex-shrink: 0;
+}
+
+body.portal-theme .student-dash-header .portal-util-btn {
+  font-size: 11px;
+  padding: 5px 9px;
+  border-radius: 6px;
+}
+
+body.portal-theme .student-dash-header .portal-avatar {
+  width: 32px;
+  height: 32px;
+  font-size: 15px;
+  border-width: 1px;
+}
+
+body.portal-theme .student-dash-header .layout-switcher {
+  padding: 2px;
+  border-radius: 8px;
+}
+
+body.portal-theme .student-dash-header .layout-btn {
+  padding: 4px 7px;
+  font-size: 9px;
+  border-radius: 6px;
 }
 
 body.portal-theme .student-dash-body {
@@ -768,7 +825,7 @@ body.portal-theme .dash-daily-pct {
 
 /* ── Word Lists page (split layout) ── */
 body.portal-theme #screen-lists {
-  background: #f7f9f8;
+  background: #f8fafc;
   min-height: 100%;
 }
 
@@ -881,14 +938,14 @@ body.portal-theme .lists-head-count {
 
 body.portal-theme .lists-head-bar {
   height: 6px;
-  background: #e9f5ef;
+  background: #fdecea;
   border-radius: 99px;
   overflow: hidden;
 }
 
 body.portal-theme .lists-head-fill {
   height: 100%;
-  background: linear-gradient(90deg, #1a7a52, #5a9e7c);
+  background: linear-gradient(90deg, #c0392b, #f5a623);
   border-radius: 99px;
   transition: width 0.35s ease;
 }
@@ -1004,7 +1061,7 @@ body.portal-theme .lists-group-row.locked .lists-group-action {
 
 /* ── Word Lists: desktop (split panel) ── */
 body.portal-theme.web-desktop #screen-lists {
-  background: #f7f9f8;
+  background: #f8fafc;
   min-height: 100%;
 }
 
@@ -1049,7 +1106,7 @@ body.portal-theme.web-desktop .lists-groups {
 /* ── Word Lists: phone / native (stacked) ── */
 body.portal-theme.web-mobile #screen-lists,
 body.portal-theme.native-app #screen-lists {
-  background: #f7f9f8;
+  background: #f8fafc;
   min-height: 100%;
 }
 
@@ -1105,7 +1162,7 @@ body.portal-theme.native-app .lists-sidebar {
   position: sticky;
   top: 0;
   z-index: 2;
-  background: #f7f9f8;
+  background: #f8fafc;
 }
 
 body.portal-theme.web-mobile .lists-sidebar::-webkit-scrollbar,

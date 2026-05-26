@@ -1,0 +1,286 @@
+/**
+ * ZupFly brand theme — https://zupfly.com
+ * Navy + gold + primary red. Applied globally via portal-theme.
+ */
+
+:root {
+  --zf-navy: #0f172a;
+  --zf-navy-800: #1e293b;
+  --zf-navy-700: #334155;
+  --zf-primary: #c0392b;
+  --zf-primary-dark: #a93225;
+  --zf-primary-light: #fdecea;
+  --zf-gold: #f5a623;
+  --zf-gold-dark: #d97706;
+  --zf-gold-light: #fef3c7;
+  --zf-orange: #ea580c;
+  --zf-surface: #ffffff;
+  --zf-surface-2: #f8fafc;
+  --zf-surface-3: #f1f5f9;
+  --zf-border: #e2e8f0;
+  --zf-text: #0f172a;
+  --zf-text-muted: #64748b;
+}
+
+/* ── Portal tokens (override forest green) ── */
+body.portal-theme {
+  --brand: var(--zf-primary);
+  --brand-dark: var(--zf-primary-dark);
+  --brand-light: var(--zf-primary-light);
+  --brand-muted: var(--zf-gold);
+  --surface: var(--zf-surface);
+  --surface-2: var(--zf-surface-2);
+  --border: var(--zf-border);
+  --text: var(--zf-text);
+  --text-muted: var(--zf-text-muted);
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 4px 20px rgba(15, 23, 42, 0.08);
+}
+
+body.portal-theme .desktop-shell,
+body.portal-theme.web-desktop .phone-screen,
+body.portal-theme.web-desktop .app-main,
+body.portal-theme .app-inner,
+body.portal-theme #screen-lists,
+body.portal-theme.web-mobile .lists-sidebar,
+body.portal-theme.native-app .lists-sidebar {
+  background: var(--zf-surface-2) !important;
+}
+
+/* ── Dark navy sidebar (ZupFly nav) ── */
+body.portal-theme.web-desktop .desktop-rail {
+  background: var(--zf-navy) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: none !important;
+}
+
+body.portal-theme .desktop-rail-brand {
+  color: #fff !important;
+}
+
+body.portal-theme .desktop-rail-brand span {
+  color: var(--zf-gold) !important;
+}
+
+body.portal-theme .desktop-rail-item {
+  color: rgba(255, 255, 255, 0.78) !important;
+}
+
+body.portal-theme .desktop-rail-item:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #fff !important;
+}
+
+body.portal-theme .desktop-rail-item.active {
+  background: var(--zf-primary) !important;
+  color: #fff !important;
+}
+
+body.portal-theme .desktop-rail-sep {
+  background: rgba(255, 255, 255, 0.12) !important;
+}
+
+/* ── Mobile bottom nav ── */
+body.portal-theme .nav-bar {
+  background: var(--zf-navy) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+body.portal-theme .nav-item {
+  color: rgba(255, 255, 255, 0.55) !important;
+}
+
+body.portal-theme .nav-item.active {
+  color: var(--zf-gold) !important;
+}
+
+/* ── Progress & accents using gold + primary ── */
+body.portal-theme .fc-progress-fill,
+body.portal-theme .dash-active-fill,
+body.portal-theme .goal-fill,
+body.portal-theme .dash-list-bar-known,
+body.portal-theme .lesson-prog-fill {
+  background: linear-gradient(90deg, var(--zf-primary), var(--zf-gold)) !important;
+}
+
+body.portal-theme .dash-ring {
+  background: conic-gradient(var(--zf-gold) 0deg var(--ring-deg, 360deg), var(--zf-gold-light) var(--ring-deg, 360deg) 360deg) !important;
+}
+
+body.portal-theme .path-list-tab.active,
+body.portal-theme .portal-util-btn:hover {
+  background: var(--zf-primary) !important;
+  border-color: var(--zf-primary) !important;
+  color: #fff !important;
+}
+
+body.portal-theme .path-list-meta-fill,
+body.portal-theme .lists-group-bar-fill {
+  background: linear-gradient(90deg, var(--zf-primary), var(--zf-gold)) !important;
+}
+
+body.portal-theme .path-list-meta-bar,
+body.portal-theme .lists-group-bar {
+  background: var(--zf-gold-light) !important;
+}
+
+body.portal-theme .dash-continue-btn,
+body.portal-theme .portal-btn-primary,
+body.portal-theme .lesson-cta,
+body.portal-theme .quiz-next:not(.portal-btn-secondary),
+body.portal-theme .tenses-action-btn.tenses-action-primary {
+  background: var(--zf-primary) !important;
+  border-color: var(--zf-primary) !important;
+  color: #fff !important;
+}
+
+body.portal-theme .dash-continue-btn:hover,
+body.portal-theme .portal-btn-primary:hover,
+body.portal-theme .lesson-cta:hover {
+  background: var(--zf-primary-dark) !important;
+}
+
+body.portal-theme .portal-title,
+body.portal-theme .dash-ring-pct,
+body.portal-theme .dash-streak-num,
+body.portal-theme .dash-daily-pct {
+  color: var(--zf-navy) !important;
+}
+
+body.portal-theme .portal-tagline,
+body.portal-theme .portal-breadcrumb strong {
+  color: var(--zf-gold-dark) !important;
+}
+
+body.portal-theme .portal-breadcrumb strong {
+  color: var(--zf-navy) !important;
+}
+
+body.portal-theme .portal-avatar {
+  background: var(--zf-gold-light) !important;
+  color: var(--zf-navy) !important;
+}
+
+body.portal-theme .portal-search {
+  background: var(--zf-surface-3) !important;
+  border-color: var(--zf-border) !important;
+}
+
+body.portal-theme .portal-util-btn {
+  border-color: var(--zf-border) !important;
+  color: var(--zf-text) !important;
+}
+
+body.portal-theme .back-btn {
+  background: var(--zf-gold-light) !important;
+  color: var(--zf-navy) !important;
+}
+
+body.portal-theme .fc-progress-fill {
+  background: var(--zf-gold) !important;
+}
+
+body.portal-theme .opt.correct {
+  border-color: #16a34a !important;
+  background: #f0fdf4 !important;
+}
+
+body.portal-theme .quiz-feedback-box.ok {
+  color: #15803d !important;
+}
+
+body.portal-theme .quiz-feedback-box.fail {
+  color: var(--zf-primary) !important;
+}
+
+body.portal-theme .tenses-opt:hover:not(:disabled) {
+  border-color: var(--zf-primary) !important;
+  background: var(--zf-primary-light) !important;
+}
+
+body.portal-theme .tenses-timer {
+  color: var(--zf-primary) !important;
+}
+
+body.portal-theme .tenses-chip:hover {
+  border-color: var(--zf-gold) !important;
+  background: var(--zf-gold-light) !important;
+}
+
+/* Gold accent replacements for legacy lime tints */
+body.portal-theme .ctag.pos,
+body.portal-theme .rate-btn.nailed,
+body.portal-theme .learn-badge,
+body.portal-theme .tutor-header .tutor-badge,
+body.portal-theme .path-node-badge.active {
+  background: rgba(245, 166, 35, 0.18) !important;
+  color: var(--zf-gold-dark) !important;
+}
+
+body.portal-theme .ob-goal-card.active {
+  border-color: var(--zf-gold) !important;
+  background: rgba(245, 166, 35, 0.1) !important;
+}
+
+body.portal-theme .ob-chip.active,
+body.portal-theme .learn-list-chip.active,
+body.portal-theme .fchip.active {
+  background: var(--zf-gold) !important;
+  border-color: var(--zf-gold) !important;
+  color: var(--zf-navy) !important;
+}
+
+body.portal-theme .qpip.done {
+  background: var(--zf-gold) !important;
+}
+
+body.portal-theme .qpip.current {
+  background: var(--zf-primary) !important;
+}
+
+body.portal-theme .mock-timer,
+body.portal-theme .goal-pct,
+body.portal-theme .cel-xp,
+body.portal-theme .league-xp {
+  color: var(--zf-gold-dark) !important;
+}
+
+body.portal-theme .league-row.you {
+  border-color: var(--zf-gold) !important;
+}
+
+body.portal-theme .speak-btn.speaking,
+body.portal-theme .mode-card.flashcard {
+  background: linear-gradient(135deg, var(--zf-gold), var(--zf-orange)) !important;
+  color: var(--zf-navy) !important;
+}
+
+body.portal-theme .commit-banner {
+  background: linear-gradient(135deg, var(--zf-navy), var(--zf-navy-800)) !important;
+  border-color: rgba(245, 166, 35, 0.3) !important;
+}
+
+body.portal-theme .vocab-hero.learn {
+  border-top-color: var(--zf-gold) !important;
+}
+
+body.portal-theme .vocab-hero.revise {
+  border-top-color: var(--zf-primary) !important;
+}
+
+body.portal-theme .vocab-hero.test {
+  border-top-color: var(--zf-navy-700) !important;
+}
+
+body.web-desktop {
+  background: var(--zf-surface-3) !important;
+}
+
+body.web-desktop .desktop-shell {
+  background: var(--zf-surface-3) !important;
+}
+
+body.web-desktop .phone-screen,
+body.web-desktop .app-main {
+  background: var(--zf-surface-2) !important;
+}

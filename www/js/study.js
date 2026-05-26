@@ -147,7 +147,9 @@ LQ.showQuizEnd = function () {
   const card = document.getElementById('quiz-card');
   const body = document.getElementById('quiz-body');
   if (card) card.innerHTML = '<p class="quiz-label">Done!</p><p class="quiz-word" style="font-size:48px">🏆</p><p class="quiz-word" style="font-size:22px">' + LQ._qScore + '/' + total + '</p>';
-  if (body) body.innerHTML = '<button class="quiz-next show" onclick="LQ.initQuiz()">Again</button><button class="quiz-next portal-btn-secondary show" style="margin-top:10px" onclick="goTo(\'home\')">Home</button>';
+  if (body) body.innerHTML = LQ.renderFlowComplete
+    ? LQ.renderFlowComplete({ context: 'quiz', title: 'Quiz complete!', score: LQ._qScore + '/' + total, icon: '🏆' })
+    : '<button class="quiz-next show" onclick="LQ.initQuiz()">Again</button><button class="quiz-next portal-btn-secondary show" style="margin-top:10px" onclick="LQ.goBack()">Back</button>';
 };
 
 LQ.initSpelling = function () {

@@ -54,6 +54,8 @@ LQ.defaultState = function () {
     /** Learn filter: 'all' or list id e.g. list-1 */
     learnListId: 'all',
     examDate: '',
+    /** Tenses practice module progress: moduleId -> { solved, correct } */
+    tensesProgress: {},
   };
 };
 

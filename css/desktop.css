@@ -4,7 +4,7 @@
  */
 
 body.web-desktop {
-  background: #e8e4dc;
+  background: #f8fafc;
 }
 
 body.web-desktop .desktop-shell {
@@ -16,7 +16,7 @@ body.web-desktop .desktop-shell {
   padding: 0;
   gap: 0;
   align-items: stretch;
-  background: #e8e4dc;
+  background: #f8fafc;
 }
 
 body.web-desktop .promo-side {
@@ -41,7 +41,7 @@ body.web-desktop .phone-screen {
   height: 100dvh;
   border-radius: 0;
   overflow: hidden;
-  background: #f5f3ee;
+  background: #f8fafc;
 }
 
 body.web-desktop .app-shell {
@@ -58,7 +58,7 @@ body.web-desktop .app-main {
   flex: 1;
   min-width: 0;
   min-height: 0;
-  background: #f5f3ee;
+  background: #f8fafc;
 }
 
 body.web-desktop .app-inner {
@@ -76,7 +76,7 @@ body.web-desktop .desktop-rail {
   flex-direction: column;
   padding: 24px 14px;
   gap: 2px;
-  background: #111;
+  background: #0f172a;
   border-right: 1px solid rgba(255, 255, 255, 0.06);
 }
 
@@ -98,7 +98,7 @@ body.web-desktop .nav-bar {
 /* ── Home dashboard ── */
 body.web-desktop #screen-home.active {
   flex-direction: column;
-  background: #f5f3ee;
+  background: #f8fafc;
 }
 
 body.web-desktop #screen-home .home-bg.air-home {

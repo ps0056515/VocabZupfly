@@ -31,7 +31,7 @@ LQ.fireConfetti = function () {
   const ctx = canvas.getContext('2d');
   const w = (canvas.width = window.innerWidth);
   const h = (canvas.height = window.innerHeight);
-  const colors = ['#C8F53C', '#4ECFF8', '#FF6B6B', '#B8A9FF', '#FFD166', '#3DD68C'];
+  const colors = ['#f5a623', '#c0392b', '#0f172a', '#ea580c', '#2563eb', '#16a34a'];
   if (LQ._confettiParts) LQ._confettiParts.length = 0;
   else LQ._confettiParts = [];
   for (let i = 0; i < 120; i++) {

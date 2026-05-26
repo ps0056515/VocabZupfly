@@ -55,7 +55,7 @@ LQ.applyPlatformUI = function () {
   LQ.platform = native ? 'native' : desktop ? 'web-desktop' : 'web-mobile';
 
   var meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', '#f7f9f8');
+  if (meta) meta.setAttribute('content', '#0f172a');
 
   if (LQ.renderLayoutSwitcher) LQ.renderLayoutSwitcher();
   if (LQ.renderWordListsPage) LQ.renderWordListsPage();

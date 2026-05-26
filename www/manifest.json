@@ -4,7 +4,7 @@
   "description": "GRE, GMAT, IELTS vocabulary trainer",
   "start_url": "index.html",
   "display": "standalone",
-  "background_color": "#0D0D0D",
-  "theme_color": "#0D0D0D",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
   "orientation": "portrait"
 }

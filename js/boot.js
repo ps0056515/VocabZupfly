@@ -54,7 +54,7 @@ LQ.boot = async function () {
       if (ob) ob.classList.add('active');
       LQ.renderOnboarding();
     } else {
-      LQ.goTo('home');
+      LQ.goTo('home', { resetStack: true });
       if (LQ.renderLearningPath) LQ.renderLearningPath();
       if (LQ.renderStudentDashboard) LQ.renderStudentDashboard();
       LQ.updateGreeting();

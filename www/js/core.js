@@ -104,7 +104,8 @@ LQ.recordActivity = function (word, rating) {
   if (LQ.S.history.length > 20) LQ.S.history.pop();
 };
 
-LQ.goTo = function (screen) {
+LQ.goTo = function (screen, opts) {
+  opts = opts || {};
   if (screen === 'flashcard' && !LQ.S.premium && !(LQ.Config && LQ.Config.enableAllFeatures)) {
     const w = LQ.currentFcWord();
     if (w && w.premium) {
@@ -112,17 +113,29 @@ LQ.goTo = function (screen) {
       screen = 'settings';
     }
   }
+  if (!opts.noPush && LQ._currentScreen && LQ._currentScreen !== screen) {
+    LQ._navStack = LQ._navStack || [];
+    LQ._navStack.push(LQ._currentScreen);
+    if (LQ._navStack.length > 15) LQ._navStack.shift();
+  }
+  if (opts.resetStack) LQ._navStack = [];
+  LQ._currentScreen = screen;
+  if (LQ.closeMoreMenu) LQ.closeMoreMenu();
+
   document.querySelectorAll('.screen').forEach((s) => s.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach((n) => n.classList.remove('active'));
   document.querySelectorAll('.desktop-rail-item').forEach((n) => n.classList.remove('active'));
   const sc = document.getElementById('screen-' + screen);
   if (sc) sc.classList.add('active');
-  const nav = document.getElementById('nav-' + screen);
+  const meta = LQ.getScreenMeta ? LQ.getScreenMeta(screen) : { nav: screen };
+  const navId = meta.nav || screen;
+  const nav = document.getElementById('nav-' + navId);
   if (nav) nav.classList.add('active');
-  const rail = document.getElementById('desktop-nav-' + screen);
+  const rail = document.getElementById('desktop-nav-' + navId);
   if (rail) rail.classList.add('active');
   const inner = document.getElementById('app-inner');
   if (inner) inner.scrollTop = 0;
+  if (LQ.updateFlowChrome) LQ.updateFlowChrome(screen);
 
   const handlers = {
     home: () => {
@@ -151,6 +164,8 @@ LQ.goTo = function (screen) {
     settings: () => LQ.renderSettings(),
     onboarding: () => LQ.renderOnboarding(),
     tutor: () => LQ.initTutor && LQ.initTutor(),
+    tenses: () => LQ.renderTensesPage && LQ.renderTensesPage(),
+    'tenses-practice': () => LQ.initTensesPractice && LQ.initTensesPractice(),
   };
   if (handlers[screen]) handlers[screen]();
 };

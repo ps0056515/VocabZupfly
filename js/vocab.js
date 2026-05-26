@@ -340,8 +340,8 @@ LQ.renderVocabPage = function () {
   if (accEl) accEl.textContent = accuracy + '%';
   if (ringEl) {
     const deg = Math.round((accuracy / 100) * 360);
-    const brand = document.body.classList.contains('portal-theme') ? '#1a7a52' : 'var(--lime)';
-    const track = document.body.classList.contains('portal-theme') ? 'rgba(26,122,82,.12)' : 'rgba(200,245,60,.15)';
+    const brand = document.body.classList.contains('portal-theme') ? '#c0392b' : 'var(--lime)';
+    const track = document.body.classList.contains('portal-theme') ? 'rgba(192,57,43,.12)' : 'rgba(245,166,35,.15)';
     ringEl.style.background =
       'conic-gradient(' + brand + ' 0deg ' + deg + 'deg, ' + track + ' ' + deg + 'deg 360deg)';
   }
@@ -668,8 +668,13 @@ LQ.renderQuizReview = function (score, total, misses) {
   if (body) {
     body.innerHTML =
       missHtml +
-      '<button class="quiz-next show" onclick="LQ.initQuiz()">Take another quiz</button>' +
-      '<button class="quiz-next show" style="margin-top:10px;background:rgba(255,255,255,.08);color:#fff" onclick="goTo(\'vocab\')">Back to Vocab</button>';
+      LQ.renderFlowComplete({
+        context: 'quiz',
+        title: pct >= 80 ? 'Great score!' : 'Quiz complete',
+        score: score + ' / ' + total + ' correct',
+        message: pct >= 80 ? 'Keep it up — try Revise or Tenses next.' : 'Flag misses above, then revise those words.',
+        icon: pct >= 80 ? '🏆' : '📝',
+      });
   }
 };
 

@@ -186,7 +186,10 @@ LQ.initDrill = function () {
   if (!wrap) return;
   if (!LQ._drillList.length) {
     wrap.innerHTML =
-      '<p style="color:#888;padding:20px">No weak words — great job!</p><button class="quiz-next show" onclick="goTo(\'home\')">Home</button>';
+      '<p style="color:#888;padding:20px">No weak words — great job!</p>' +
+      (LQ.renderFlowComplete
+        ? LQ.renderFlowComplete({ context: 'drill', title: 'All caught up!', message: 'No weak words right now.', icon: '✨' })
+        : '<button class="quiz-next show" onclick="LQ.goBack()">Back</button>');
     return;
   }
   wrap.innerHTML = '<p id="drill-prog"></p><' + LQ.H + ' id="drill-body"></' + LQ.H + '>';
@@ -219,8 +222,9 @@ LQ.answerDrill = function (i) {
   }
   LQ._drillIdx++;
   if (LQ._drillIdx >= LQ._drillList.length) {
-    document.getElementById('drill-body').innerHTML =
-      '<p style="color:var(--lime)">Drill complete!</p><button class="quiz-next show" onclick="goTo(\'home\')">Home</button>';
+    document.getElementById('drill-body').innerHTML = LQ.renderFlowComplete
+      ? LQ.renderFlowComplete({ context: 'drill', title: 'Drill complete!', message: 'You reinforced your weak words.', icon: '💪' })
+      : '<p style="color:var(--lime)">Drill complete!</p><button class="quiz-next show" onclick="LQ.goBack()">Back</button>';
   } else LQ.showDrillQ();
   LQ.saveState();
 };

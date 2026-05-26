@@ -20,15 +20,88 @@ LQ.renderStudentDashboard = function () {
       : 'All lists';
 
   root.innerHTML =
+    LQ.dashWelcomeRow(task) +
+    LQ.dashLearningPath(counts) +
     '<div class="dash-widget-grid">' +
     LQ.dashWidgetProgress(progressPct, knownPct, counts) +
     LQ.dashWidgetActive(task, listLabel, dailyPct) +
     LQ.dashWidgetExam(exam, examDate, daysToExam) +
     LQ.dashWidgetStreak() +
     LQ.dashWidgetVocab(counts, accuracy) +
+    LQ.dashWidgetTenses() +
     LQ.dashWidgetLists() +
     LQ.dashWidgetDaily(dailyPct) +
     '</div>';
+};
+
+LQ.dashWelcomeRow = function (task) {
+  return (
+    '<div class="dash-welcome-row">' +
+    '<div class="dash-quick-actions">' +
+    '<button type="button" class="dash-quick-btn primary" onclick="' +
+    task.action +
+    '">▶ ' +
+    LQ.esc(task.title) +
+    '</button>' +
+    '<button type="button" class="dash-quick-btn" onclick="goTo(\'learn\')"><span>✏️</span> Learn</button>' +
+    '<button type="button" class="dash-quick-btn" onclick="goTo(\'quiz\')"><span>📝</span> Quiz</button>' +
+    '<button type="button" class="dash-quick-btn" onclick="goTo(\'tenses\')"><span>🕐</span> Tenses</button>' +
+    '<button type="button" class="dash-quick-btn" onclick="goTo(\'lists\')"><span>📋</span> Lists</button>' +
+    '</div></div>'
+  );
+};
+
+LQ.dashLearningPath = function (counts) {
+  const learned = counts.known + counts.flagged > 0;
+  const revised = counts.flagged === 0 && counts.known > 0;
+  return (
+    '<section class="dash-learning-path">' +
+    '<h3>Your study flow</h3>' +
+    '<p>Follow these steps for steady progress — tap any step to jump in.</p>' +
+    '<div class="dash-path-steps">' +
+    '<button type="button" class="dash-path-step' +
+    (learned ? ' done' : '') +
+    '" onclick="goTo(\'learn\')">' +
+    '<span class="dash-path-num">1</span><span><strong>Learn new words</strong><span>' +
+    counts.unmarked +
+    ' unmarked · mark known or flag</span></span></button>' +
+    '<button type="button" class="dash-path-step' +
+    (counts.flagged === 0 && learned ? ' done' : '') +
+    '" onclick="goTo(\'revise\')">' +
+    '<span class="dash-path-num">2</span><span><strong>Revise flagged</strong><span>' +
+    counts.flagged +
+    ' waiting · flip & confirm</span></span></button>' +
+    '<button type="button" class="dash-path-step' +
+    (revised ? ' done' : '') +
+    '" onclick="goTo(\'quiz\')">' +
+    '<span class="dash-path-num">3</span><span><strong>Test yourself</strong><span>Quiz & mock test when ready</span></span></button>' +
+    '</div></section>'
+  );
+};
+
+LQ.dashWidgetTenses = function () {
+  var prog = { solved: 0, readiness: 0 };
+  if (LQ.getTensesModuleProgress && LQ.TENSES_MODULES) {
+    LQ.TENSES_MODULES.forEach(function (m) {
+      var p = LQ.getTensesModuleProgress(m.id);
+      prog.solved += p.solved;
+    });
+    var total = LQ.TENSES_MODULES.length * 8;
+    prog.readiness = Math.min(100, Math.round((prog.solved / Math.max(total, 1)) * 100));
+  }
+  return (
+    '<article class="dash-widget dash-widget-link" onclick="goTo(\'tenses\')">' +
+    '<h3 class="dash-widget-title">Tenses Practice</h3>' +
+    '<p class="dash-vocab-blurb">Grammar, speaking, reading & writing — 9 practice modules.</p>' +
+    '<div class="dash-vocab-stats">' +
+    '<span><strong>' +
+    prog.readiness +
+    '%</strong> readiness</span>' +
+    '<span><strong>' +
+    prog.solved +
+    '</strong> exercises done</span></div>' +
+    '<span class="dash-widget-cta">Open Tenses ›</span></article>'
+  );
 };
 
 LQ.dashWidgetProgress = function (progressPct, knownPct, counts) {
@@ -37,9 +110,9 @@ LQ.dashWidgetProgress = function (progressPct, knownPct, counts) {
     '<article class="dash-widget">' +
     '<h3 class="dash-widget-title">Course Progress</h3>' +
     '<div class="dash-ring-wrap">' +
-    '<div class="dash-ring" style="background:conic-gradient(#1a7a52 0deg ' +
+    '<div class="dash-ring" style="background:conic-gradient(#f5a623 0deg ' +
     deg +
-    'deg, #e9f5ef ' +
+    'deg, #fef3c7 ' +
     deg +
     'deg 360deg)">' +
     '<div class="dash-ring-inner"><span class="dash-ring-pct">' +
@@ -75,7 +148,7 @@ LQ.dashWidgetActive = function (task, listLabel, dailyPct) {
     '%"></div></div>' +
     '<button type="button" class="dash-continue-btn" onclick="' +
     task.action +
-    '">Continue</button></div>' +
+    '">Continue learning</button></div>' +
     '<ul class="dash-task-list">' +
     task.queue
       .map(function (t) {
