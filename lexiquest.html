@@ -903,6 +903,17 @@ body.portal-theme.web-mobile .layout-switcher-persistent .layout-btn.active{
 .learn-list-chips{display:flex;flex-wrap:wrap;gap:6px;max-height:88px;overflow-y:auto}
 .learn-list-chip{border:1px solid rgba(0,0,0,.1);background:#fff;border-radius:99px;padding:7px 12px;font-family:var(--body);font-size:11px;font-weight:600;color:var(--muted);cursor:pointer}
 .learn-list-chip.active{background:var(--lime);color:var(--ink);border-color:var(--lime)}
+.quiz-setup{background:#fff;border-bottom:1px solid rgba(0,0,0,.08)}
+.quiz-heading{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.quiz-scope-label{font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.quiz-session{flex:1;display:flex;flex-direction:column;min-height:0}
+.quiz-list-bar{padding:0 20px 14px}
+.quiz-list-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin:10px 0 8px}
+.quiz-list-label:first-child{margin-top:0}
+.quiz-list-chips{display:flex;flex-wrap:wrap;gap:6px;max-height:96px;overflow-y:auto}
+.quiz-list-chip{border:1px solid rgba(0,0,0,.1);background:#fff;border-radius:99px;padding:7px 12px;font-family:var(--body);font-size:11px;font-weight:600;color:var(--muted);cursor:pointer}
+.quiz-list-chip.active{background:var(--lime);color:var(--ink);border-color:var(--lime)}
+.quiz-back-btn{background:rgba(0,0,0,.06)!important;color:var(--ink)!important}
 .list-setting-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
 .list-setting-num{width:22px;font-size:12px;font-weight:700;color:#888;text-align:center;flex-shrink:0}
 .list-setting-input{flex:1;padding:10px 12px;border-radius:10px;border:1px solid #333;background:#1a1a1a;color:#fff;font-family:var(--body);font-size:13px}
@@ -1077,8 +1088,8 @@ body.native-app .desktop-only-ui{display:none!important}
 </style>
 <link rel="stylesheet" href="css/kanban.css?v=20260520a">
 <link rel="stylesheet" href="css/desktop.css?v=20260527a">
-<link rel="stylesheet" href="css/portal.css?v=20260527c">
-<link rel="stylesheet" href="css/portal-pages.css?v=20260525d">
+<link rel="stylesheet" href="css/portal.css?v=20260528a">
+<link rel="stylesheet" href="css/portal-pages.css?v=20260528b">
 <link rel="stylesheet" href="css/tenses.css?v=20260526a">
 <link rel="stylesheet" href="css/zupfly-theme.css?v=20260526b">
 <link rel="stylesheet" href="css/flow.css?v=20260526c">
@@ -1343,6 +1354,7 @@ body.native-app .desktop-only-ui{display:none!important}
             <h2 style="font-family:var(--head);font-size:18px;font-weight:700;color:var(--ink);flex:1">Revise</h2>
             <span id="revise-counter" style="font-size:12px;font-weight:700;color:var(--muted)">1 / 5</span>
           </div>
+          <div class="learn-list-bar" id="revise-list-bar"></div>
           <div id="revise-wrap"></div>
         </div>
 
@@ -1403,18 +1415,27 @@ body.native-app .desktop-only-ui{display:none!important}
 
         <!-- ══ QUIZ ══ -->
         <div class="screen" id="screen-quiz">
-          <div class="quiz-bg">
+          <div class="quiz-setup">
             <div class="quiz-topbar">
-              <button class="back-btn" onclick="LQ.goBack()">←</button>
-              <span class="quiz-page-title">Quiz</span>
+              <button class="back-btn quiz-back-btn" onclick="LQ.goBack()">←</button>
+              <div class="quiz-heading">
+                <span class="quiz-page-title">Quiz</span>
+                <span class="quiz-scope-label" id="quiz-scope-label">All lists</span>
+              </div>
+              <div class="quiz-timer" id="quiz-timer"></div>
               <div class="quiz-lives" id="quiz-lives">
                 <span class="heart">❤️</span><span class="heart">❤️</span><span class="heart">❤️</span>
               </div>
             </div>
-            <div class="quiz-prog-row" id="quiz-prog-row"></div>
-            <div class="quiz-card" id="quiz-card"></div>
+            <div class="quiz-list-bar" id="quiz-list-bar"></div>
           </div>
-          <div class="quiz-body" id="quiz-body"></div>
+          <div class="quiz-session">
+            <div class="quiz-bg">
+              <div class="quiz-prog-row" id="quiz-prog-row"></div>
+              <div class="quiz-card" id="quiz-card"></div>
+            </div>
+            <div class="quiz-body" id="quiz-body"></div>
+          </div>
         </div>
 
         <!-- ══ WORD BANK ══ -->
@@ -1622,24 +1643,25 @@ body.native-app .desktop-only-ui{display:none!important}
 <script src="js/config.js?v=20260527a"></script>
 <script src="js/platform.js?v=20260519h"></script>
 <script src="js/unlock.js?v=20260519f"></script>
-<script src="js/words.js?v=20260520a"></script>
+<script src="js/words.js?v=20260528c"></script>
 <script src="js/srs.js?v=20260519f"></script>
 <script src="js/streak.js?v=20260519f"></script>
-<script src="js/state.js?v=20260520b"></script>
-<script src="js/core.js?v=20260527a"></script>
+<script src="js/state.js?v=20260528b"></script>
+<script src="js/core.js?v=20260528a"></script>
 <script src="js/ai.js?v=20260527a"></script>
 <script src="js/speech.js?v=20260519f"></script>
 <script src="js/firebase-sync.js?v=20260519f"></script>
 <script src="js/notifications.js?v=20260519f"></script>
 <script src="js/celebrate.js?v=20260519f"></script>
-<script src="js/lessons.js?v=20260527c"></script>
+<script src="js/lessons.js?v=20260528c"></script>
 <script src="js/dashboard.js?v=20260525b"></script>
-<script src="js/vocab.js?v=20260527b"></script>
-<script src="js/features.js?v=20260519h"></script>
-<script src="js/tutor.js?v=20260527b"></script>
-<script src="js/study.js?v=20260527a"></script>
+<script src="js/vocab.js?v=20260528d"></script>
+<script src="js/features.js?v=20260528a"></script>
+<script src="js/tutor.js?v=20260528a"></script>
+<script src="js/practice.js?v=20260528a"></script>
+<script src="js/study.js?v=20260528c"></script>
 <script src="js/tenses.js?v=20260526a"></script>
-<script src="js/flow.js?v=20260527d"></script>
+<script src="js/flow.js?v=20260528b"></script>
 <script src="js/boot.js?v=20260520b"></script>
 <script src="js/native-bridge.js?v=20260519f"></script>
 </body>

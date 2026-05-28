@@ -78,9 +78,8 @@ body.web-desktop .app-inner > .screen.active {
   flex-direction: column;
 }
 
-body.web-desktop #screen-spelling.active,
-body.web-desktop #screen-tutor.active {
-  min-height: 0;
+body.web-desktop #screen-quiz.active {
+  flex-direction: column;
 }
 
 body.web-desktop #screen-spelling .spell-screen-wrap,

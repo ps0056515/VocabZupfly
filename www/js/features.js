@@ -19,7 +19,8 @@ LQ.renderProgress = function () {
   sec.innerHTML =
     '<' + LQ.H + ' class="prog-card"><h3>28-Day Activity</h3><' + LQ.H + ' class="heatmap">' + heat.map((l) => '<' + LQ.H + ' class="hc l' + l + '"></' + LQ.H + '>').join('') + '</' + LQ.H + '></' + LQ.H + '>' +
     '<' + LQ.H + ' class="prog-card"><h3>Mastery</h3><p>Known ' + known + ' · Flagged ' + flagged + ' · Learning ' + learning + ' · Lessons ' + lessonsDone + '</p></' + LQ.H + '>' +
-    '<' + LQ.H + ' class="prog-card"><h3>Recent</h3>' + recent + '</' + LQ.H + '>';
+    '<' + LQ.H + ' class="prog-card"><h3>Recent</h3>' + recent + '</' + LQ.H + '>' +
+    (LQ.renderAnalyticsHtml ? LQ.renderAnalyticsHtml() : '');
 };
 
 LQ.buildActivityHeat = function () {

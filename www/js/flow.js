@@ -10,7 +10,7 @@ LQ.SCREEN_META = {
   learn: { title: 'Learn', parent: 'vocab', nav: 'vocab', hint: 'Mark words you know or flag them to revise later.' },
   revise: { title: 'Revise', parent: 'vocab', nav: 'vocab', hint: 'Review flagged words until they stick.' },
   lesson: { title: 'Lesson', parent: 'lists', nav: 'lists', hint: '' },
-  quiz: { title: 'Quiz', parent: 'vocab', nav: 'vocab', hint: 'Test your definitions — wrong answers can be flagged.' },
+  quiz: { title: 'Quiz', parent: 'vocab', nav: 'vocab', hint: 'Pick a word list or synonym group, then test yourself.' },
   flashcard: { title: 'Flashcards', parent: 'vocab', nav: 'vocab', hint: 'Flip cards and rate how well you know each word.' },
   spelling: { title: 'Spelling', parent: 'vocab', nav: 'vocab', hint: 'Hear the definition, spell the word.' },
   wordbank: { title: 'Word Bank', parent: 'vocab', nav: 'vocab', hint: 'Search and browse every word in the deck.' },
@@ -136,6 +136,8 @@ LQ.renderFlowSubnav = function (screen, meta) {
     el.remove();
   });
   if (!meta.parent) return;
+  /* Quiz & mock have their own header — avoid duplicate back bar */
+  if (screen === 'quiz' || screen === 'mock') return;
 
   const sc = document.getElementById('screen-' + screen);
   if (!sc) return;
@@ -166,7 +168,7 @@ LQ.suggestNextSteps = function (context) {
   const steps = [];
 
   if (context === 'quiz') {
-    steps.push({ icon: '🔁', label: 'Another quiz', sub: 'Same deck, new words', action: 'LQ.initQuiz()' });
+    steps.push({ icon: '🔁', label: 'Another quiz', sub: 'Same list, new words', action: 'LQ.initQuiz()' });
     if (counts.flagged > 0) {
       steps.push({ icon: '🔄', label: 'Revise flagged', sub: counts.flagged + ' words', action: "goTo('revise')" });
     }

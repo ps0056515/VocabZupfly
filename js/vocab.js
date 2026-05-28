@@ -217,7 +217,14 @@ LQ.renderLearnListPicker = function () {
         );
       })
       .join('');
-  bar.innerHTML = '<p class="learn-list-label">Study from</p><div class="learn-list-chips">' + chips + '</div>';
+  bar.innerHTML =
+    '<p class="learn-list-label">Study from</p><div class="learn-list-chips">' +
+    chips +
+    '</div>' +
+    (LQ.difficultyFilterHtml
+      ? '<p class="learn-list-label">Difficulty</p>' +
+        LQ.difficultyFilterHtml(LQ.S.learnDifficultyFilter || 'all', 'LQ.pickLearnDifficulty')
+      : '');
 };
 
 LQ.pickLearnList = function (listId) {
@@ -394,11 +401,11 @@ LQ.homeSearch = function (q) {
 LQ.initLearn = function () {
   LQ.renderLearnListPicker();
   var listId = LQ.S.learnListId || 'all';
-  LQ._learnQueue = LQ.shuffle(
-    LQ.wordsFromList(listId).filter(function (w) {
-      return LQ.getWordStatus(w.word) === 'unmarked';
-    })
-  );
+  var pool = LQ.wordsFromList(listId).filter(function (w) {
+    return LQ.getWordStatus(w.word) === 'unmarked';
+  });
+  if (LQ.filterByDifficulty) pool = LQ.filterByDifficulty(pool, LQ.S.learnDifficultyFilter || 'all');
+  LQ._learnQueue = LQ.shuffle(pool);
   LQ._learnIdx = 0;
   LQ._learnReveal = false;
   LQ.renderLearnScreen();
@@ -456,6 +463,7 @@ LQ.renderLearnScreen = function () {
       '<p class="learn-hint">Mark <strong>Known</strong> if you know the meaning, or <strong>Flag</strong> to revise later.</p>' +
       '</div>' +
       '<button class="lesson-cta lesson-cta-secondary" onclick="LQ.revealLearn()">Show meaning & opposites</button>' +
+      (LQ.wordDifficultyHtml ? LQ.wordDifficultyHtml(w.word) : '') +
       actions;
     return;
   }
@@ -473,6 +481,7 @@ LQ.renderLearnScreen = function () {
     '"</p>' +
     synAnt +
     '</div>' +
+    (LQ.wordDifficultyHtml ? LQ.wordDifficultyHtml(w.word) : '') +
     '<div class="learn-actions">' +
     '<button class="learn-act known" onclick="LQ.learnMark(\'known\')">✓ Known</button>' +
     '<button class="learn-act flag" onclick="LQ.learnMark(\'flagged\')">🚩 Flag to revise</button>' +
@@ -524,11 +533,12 @@ LQ.learnPrev = function () {
 /* ── Revise mode (flip cards, flagged only) ── */
 
 LQ.initRevise = function () {
-  LQ._reviseQueue = LQ.shuffle(
-    LQ.getWords().filter(function (w) {
-      return LQ.getWordStatus(w.word) === 'flagged';
-    })
-  );
+  if (LQ.renderReviseFilterBar) LQ.renderReviseFilterBar();
+  var pool = LQ.getWords().filter(function (w) {
+    return LQ.getWordStatus(w.word) === 'flagged';
+  });
+  if (LQ.filterByDifficulty) pool = LQ.filterByDifficulty(pool, LQ.S.reviseDifficultyFilter || 'all');
+  LQ._reviseQueue = LQ.shuffle(pool);
   LQ._reviseIdx = 0;
   LQ._reviseFlipped = false;
   LQ.renderReviseScreen();

@@ -52,24 +52,194 @@ LQ.shuffle = function (a) {
 
 LQ._qWords = [];
 LQ._qScore = 0;
+LQ._quizPool = [];
+
+LQ.getQuizScopeLabel = function () {
+  if (LQ.S.quizGroupId) {
+    var hit = LQ.findGroup(LQ.S.quizGroupId);
+    if (hit) {
+      var listPart = LQ.getListTitle(hit.list.id, hit.list.title);
+      return listPart + ' · ' + (LQ.formatGroupTitle ? LQ.formatGroupTitle(hit.group.title) : hit.group.title);
+    }
+  }
+  if (LQ.S.quizListId && LQ.S.quizListId !== 'all') {
+    return LQ.getListTitle(LQ.S.quizListId, LQ.S.quizListId);
+  }
+  return 'All lists';
+};
+
+LQ.quizWordPool = function () {
+  var groupId = LQ.S.quizGroupId || null;
+  var pool;
+  if (groupId) {
+    pool = LQ.wordsForGroup ? LQ.wordsForGroup(groupId) : [];
+  } else {
+    pool = LQ.wordsFromList(LQ.S.quizListId || 'all');
+  }
+  if (!LQ.S.premium && !(LQ.Config && LQ.Config.enableAllFeatures)) {
+    pool = pool.filter(function (w) {
+      return !w.premium;
+    });
+  }
+  return pool.filter(function (w) {
+    return w && w.def;
+  });
+};
+
+LQ.renderQuizListPicker = function () {
+  var bar = document.getElementById('quiz-list-bar');
+  var scopeEl = document.getElementById('quiz-scope-label');
+  if (!bar) return;
+  if (!LQ.ensurePathData()) {
+    bar.innerHTML = '';
+    return;
+  }
+  var currentList = LQ.S.quizListId || 'all';
+  var currentGroup = LQ.S.quizGroupId || null;
+  var lists = LQ.getOrderedLists();
+  var listChips =
+    '<button type="button" class="quiz-list-chip' +
+    (currentList === 'all' ? ' active' : '') +
+    '" onclick="LQ.pickQuizList(\'all\')">All lists</button>' +
+    lists
+      .map(function (lst) {
+        var lbl = LQ.getListTitle(lst.id, lst.title);
+        return (
+          '<button type="button" class="quiz-list-chip' +
+          (currentList === lst.id ? ' active' : '') +
+          '" onclick="LQ.pickQuizList(\'' +
+          lst.id +
+          '\')">' +
+          LQ.esc(lbl) +
+          '</button>'
+        );
+      })
+      .join('');
+
+  var groupSection = '';
+  if (currentList !== 'all') {
+    var lst = LQ.WORD_LISTS.lists.find(function (l) {
+      return l.id === currentList;
+    });
+    if (lst) {
+      groupSection =
+        '<p class="quiz-list-label">Synonym group</p><div class="quiz-list-chips">' +
+        '<button type="button" class="quiz-list-chip' +
+        (!currentGroup ? ' active' : '') +
+        '" onclick="LQ.pickQuizGroup(null)">All groups</button>' +
+        lst.groups
+          .map(function (g) {
+            var label = LQ.formatGroupTitle ? LQ.formatGroupTitle(g.title) : g.title;
+            var short = label.length > 24 ? label.slice(0, 22) + '…' : label;
+            return (
+              '<button type="button" class="quiz-list-chip' +
+              (currentGroup === g.id ? ' active' : '') +
+              '" title="' +
+              LQ.esc(label) +
+              '" onclick="LQ.pickQuizGroup(\'' +
+              g.id +
+              '\')">G' +
+              g.groupNum +
+              ' · ' +
+              LQ.esc(short) +
+              '</button>'
+            );
+          })
+          .join('') +
+        '</div>';
+    }
+  }
+
+  bar.innerHTML =
+    '<p class="quiz-list-label">Quiz from</p><div class="quiz-list-chips">' +
+    listChips +
+    '</div>' +
+    groupSection +
+    (LQ.renderQuizBuilderHtml ? LQ.renderQuizBuilderHtml() : '');
+
+  if (scopeEl) scopeEl.textContent = LQ.getQuizScopeLabel();
+};
+
+LQ.pickQuizList = function (listId) {
+  LQ.S.quizListId = listId;
+  if (listId === 'all') LQ.S.quizGroupId = null;
+  else if (LQ.S.quizGroupId) {
+    var hit = LQ.findGroup(LQ.S.quizGroupId);
+    if (!hit || hit.list.id !== listId) LQ.S.quizGroupId = null;
+  }
+  LQ.saveState();
+  if (LQ.initQuizSetup) LQ.initQuizSetup();
+  else LQ.initQuiz();
+};
+
+LQ.pickQuizGroup = function (groupId) {
+  LQ.S.quizGroupId = groupId || null;
+  if (groupId) {
+    var hit = LQ.findGroup(groupId);
+    if (hit) LQ.S.quizListId = hit.list.id;
+  }
+  LQ.saveState();
+  if (LQ.initQuizSetup) LQ.initQuizSetup();
+  else LQ.initQuiz();
+};
+
+LQ.startListQuiz = function (listId, groupId) {
+  LQ.S.quizListId = listId || 'all';
+  LQ.S.quizGroupId = groupId || null;
+  LQ.saveState();
+  LQ.goTo('quiz');
+};
+window.LQ.startListQuiz = LQ.startListQuiz;
+
+LQ.renderQuizEmpty = function (message) {
+  var card = document.getElementById('quiz-card');
+  var body = document.getElementById('quiz-body');
+  var row = document.getElementById('quiz-prog-row');
+  if (row) row.innerHTML = '';
+  if (card) {
+    card.innerHTML =
+      '<p class="quiz-label">Custom quiz</p>' +
+      '<p class="quiz-word" style="font-size:24px">' +
+      LQ.esc(LQ.getQuizScopeLabel()) +
+      '</p>' +
+      '<p class="quiz-hint">Need at least 4 words with definitions</p>';
+  }
+  if (body) {
+    body.innerHTML =
+      '<p class="quiz-question">' +
+      LQ.esc(message) +
+      '</p>' +
+      '<button type="button" class="quiz-next show" onclick="goTo(\'lists\')">Browse word lists</button>';
+  }
+};
 
 LQ.initQuiz = function () {
+  if (LQ.stopQuizTimer) LQ.stopQuizTimer();
   LQ.S.quizLives = 3;
   LQ.S.quizAnswered = false;
   LQ._qScore = 0;
   LQ._quizMisses = [];
   LQ._quizAnswered = 0;
-  const pool = LQ.S.premium ? LQ.getWords() : LQ.getWords().filter((w) => !w.premium);
-  LQ._qWords = LQ.shuffle(pool).slice(0, 15);
+  var pool = LQ.applyQuizPoolFilters ? LQ.applyQuizPoolFilters(LQ.quizWordPool()) : LQ.quizWordPool();
+  LQ._quizPool = pool;
+  if (pool.length < 4) {
+    LQ.renderQuizEmpty('Not enough words for this filter — try All levels or a larger list.');
+    LQ.updateLives();
+    return;
+  }
+  var count = LQ.getQuizQuestionCount ? LQ.getQuizQuestionCount() : 10;
+  LQ._qWords = LQ.shuffle(pool).slice(0, Math.min(count, pool.length));
   LQ.S.quizIdx = 0;
   LQ.renderQuizPips();
   LQ.updateLives();
-  LQ.nextQuiz();
+  if (LQ.startQuizTimerIfNeeded) LQ.startQuizTimerIfNeeded();
+  if (LQ.dispatchQuizQuestion) LQ.dispatchQuizQuestion();
+  else LQ.nextQuiz();
 };
 
 LQ.renderQuizPips = function () {
   const row = document.getElementById('quiz-prog-row');
-  const total = Math.min(10, LQ._qWords.length);
+  const total = LQ.quizQuestionTotal ? LQ.quizQuestionTotal() : Math.min(10, LQ._qWords.length);
   if (!row) return;
   row.innerHTML = Array.from({ length: total }, (_, i) => {
     const c = i < LQ.S.quizIdx ? 'done' : i === LQ.S.quizIdx ? 'current' : '';
@@ -84,25 +254,7 @@ LQ.updateLives = function () {
 };
 
 LQ.nextQuiz = function () {
-  const total = Math.min(10, LQ._qWords.length);
-  if (LQ.S.quizIdx >= total || LQ.S.quizLives <= 0) { LQ.showQuizEnd(); return; }
-  LQ.S.quizAnswered = false;
-  LQ.S.quizWord = LQ._qWords[LQ.S.quizIdx];
-  const wrong = LQ.shuffle(LQ.getWords().filter((x) => x.word !== LQ.S.quizWord.word)).slice(0, 3);
-  LQ.S.quizOpts = LQ.shuffle(wrong.concat([LQ.S.quizWord]));
-  const card = document.getElementById('quiz-card');
-  const body = document.getElementById('quiz-body');
-  if (card) {
-    card.innerHTML = '<' + LQ.H + ' class="quiz-label">What does this mean?</' + LQ.H + '><' + LQ.H + ' class="quiz-word">' + LQ.esc(LQ.S.quizWord.word) +
-      '</' + LQ.H + '><' + LQ.H + ' class="quiz-hint">' + LQ.esc(LQ.S.quizWord.phonetic) + ' · ' + LQ.esc(LQ.S.quizWord.pos) + '</' + LQ.H + '>';
-  }
-  if (body) {
-    const letters = ['A', 'B', 'C', 'D'];
-    body.innerHTML = '<p class="quiz-question">Pick the definition</p>' + LQ.S.quizOpts.map((o, i) =>
-      '<button type="button" class="opt" onclick="LQ.checkQ(' + i + ')"><span class="opt-letter">' + letters[i] + '</span>' + LQ.esc(o.def) + '</button>').join('') +
-      '<' + LQ.H + ' class="quiz-feedback-box" id="qfb"></' + LQ.H + '><button class="quiz-next" id="qnext" onclick="LQ.advanceQuiz()">Next →</button>';
-  }
-  LQ.renderQuizPips();
+  if (LQ.dispatchQuizQuestion) LQ.dispatchQuizQuestion();
 };
 
 LQ.checkQ = function (idx) {
@@ -112,31 +264,21 @@ LQ.checkQ = function (idx) {
   const btns = document.querySelectorAll('.opt');
   const correct = LQ.S.quizOpts[idx].word === LQ.S.quizWord.word;
   if (btns[idx]) btns[idx].classList.add(correct ? 'correct' : 'wrong');
-  btns.forEach((b, i) => { b.disabled = true; if (LQ.S.quizOpts[i].word === LQ.S.quizWord.word) b.classList.add('correct'); });
-  const fb = document.getElementById('qfb');
-  if (fb) {
-    fb.className = 'quiz-feedback-box show ' + (correct ? 'ok' : 'fail');
-    fb.innerHTML = correct ? '✓ <b>' + LQ.esc(LQ.S.quizWord.word) + '</b>' : '✗ ' + LQ.esc(LQ.S.quizWord.def);
-  }
-  if (correct) { LQ.gainXP(20); LQ._qScore++; LQ.scheduleSrs(LQ.S.quizWord.word, 'good'); }
-  else {
-    LQ.S.quizLives--;
-    LQ.updateLives();
-    LQ.gainXP(5);
-    LQ._quizMisses = LQ._quizMisses || [];
-    LQ._quizMisses.push(LQ.S.quizWord);
-    if (LQ.S.quizLives <= 0) setTimeout(LQ.showQuizEnd, 800);
-  }
-  LQ.recordActivity(LQ.S.quizWord.word, correct ? 'good' : 'miss');
-  const n = document.getElementById('qnext'); if (n) n.classList.add('show');
+  btns.forEach(function (b, i) {
+    b.disabled = true;
+    if (LQ.S.quizOpts[i].word === LQ.S.quizWord.word) b.classList.add('correct');
+  });
+  if (LQ.finishQuizAnswer) LQ.finishQuizAnswer(correct);
 };
 
 LQ.advanceQuiz = function () { LQ.S.quizIdx++; LQ.nextQuiz(); };
 
 LQ.showQuizEnd = function () {
-  const total = LQ._quizAnswered || Math.min(10, LQ._qWords.length);
+  if (LQ.stopQuizTimer) LQ.stopQuizTimer();
+  const total = LQ._quizAnswered || (LQ.quizQuestionTotal ? LQ.quizQuestionTotal() : Math.min(10, LQ._qWords.length));
   LQ.S.goalQuiz = (LQ.S.goalQuiz || 0) + LQ._qScore;
   LQ.updateGoal();
+  if (LQ.recordQuizSession) LQ.recordQuizSession(LQ._qScore, total);
   if (LQ.recordQuizResult) LQ.recordQuizResult(LQ._qScore, total, LQ._quizMisses || []);
   LQ.saveState();
   if (LQ.renderQuizReview) {

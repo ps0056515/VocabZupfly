@@ -63,14 +63,51 @@ LQ.resolveWord = function (name, meta) {
     word: name,
     phonetic: '',
     pos: 'word',
-    def: 'Word from group: ' + label + '.',
-    example: 'Review <em>' + name.toLowerCase() + '</em> with synonyms in this cluster.',
+    def: 'Word from group: ' + (LQ.formatGroupTitle ? LQ.formatGroupTitle(label) : label) + '.',
+    example: 'The passage used <em>' + name.toLowerCase() + '</em> in a way that clarified its meaning.',
     syn: '',
     ant: '',
     tags: ['GRE', 'GMAT', 'IELTS'],
     premium: false,
     stub: true,
   };
+};
+
+/** Turn raw PDF group codes like SIGN(WARNING)(-) into readable labels */
+LQ.formatGroupTitle = function (title) {
+  if (!title) return '';
+  var t = String(title).trim();
+  var pole = '';
+  if (/\(\+\)$/.test(t)) {
+    pole = '+';
+    t = t.replace(/\(\+\)$/, '').trim();
+  } else if (/\(-\)$/.test(t)) {
+    pole = '−';
+    t = t.replace(/\(-\)$/, '').trim();
+  }
+  t = t.replace(/\(([^)]+)\)/g, ' · $1').replace(/\//g, ' / ');
+  t = t.replace(/^\s*·\s*/, '').replace(/\s+/g, ' ').trim();
+  t = t
+    .split(' · ')
+    .map(function (part) {
+      part = part.trim();
+      if (!part) return '';
+      return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
+    })
+    .filter(Boolean)
+    .join(' · ');
+  if (pole) t = t + ' (' + pole + ')';
+  return t;
+};
+
+/** User-facing definition — hides raw PDF stub text when possible */
+LQ.displayWordDef = function (w) {
+  if (!w || !w.def) return '';
+  if (!/^Vocabulary word from List/i.test(w.def)) return w.def;
+  if (w.groupTitle && LQ.formatGroupTitle) {
+    return 'A vocabulary word from the "' + LQ.formatGroupTitle(w.groupTitle) + '" synonym group.';
+  }
+  return w.def;
 };
 
 LQ.findGroup = function (lessonId) {

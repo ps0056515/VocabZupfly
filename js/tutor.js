@@ -3,7 +3,9 @@ window.LQ = window.LQ || {};
 LQ.TUTOR_CHIPS = [
   'What should I study today?',
   'Explain my weakest word',
-  'Explain past tense',
+  'Mnemonic for a hard word',
+  'Word root breakdown',
+  'Use in a sentence',
   'Tips for my exam',
 ];
 
@@ -72,7 +74,10 @@ LQ.lookupTutorWord = function (msg) {
 
 LQ.formatWordReply = function (word) {
   if (!word) return '';
-  const hint = LQ.MNEMONICS && LQ.MNEMONICS[word.word];
+  const hint =
+    (LQ.MNEMONICS && LQ.MNEMONICS[word.word]) ||
+    (LQ.generateMnemonic ? LQ.generateMnemonic(word) : '');
+  const root = LQ.guessWordRoot ? LQ.guessWordRoot(word.word) : null;
   const ex = (word.example || '').replace(/<[^>]+>/g, '');
   let out =
     '**' +
@@ -82,11 +87,12 @@ LQ.formatWordReply = function (word) {
     ' · _' +
     (word.pos || 'word') +
     '_\n\n' +
-    (word.def || '');
+    (LQ.displayWordDef ? LQ.displayWordDef(word) : word.def || '');
+  if (root) out += '\n\n**Root:** **' + root.root + '-** = "' + root.meaning + '"';
   if (ex) out += '\n\n**Example:** "' + ex + '"';
   if (word.syn && String(word.syn).trim()) out += '\n\n**Synonyms:** ' + word.syn;
   if (word.ant && String(word.ant).trim()) out += '\n\n**Antonyms:** ' + word.ant;
-  if (hint) out += '\n\n**Memory trick:** ' + hint;
+  if (hint) out += '\n\n**Memory trick:** ' + hint.replace(/\*\*/g, '');
   else out += '\n\n**Tip:** Picture one vivid scene that fits the definition and say it aloud twice.';
   return out;
 };
@@ -174,9 +180,44 @@ LQ.localTutorReply = function (msg) {
     return 'Your weakest flagged word right now:\n\n' + LQ.formatWordReply(w);
   }
 
-  const w =
+  const wEarly =
     (ctx.focusWord && LQ.wordByName(ctx.focusWord)) ||
-    LQ.lookupTutorWord(text) ||
+    LQ.lookupTutorWord(text);
+
+  if (/mnemonic|memory trick|remember this word|how to remember/.test(lower)) {
+    const w = wEarly || LQ.WORDS[LQ.S.dailyWordIdx % Math.max(1, LQ.WORDS.length)];
+    if (!w) return 'Pick a word from your deck first — type _Explain ephemeral_ or any vocab word.';
+    const m = LQ.generateMnemonic ? LQ.generateMnemonic(w) : '';
+    return '**Mnemonic for ' + w.word + ':**\n\n' + m.replace(/\*\*/g, '') + '\n\n' + (w.def || '');
+  }
+
+  if (/\broot\b|etymolog|prefix|suffix|where does .* come from/.test(lower)) {
+    const w = wEarly;
+    if (!w) return 'Name a word from your deck and I\'ll look for a Latin/Greek root — e.g. _root of ephemeral_.';
+    const root = LQ.guessWordRoot ? LQ.guessWordRoot(w.word) : null;
+    if (root) {
+      return (
+        '**' +
+        w.word +
+        '** — root **' +
+        root.root +
+        '-** means "' +
+        root.meaning +
+        '".\n\n' +
+        (LQ.displayWordDef ? LQ.displayWordDef(w) : w.def)
+      );
+    }
+    return 'No obvious prefix/root for **' + w.word + '** — use the example sentence as your anchor instead.';
+  }
+
+  if (/use in a sentence|sentence for|write a sentence|example sentence/.test(lower)) {
+    const w = wEarly || LQ.WORDS[LQ.S.dailyWordIdx % Math.max(1, LQ.WORDS.length)];
+    if (!w) return 'Type any word from your deck and ask _Use ephemeral in a sentence_.';
+    return LQ.tutorSentence ? LQ.tutorSentence(w) : LQ.formatWordReply(w);
+  }
+
+  const w =
+    wEarly ||
     (/(explain|meaning|define|what is|mnemonic|remember)/.test(lower)
       ? LQ.WORDS[LQ.S.dailyWordIdx % Math.max(1, LQ.WORDS.length)]
       : null);
@@ -194,7 +235,7 @@ LQ.localTutorReply = function (msg) {
   }
 
   return (
-    'I can help with:\n\n• **Words** — type _Explain ephemeral_ or any word from your deck\n• **Tenses** — ask _past tense_, _present tense_, or _future tense_\n• **Study plan** — _What should I study today?_\n• **Weak words** — _Explain my weakest word_\n\nOr tap a suggestion chip below.'
+    'I can help with:\n\n• **Words** — type _Explain ephemeral_ or any word from your deck\n• **Mnemonics & roots** — _Mnemonic for abate_ or _root of ephemeral_\n• **Sentences** — _Use abate in a sentence_\n• **Study plan** — _What should I study today?_\n• **Weak words** — _Explain my weakest word_\n\nOr tap a suggestion chip below.'
   );
 };
 

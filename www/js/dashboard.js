@@ -189,7 +189,9 @@ LQ.dashWidgetExam = function (exam, examDate, daysToExam) {
     '</span></div>' +
     '<p class="dash-exam-countdown">' +
     countdown +
-    '</p></div></article>'
+    '</p>' +
+    (LQ.renderStudyPlanHtml ? LQ.renderStudyPlanHtml() : '') +
+    '</div></article>'
   );
 };
 

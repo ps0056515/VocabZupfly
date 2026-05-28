@@ -53,6 +53,17 @@ LQ.defaultState = function () {
     listPrefs: { names: {}, order: null },
     /** Learn filter: 'all' or list id e.g. list-1 */
     learnListId: 'all',
+    /** Quiz scope: list id ('all' = entire deck) and optional synonym group id */
+    quizListId: 'all',
+    quizGroupId: null,
+    quizMode: 'mcq',
+    quizQuestionCount: 10,
+    quizTimeLimitSec: 0,
+    quizDifficultyFilter: 'all',
+    learnDifficultyFilter: 'all',
+    reviseDifficultyFilter: 'all',
+    wordDifficulty: {},
+    quizSessions: [],
     examDate: '',
     /** Tenses practice module progress: moduleId -> { solved, correct } */
     tensesProgress: {},
@@ -148,7 +159,18 @@ LQ.saveState = function (S) {
         lastQuizMisses: s.lastQuizMisses || [],
         listPrefs: s.listPrefs || { names: {}, order: null },
         learnListId: s.learnListId || 'all',
+        quizListId: s.quizListId || 'all',
+        quizGroupId: s.quizGroupId || null,
+        quizMode: s.quizMode || 'mcq',
+        quizQuestionCount: s.quizQuestionCount || 10,
+        quizTimeLimitSec: s.quizTimeLimitSec || 0,
+        quizDifficultyFilter: s.quizDifficultyFilter || 'all',
+        learnDifficultyFilter: s.learnDifficultyFilter || 'all',
+        reviseDifficultyFilter: s.reviseDifficultyFilter || 'all',
+        wordDifficulty: s.wordDifficulty || {},
+        quizSessions: s.quizSessions || [],
         examDate: s.examDate || '',
+        tensesProgress: s.tensesProgress || {},
       })
     );
     if (LQ.Firebase && LQ.Firebase.sync) LQ.Firebase.sync();

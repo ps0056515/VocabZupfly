@@ -91,7 +91,7 @@ LQ.renderGroupWordList = function (lessonId) {
             : '') +
         '</div>' +
         '<p class="lists-word-def">' +
-        w.def +
+        LQ.displayWordDef(w) +
         '</p>' +
         (w.example ? '<p class="lists-word-ex">"' + w.example + '"</p>' : '') +
         (w.syn
@@ -200,7 +200,7 @@ LQ.renderWordListsPage = function () {
       var complete = !!LQ.S.lessonProgress[les.id];
       var cls = complete ? 'done' : unlocked ? 'ready' : 'locked';
       var badge = complete ? 'Done' : unlocked ? 'Start' : 'Locked';
-      var theme = les.title.replace(/^G\d+\s·\s/, '');
+      var theme = (LQ.formatGroupTitle ? LQ.formatGroupTitle(les.fullTitle || les.title.replace(/^G\d+\s·\s/, '')) : les.title.replace(/^G\d+\s·\s/, ''));
       var expanded = !!(LQ._expandedListGroups && LQ._expandedListGroups[les.id]);
       return (
         '<div class="lists-group-block' +
@@ -229,6 +229,11 @@ LQ.renderWordListsPage = function () {
         '<span class="lists-group-chevron" aria-hidden="true">' +
         (expanded ? '\u25B2' : '\u25BC') +
         '</span></button>' +
+        '<button type="button" class="lists-group-quiz" onclick="event.stopPropagation();LQ.startListQuiz(\'' +
+        ch.id +
+        '\',\'' +
+        les.id +
+        '\')">Quiz</button>' +
         '<button type="button" class="lists-group-action" ' +
         (unlocked ? 'onclick="LQ.startLesson(\'' + les.id + '\')"' : 'disabled') +
         '>' +
