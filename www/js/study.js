@@ -154,7 +154,19 @@ LQ.showQuizEnd = function () {
 
 LQ.initSpelling = function () {
   const pool = LQ.S.premium ? LQ.getWords() : LQ.getWords().filter((w) => !w.premium);
-  LQ._spellWords = LQ.shuffle(pool);
+  if (!pool.length) {
+    const wrap = document.getElementById('spell-wrap');
+    if (wrap) {
+      wrap.innerHTML =
+        '<div class="flow-complete">' +
+        '<p class="flow-complete-icon">📚</p>' +
+        '<h3 class="flow-complete-title">No words available</h3>' +
+        '<p class="flow-complete-msg">Load the word bank first, or unlock premium in Settings.</p>' +
+        '<button type="button" class="tenses-action-btn tenses-action-primary" onclick="LQ.goBack()">Go back</button></div>';
+    }
+    return;
+  }
+  LQ._spellWords = LQ.shuffle(pool).slice(0, 15);
   LQ.S.spellIdx = 0;
   LQ.renderSpell();
 };
@@ -162,20 +174,63 @@ LQ.initSpelling = function () {
 LQ.renderSpell = function () {
   const list = LQ._spellWords || [];
   const w = list[LQ.S.spellIdx % list.length];
-  if (!w) return;
-  LQ.S.spellGuess = []; LQ.S.spellAnswered = false;
-  document.getElementById('spell-counter').textContent = (LQ.S.spellIdx + 1) + ' / ' + list.length;
-  document.getElementById('spell-prog').style.width = ((LQ.S.spellIdx + 1) / list.length) * 100 + '%';
-  const target = w.word.toUpperCase();
-  const extras = LQ.shuffle('ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').filter((c) => !target.includes(c))).slice(0, 4);
-  const pool = LQ.shuffle([...new Set(target.split(''))].concat(extras));
   const wrap = document.getElementById('spell-wrap');
-  if (!wrap) return;
-  wrap.innerHTML = '<p class="spell-def">' + LQ.esc(w.def) + '</p><' + LQ.H + ' class="spell-blanks" id="spell-blanks">' +
-    Array(target.length).fill(0).map((_, i) => '<' + LQ.H + ' class="spell-blank" id="sb' + i + '"> </' + LQ.H + '>').join('') + '</' + LQ.H + '>' +
-    '<' + LQ.H + ' class="spell-keyboard">' + pool.map((c) => '<button class="spell-key" onclick="LQ.spellTap(\'' + c + '\')">' + c + '</button>').join('') + '</' + LQ.H + '>' +
-    '<' + LQ.H + ' class="spell-result" id="spell-result"></' + LQ.H + '><button class="spell-del" onclick="LQ.spellDel()">⌫</button><button class="spell-submit" onclick="LQ.spellSubmit()">Check</button>' +
-    '<button class="spell-next" id="spell-next-btn" onclick="LQ.spellNext()">Next →</button>';
+  if (!w || !wrap) return;
+  LQ.S.spellGuess = [];
+  LQ.S.spellAnswered = false;
+  const counter = document.getElementById('spell-counter');
+  const prog = document.getElementById('spell-prog');
+  if (counter) counter.textContent = (LQ.S.spellIdx + 1) + ' / ' + list.length;
+  if (prog) prog.style.width = ((LQ.S.spellIdx + 1) / list.length) * 100 + '%';
+  const target = w.word.toUpperCase();
+  const letters = [...new Set(target.split(''))];
+  const extras = LQ.shuffle('ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').filter((c) => !letters.includes(c))).slice(0, 4);
+  LQ._spellKeyPool = LQ.shuffle(letters.concat(extras));
+  wrap.innerHTML =
+    '<p class="spell-def">' +
+    LQ.esc(w.def) +
+    '</p><' +
+    LQ.H +
+    ' class="spell-blanks" id="spell-blanks">' +
+    Array(target.length)
+      .fill(0)
+      .map(function (_, i) {
+        return '<' + LQ.H + ' class="spell-blank" id="sb' + i + '"> </' + LQ.H + '>';
+      })
+      .join('') +
+    '</' +
+    LQ.H +
+    '><' +
+    LQ.H +
+    ' class="spell-keyboard" id="spell-keyboard">' +
+    LQ._spellKeyPool
+      .map(function (c, i) {
+        return (
+          '<button type="button" class="spell-key" data-idx="' +
+          i +
+          '">' +
+          LQ.esc(c) +
+          '</button>'
+        );
+      })
+      .join('') +
+    '</' +
+    LQ.H +
+    '><' +
+    LQ.H +
+    ' class="spell-result" id="spell-result"></' +
+    LQ.H +
+    '><button type="button" class="spell-del" onclick="LQ.spellDel()">⌫</button><button type="button" class="spell-submit" onclick="LQ.spellSubmit()">Check</button>' +
+    '<button type="button" class="spell-next" id="spell-next-btn" onclick="LQ.spellNext()">Next →</button>';
+  const kb = document.getElementById('spell-keyboard');
+  if (kb) {
+    kb.onclick = function (e) {
+      const btn = e.target.closest('.spell-key');
+      if (!btn || btn.disabled) return;
+      const ch = LQ._spellKeyPool[parseInt(btn.dataset.idx, 10)];
+      if (ch != null) LQ.spellTap(ch);
+    };
+  }
 };
 
 LQ.spellTap = function (c) {
@@ -211,10 +266,28 @@ LQ.spellSubmit = function () {
   else { LQ.gainXP(5); LQ.scheduleSrs(w.word, 'miss'); }
   LQ.recordActivity(w.word, correct ? 'nailed' : 'miss');
   LQ.saveState();
-  document.getElementById('spell-next-btn').classList.add('show');
+  const nextBtn = document.getElementById('spell-next-btn');
+  if (nextBtn) nextBtn.classList.add('show');
 };
 
-LQ.spellNext = function () { LQ.S.spellIdx++; LQ.saveState(); LQ.renderSpell(); };
+LQ.spellNext = function () {
+  LQ.S.spellIdx++;
+  if (LQ.S.spellIdx >= (LQ._spellWords || []).length) {
+    const wrap = document.getElementById('spell-wrap');
+    if (wrap && LQ.renderFlowComplete) {
+      wrap.innerHTML = LQ.renderFlowComplete({
+        context: 'spelling',
+        title: 'Spelling complete!',
+        message: 'Nice work — keep practicing tricky words.',
+        icon: '✍️',
+      });
+    }
+    LQ.saveState();
+    return;
+  }
+  LQ.saveState();
+  LQ.renderSpell();
+};
 window.spellTap = LQ.spellTap; window.spellDel = LQ.spellDel; window.spellSubmit = LQ.spellSubmit; window.spellNext = LQ.spellNext;
 window.speakSpellWord = function () { LQ.speakSpellWord(); };
 

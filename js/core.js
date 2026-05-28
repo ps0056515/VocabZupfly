@@ -20,6 +20,17 @@ LQ.toast = function (msg) {
   _tt = setTimeout(() => el.classList.remove('show'), 2600);
 };
 
+LQ.fetchWithTimeout = function (url, options, ms) {
+  ms = ms || (LQ.Config && LQ.Config.aiTimeoutMs) || 2500;
+  const ctrl = new AbortController();
+  const timer = setTimeout(function () {
+    ctrl.abort();
+  }, ms);
+  return fetch(url, Object.assign({}, options || {}, { signal: ctrl.signal })).finally(function () {
+    clearTimeout(timer);
+  });
+};
+
 LQ.gainXP = function (amt) {
   LQ.S.xp += amt;
   LQ.S.leagueXp = (LQ.S.leagueXp || 0) + amt;

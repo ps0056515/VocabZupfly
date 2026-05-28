@@ -54,7 +54,27 @@ LQ.getEncouragement = function () {
   return 'Pick a module below — small steps add up fast.';
 };
 
+LQ.canSessionBack = function () {
+  if (LQ._currentScreen === 'learn' && LQ._learnIdx > 0) return true;
+  if (LQ._currentScreen === 'revise' && LQ._reviseIdx > 0) return true;
+  return false;
+};
+
+LQ.sessionBack = function () {
+  if (LQ._currentScreen === 'learn' && LQ.learnPrev && LQ.learnPrev()) return true;
+  if (LQ._currentScreen === 'revise' && LQ.revisePrev && LQ.revisePrev()) return true;
+  return false;
+};
+
+LQ.refreshFlowBackBtn = function () {
+  const btn = document.querySelector('#screen-' + LQ._currentScreen + ' .flow-back-btn');
+  if (!btn) return;
+  btn.textContent = LQ.canSessionBack() ? '← Previous word' : '← Back';
+};
+
 LQ.goBack = function () {
+  if (LQ.sessionBack && LQ.sessionBack()) return;
+
   if (LQ._navStack.length) {
     const prev = LQ._navStack.pop();
     LQ.goTo(prev, { noPush: true });
@@ -63,6 +83,12 @@ LQ.goBack = function () {
   LQ.goTo(LQ.getScreenParent(LQ._currentScreen), { noPush: true });
 };
 window.LQ.goBack = LQ.goBack;
+
+/** Primary nav — always open a fresh dashboard (not session back / nav stack) */
+LQ.goHome = function () {
+  LQ.goTo('home', { resetStack: true });
+};
+window.goHome = LQ.goHome;
 
 LQ.updateFlowChrome = function (screen) {
   const meta = LQ.getScreenMeta(screen);
@@ -94,7 +120,7 @@ LQ.buildBreadcrumbTrail = function (screen) {
   chain.forEach(function (id, i) {
     const m = LQ.getScreenMeta(id);
     if (i === 0 && id === 'home') {
-      parts.push('<a href="#" onclick="event.preventDefault();goTo(\'home\')">Dashboard</a>');
+      parts.push('<a href="#" onclick="event.preventDefault();LQ.goHome()">Dashboard</a>');
     } else if (i < chain.length - 1) {
       parts.push('<a href="#" onclick="event.preventDefault();goTo(\'' + id + '\')">' + LQ.esc(m.title) + '</a>');
     } else {
@@ -117,10 +143,11 @@ LQ.renderFlowSubnav = function (screen, meta) {
   /* Pages with portal headers already show breadcrumbs in the header */
   if (sc.querySelector('.portal-breadcrumb')) return;
 
+  const backLabel = LQ.canSessionBack && LQ.canSessionBack() ? '← Previous word' : '← Back';
   const bar = document.createElement('div');
   bar.className = 'flow-subnav';
   bar.innerHTML =
-    '<button type="button" class="flow-back-btn" onclick="LQ.goBack()">← Back</button>' +
+    '<button type="button" class="flow-back-btn" onclick="LQ.goBack()">' + backLabel + '</button>' +
     '<nav class="flow-subnav-crumb" aria-label="Breadcrumb">' +
     LQ.buildBreadcrumbTrail(screen) +
     '</nav>' +

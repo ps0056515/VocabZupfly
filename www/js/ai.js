@@ -22,7 +22,7 @@ LQ.loadAIHint = async function () {
   const endpoint = LQ.Config.aiEndpoint;
   if (!txt && endpoint) {
     try {
-      const res = await fetch(endpoint, {
+      const res = await LQ.fetchWithTimeout(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

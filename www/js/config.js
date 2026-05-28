@@ -44,19 +44,13 @@ window.LQ.Config = {
 
 
 
-  /** AI mnemonic hints — uses built-in tutor when fetch fails */
+  /** AI tutor chat — set URL to enable remote API; null = built-in tutor only */
+  tutorEndpoint: null,
 
-  aiEndpoint: 'http://127.0.0.1:8787/tutor',
+  /** AI mnemonic hints — set URL to enable; null = built-in hints only */
+  aiEndpoint: null,
 
-  /**
-
-   * AI tutor chat. POST { type:'tutor', message, history, context } -> { text }
-
-   * Run: npm run tutor:api
-
-   */
-
-  tutorEndpoint: 'http://127.0.0.1:8787/tutor',
-
+  /** Remote tutor/API timeout (ms) when endpoints are set */
+  aiTimeoutMs: 2500,
 };
 

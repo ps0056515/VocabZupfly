@@ -1004,6 +1004,8 @@ body.portal-theme.web-mobile .layout-switcher-persistent .layout-btn.active{
 /* ── AI Tutor (Shiksha-style) ── */
 #screen-tutor{flex-direction:column;min-height:100%}
 #screen-tutor.active{display:flex}
+#screen-spelling{flex-direction:column;min-height:100%}
+#screen-spelling.active{display:flex}
 .tutor-header{
   display:flex;align-items:center;gap:12px;padding:16px 20px;
   background:linear-gradient(160deg,#1A0533 0%,#0D1B2A 100%);
@@ -1074,8 +1076,8 @@ body.native-app .desktop-only-ui{display:none!important}
 
 </style>
 <link rel="stylesheet" href="css/kanban.css?v=20260520a">
-<link rel="stylesheet" href="css/desktop.css?v=20260519g">
-<link rel="stylesheet" href="css/portal.css?v=20260525c">
+<link rel="stylesheet" href="css/desktop.css?v=20260527a">
+<link rel="stylesheet" href="css/portal.css?v=20260527c">
 <link rel="stylesheet" href="css/portal-pages.css?v=20260525d">
 <link rel="stylesheet" href="css/tenses.css?v=20260526a">
 <link rel="stylesheet" href="css/zupfly-theme.css?v=20260526b">
@@ -1113,7 +1115,7 @@ body.native-app .desktop-only-ui{display:none!important}
         <nav class="desktop-rail desktop-only-ui" aria-label="Main navigation">
           <div class="desktop-rail-brand">Lexi<span>Quest</span></div>
           <p class="desktop-rail-label">Overview</p>
-          <button type="button" class="desktop-rail-item active" id="desktop-nav-home" onclick="LQ.goBack()">
+          <button type="button" class="desktop-rail-item active" id="desktop-nav-home" onclick="LQ.goHome()">
             <span class="rail-icon">🏠</span> Dashboard
           </button>
           <p class="desktop-rail-label">Study</p>
@@ -1556,7 +1558,7 @@ body.native-app .desktop-only-ui{display:none!important}
 
       <!-- NAV (mobile + APK) -->
       <div class="nav-bar mobile-only-ui">
-        <button class="nav-item active" onclick="goTo('home')" id="nav-home">
+        <button class="nav-item active" onclick="LQ.goHome()" id="nav-home">
           <div class="nav-icon-wrap">
             <span class="nav-icon">🏠</span>
             <div class="notif-dot" id="notif-dot"></div>
@@ -1617,27 +1619,27 @@ body.native-app .desktop-only-ui{display:none!important}
 </div>
 
 
-<script src="js/config.js?v=20260519f"></script>
+<script src="js/config.js?v=20260527a"></script>
 <script src="js/platform.js?v=20260519h"></script>
 <script src="js/unlock.js?v=20260519f"></script>
 <script src="js/words.js?v=20260520a"></script>
 <script src="js/srs.js?v=20260519f"></script>
 <script src="js/streak.js?v=20260519f"></script>
 <script src="js/state.js?v=20260520b"></script>
-<script src="js/core.js?v=20260520b"></script>
-<script src="js/ai.js?v=20260519f"></script>
+<script src="js/core.js?v=20260527a"></script>
+<script src="js/ai.js?v=20260527a"></script>
 <script src="js/speech.js?v=20260519f"></script>
 <script src="js/firebase-sync.js?v=20260519f"></script>
 <script src="js/notifications.js?v=20260519f"></script>
 <script src="js/celebrate.js?v=20260519f"></script>
-<script src="js/lessons.js?v=20260520a"></script>
+<script src="js/lessons.js?v=20260527c"></script>
 <script src="js/dashboard.js?v=20260525b"></script>
-<script src="js/vocab.js?v=20260525a"></script>
+<script src="js/vocab.js?v=20260527b"></script>
 <script src="js/features.js?v=20260519h"></script>
-<script src="js/tutor.js?v=20260519f"></script>
-<script src="js/study.js?v=20260519f"></script>
+<script src="js/tutor.js?v=20260527b"></script>
+<script src="js/study.js?v=20260527a"></script>
 <script src="js/tenses.js?v=20260526a"></script>
-<script src="js/flow.js?v=20260526c"></script>
+<script src="js/flow.js?v=20260527d"></script>
 <script src="js/boot.js?v=20260520b"></script>
 <script src="js/native-bridge.js?v=20260519f"></script>
 </body>

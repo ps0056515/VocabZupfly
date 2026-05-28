@@ -956,22 +956,52 @@ body.portal-theme .lists-groups {
   gap: 8px;
 }
 
+body.portal-theme .lists-group-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+body.portal-theme .lists-group-block.expanded .lists-group-row {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  border-bottom-color: transparent;
+}
+
 body.portal-theme .lists-group-row {
   display: flex;
-  align-items: center;
-  gap: 14px;
+  align-items: stretch;
+  gap: 8px;
   width: 100%;
-  padding: 14px 16px;
+  padding: 0;
   border: 1px solid var(--border);
   border-radius: 12px;
   background: #fff;
-  cursor: pointer;
   text-align: left;
   font-family: var(--body);
-  transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  overflow: hidden;
 }
 
-body.portal-theme .lists-group-row:hover:not(:disabled) {
+body.portal-theme .lists-group-toggle {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  padding: 14px 12px 14px 16px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+}
+
+body.portal-theme .lists-group-toggle:hover {
+  background: rgba(26, 122, 82, 0.04);
+}
+
+body.portal-theme .lists-group-row:hover:not(.locked) {
   border-color: #c5d9ce;
   box-shadow: 0 2px 12px rgba(26, 122, 82, 0.08);
 }
@@ -987,7 +1017,14 @@ body.portal-theme .lists-group-row.done {
 
 body.portal-theme .lists-group-row.locked {
   opacity: 0.55;
-  cursor: not-allowed;
+}
+
+body.portal-theme .lists-group-row.locked .lists-group-toggle {
+  cursor: default;
+}
+
+body.portal-theme .lists-group-row.locked .lists-group-toggle:hover {
+  background: transparent;
 }
 
 body.portal-theme .lists-group-num {
@@ -1035,6 +1072,8 @@ body.portal-theme .lists-group-meta {
 }
 
 body.portal-theme .lists-group-action {
+  align-self: center;
+  margin-right: 10px;
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
@@ -1042,6 +1081,102 @@ body.portal-theme .lists-group-action {
   padding: 6px 12px;
   border-radius: 99px;
   flex-shrink: 0;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+body.portal-theme .lists-group-action:disabled {
+  cursor: not-allowed;
+}
+
+body.portal-theme .lists-group-chevron {
+  font-size: 10px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  width: 16px;
+  text-align: center;
+}
+
+body.portal-theme .lists-group-words {
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 12px 12px;
+  background: #fafbfc;
+  padding: 8px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+body.portal-theme .lists-word-row {
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+body.portal-theme .lists-word-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+body.portal-theme .lists-word-name {
+  font-family: var(--head, var(--body));
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+body.portal-theme .lists-word-phon,
+body.portal-theme .lists-word-pos {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+body.portal-theme .lists-word-def {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.5;
+  margin: 0 0 6px;
+}
+
+body.portal-theme .lists-word-ex {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-style: italic;
+  line-height: 1.55;
+  margin: 0;
+  padding-left: 12px;
+  border-left: 3px solid #f5a623;
+}
+
+body.portal-theme .lists-word-ex em {
+  font-style: normal;
+  font-weight: 600;
+  color: var(--text);
+}
+
+body.portal-theme .lists-word-syn {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin: 6px 0 0;
+}
+
+body.portal-theme .lists-word-syn span {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+body.portal-theme .lists-word-empty {
+  font-size: 13px;
+  color: var(--text-muted);
+  padding: 8px 4px;
+  margin: 0;
 }
 
 body.portal-theme .lists-group-row.ready .lists-group-action {

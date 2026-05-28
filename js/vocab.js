@@ -402,6 +402,7 @@ LQ.initLearn = function () {
   LQ._learnIdx = 0;
   LQ._learnReveal = false;
   LQ.renderLearnScreen();
+  if (LQ.refreshFlowBackBtn) LQ.refreshFlowBackBtn();
 };
 
 LQ.renderLearnScreen = function () {
@@ -501,12 +502,23 @@ LQ.learnMark = function (status) {
   LQ._learnReveal = false;
   LQ.saveState();
   LQ.renderLearnScreen();
+  if (LQ.refreshFlowBackBtn) LQ.refreshFlowBackBtn();
 };
 
 LQ.learnSkip = function () {
   LQ._learnIdx++;
   LQ._learnReveal = false;
   LQ.renderLearnScreen();
+  if (LQ.refreshFlowBackBtn) LQ.refreshFlowBackBtn();
+};
+
+LQ.learnPrev = function () {
+  if (!LQ._learnQueue || !LQ._learnQueue.length || LQ._learnIdx <= 0) return false;
+  LQ._learnIdx--;
+  LQ._learnReveal = false;
+  LQ.renderLearnScreen();
+  if (LQ.refreshFlowBackBtn) LQ.refreshFlowBackBtn();
+  return true;
 };
 
 /* ── Revise mode (flip cards, flagged only) ── */
@@ -606,6 +618,16 @@ LQ.reviseConfirm = function (gotIt) {
   LQ._reviseFlipped = false;
   LQ.saveState();
   LQ.renderReviseScreen();
+  if (LQ.refreshFlowBackBtn) LQ.refreshFlowBackBtn();
+};
+
+LQ.revisePrev = function () {
+  if (!LQ._reviseQueue || !LQ._reviseQueue.length || LQ._reviseIdx <= 0) return false;
+  LQ._reviseIdx--;
+  LQ._reviseFlipped = false;
+  LQ.renderReviseScreen();
+  if (LQ.refreshFlowBackBtn) LQ.refreshFlowBackBtn();
+  return true;
 };
 
 /* ── Quiz review ── */

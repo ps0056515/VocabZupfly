@@ -52,14 +52,61 @@ LQ.wordsForLesson = function (lessonId) {
     });
     return LQ.shuffle(all).slice(0, 5);
   }
+  return LQ.wordsForGroup(lessonId, { shuffle: true, limit: 10 });
+};
+
+LQ.wordsForGroup = function (lessonId, opts) {
+  opts = opts || {};
+  var hit = LQ.findGroup(lessonId);
+  if (!hit) return [];
   var meta = { groupTitle: hit.group.title, listTitle: hit.list.title };
   var words = hit.group.words.map(function (entry) {
     return LQ.resolveWord(entry.word, meta);
   });
-  words = LQ.shuffle(words);
-  var max = 10;
-  if (words.length <= max) return words;
-  return words.slice(0, max);
+  if (opts.shuffle) words = LQ.shuffle(words);
+  if (opts.limit && words.length > opts.limit) words = words.slice(0, opts.limit);
+  return words;
+};
+
+LQ.renderGroupWordList = function (lessonId) {
+  var words = LQ.wordsForGroup(lessonId);
+  if (!words.length) {
+    return '<p class="lists-word-empty">No words in this group.</p>';
+  }
+  return words
+    .map(function (w) {
+      var status = LQ.getWordStatus ? LQ.getWordStatus(w.word) : 'unmarked';
+      return (
+        '<article class="lists-word-row status-' +
+        status +
+        '">' +
+        '<div class="lists-word-head">' +
+        '<strong class="lists-word-name">' +
+        LQ.esc(w.word) +
+        '</strong>' +
+        (w.phonetic
+          ? '<span class="lists-word-phon">' + LQ.esc(w.phonetic) + '</span>'
+          : w.pos
+            ? '<span class="lists-word-pos">' + LQ.esc(w.pos) + '</span>'
+            : '') +
+        '</div>' +
+        '<p class="lists-word-def">' +
+        w.def +
+        '</p>' +
+        (w.example ? '<p class="lists-word-ex">"' + w.example + '"</p>' : '') +
+        (w.syn
+          ? '<p class="lists-word-syn"><span>Synonyms:</span> ' + LQ.esc(w.syn.replace(/,/g, ', ')) + '</p>'
+          : '') +
+        '</article>'
+      );
+    })
+    .join('');
+};
+
+LQ.toggleListGroup = function (lessonId) {
+  LQ._expandedListGroups = LQ._expandedListGroups || {};
+  LQ._expandedListGroups[lessonId] = !LQ._expandedListGroups[lessonId];
+  LQ.renderWordListsPage();
 };
 
 LQ.renderWordListsPage = function () {
@@ -154,14 +201,21 @@ LQ.renderWordListsPage = function () {
       var cls = complete ? 'done' : unlocked ? 'ready' : 'locked';
       var badge = complete ? 'Done' : unlocked ? 'Start' : 'Locked';
       var theme = les.title.replace(/^G\d+\s·\s/, '');
+      var expanded = !!(LQ._expandedListGroups && LQ._expandedListGroups[les.id]);
       return (
-        '<button type="button" class="lists-group-row ' +
+        '<div class="lists-group-block' +
+        (expanded ? ' expanded' : '') +
+        '">' +
+        '<div class="lists-group-row ' +
         cls +
+        '">' +
+        '<button type="button" class="lists-group-toggle" aria-expanded="' +
+        expanded +
         '" title="' +
         LQ.esc(les.fullTitle || les.title) +
-        '" ' +
-        (unlocked ? 'onclick="LQ.startLesson(\'' + les.id + '\')"' : 'disabled') +
-        '>' +
+        '" onclick="LQ.toggleListGroup(\'' +
+        les.id +
+        '\')">' +
         '<span class="lists-group-num">' +
         (complete ? '\u2713' : 'G' + les.groupNum) +
         '</span>' +
@@ -171,10 +225,19 @@ LQ.renderWordListsPage = function () {
         '</span>' +
         '<span class="lists-group-meta">' +
         les.wordCount +
-        ' words</span></span>' +
-        '<span class="lists-group-action">' +
+        ' words · tap to see examples</span></span>' +
+        '<span class="lists-group-chevron" aria-hidden="true">' +
+        (expanded ? '\u25B2' : '\u25BC') +
+        '</span></button>' +
+        '<button type="button" class="lists-group-action" ' +
+        (unlocked ? 'onclick="LQ.startLesson(\'' + les.id + '\')"' : 'disabled') +
+        '>' +
         badge +
-        '</span></button>'
+        '</button></div>' +
+        (expanded
+          ? '<div class="lists-group-words">' + LQ.renderGroupWordList(les.id) + '</div>'
+          : '') +
+        '</div>'
       );
     })
     .join('');
