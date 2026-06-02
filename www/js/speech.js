@@ -46,33 +46,50 @@ LQ.speakText = async function (text, onEnd) {
     utt.lang = 'en-US';
     const pickVoice = () => {
       const voices = window.speechSynthesis.getVoices();
-      return voices.find(
-        (v) =>
-          v.name.includes('Google US English') ||
-          v.name.includes('Google US') ||
-          v.name.includes('Karen') ||
-          v.lang === 'en-US'
+      return (
+        voices.find(function (v) {
+          return v.name.includes('Google US English') || v.name.includes('Google US');
+        }) ||
+        voices.find(function (v) {
+          return v.lang === 'en-US' || v.lang === 'en_US';
+        }) ||
+        voices.find(function (v) {
+          return v.lang && v.lang.indexOf('en') === 0;
+        })
       );
     };
-    const voice = pickVoice();
-    if (voice) utt.voice = voice;
-    utt.onstart = () => (LQ._speaking = true);
-    utt.onend = () => {
+    const speakNow = function () {
+      const voice = pickVoice();
+      if (voice) utt.voice = voice;
+      window.speechSynthesis.speak(utt);
+    };
+    utt.onstart = function () {
+      LQ._speaking = true;
+    };
+    utt.onend = function () {
       LQ._speaking = false;
       if (onEnd) onEnd();
     };
-    utt.onerror = () => {
+    utt.onerror = function () {
       LQ._speaking = false;
-      LQ.toast('Could not play audio');
+      LQ.toast('Could not play audio — check volume and browser permissions');
       if (onEnd) onEnd();
     };
-    window.speechSynthesis.speak(utt);
-    if (!voice && window.speechSynthesis.getVoices().length === 0) {
-      window.speechSynthesis.onvoiceschanged = () => {
-        const v2 = pickVoice();
-        if (v2) utt.voice = v2;
-        window.speechSynthesis.speak(utt);
+    if (window.speechSynthesis.getVoices().length) {
+      speakNow();
+    } else {
+      var spoke = false;
+      window.speechSynthesis.onvoiceschanged = function () {
+        if (spoke) return;
+        spoke = true;
+        window.speechSynthesis.onvoiceschanged = null;
+        speakNow();
       };
+      setTimeout(function () {
+        if (spoke) return;
+        spoke = true;
+        speakNow();
+      }, 300);
     }
   } catch (e) {
     LQ.toast('Speech error');

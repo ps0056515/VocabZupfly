@@ -213,7 +213,12 @@ LQ.localTutorReply = function (msg) {
   if (/use in a sentence|sentence for|write a sentence|example sentence/.test(lower)) {
     const w = wEarly || LQ.WORDS[LQ.S.dailyWordIdx % Math.max(1, LQ.WORDS.length)];
     if (!w) return 'Type any word from your deck and ask _Use ephemeral in a sentence_.';
-    return LQ.tutorSentence ? LQ.tutorSentence(w) : LQ.formatWordReply(w);
+    const reply = LQ.tutorSentence ? LQ.tutorSentence(w) : LQ.formatWordReply(w);
+    LQ._pendingTutorExample = {
+      word: w.word,
+      text: LQ.extractSentenceFromTutorReply ? LQ.extractSentenceFromTutorReply(reply) : '',
+    };
+    return reply;
   }
 
   const w =
@@ -277,9 +282,14 @@ LQ.askTutor = async function (userMsg) {
   return LQ.localTutorReply(userMsg);
 };
 
-LQ.pushTutorMessage = function (role, text) {
+LQ.pushTutorMessage = function (role, text, meta) {
   LQ.S.tutorHistory = LQ.S.tutorHistory || [];
-  LQ.S.tutorHistory.push({ role: role, text: text, at: Date.now() });
+  var entry = { role: role, text: text, at: Date.now() };
+  if (meta) {
+    if (meta.saveExampleWord) entry.saveExampleWord = meta.saveExampleWord;
+    if (meta.saveExampleText) entry.saveExampleText = meta.saveExampleText;
+  }
+  LQ.S.tutorHistory.push(entry);
   if (LQ.S.tutorHistory.length > 50) LQ.S.tutorHistory = LQ.S.tutorHistory.slice(-50);
   LQ.saveState();
 };
@@ -297,9 +307,9 @@ LQ.renderTutor = function () {
       '<div class="tutor-avatar">✦</div>' +
       '<div class="tutor-bubble">' +
       LQ.formatTutorText(
-        'I\'m your AI study tutor — like Shiksha AI, but built for **' +
+        'I\'m your LexiQuest study tutor for **' +
           ctx.examFocus +
-          '** vocabulary. Ask about any word, your weak list, or what to study today.'
+          '** vocabulary. Ask about any word, request a mnemonic or example sentence, or ask what to study today.'
       ) +
       '</div></div>';
   } else {
@@ -307,6 +317,15 @@ LQ.renderTutor = function () {
       .map(function (m) {
         const cls = m.role === 'user' ? 'user' : 'bot';
         const av = m.role === 'user' ? '👤' : '✦';
+        var saveBtn = '';
+        if (m.saveExampleWord && m.saveExampleText && m.role !== 'user') {
+          saveBtn =
+            '<button type="button" class="tutor-save-ex" onclick="LQ.saveExampleText(' +
+            JSON.stringify(m.saveExampleWord) +
+            ',' +
+            JSON.stringify(m.saveExampleText) +
+            ')">Save as my example</button>';
+        }
         return (
           '<div class="tutor-msg ' +
           cls +
@@ -314,6 +333,7 @@ LQ.renderTutor = function () {
           av +
           '</div><div class="tutor-bubble">' +
           LQ.formatTutorText(m.text) +
+          saveBtn +
           '</div></div>'
         );
       })
@@ -321,12 +341,31 @@ LQ.renderTutor = function () {
   }
 
   if (chips) {
-    chips.innerHTML = LQ.TUTOR_CHIPS.map(function (c) {
-      return '<button type="button" class="tutor-chip" onclick="LQ.tutorChip(' + JSON.stringify(c) + ')">' + LQ.esc(c) + '</button>';
+    chips.innerHTML = LQ.TUTOR_CHIPS.map(function (c, i) {
+      return (
+        '<button type="button" class="tutor-chip" data-chip-idx="' +
+        i +
+        '">' +
+        LQ.esc(c) +
+        '</button>'
+      );
     }).join('');
   }
 
   box.scrollTop = box.scrollHeight;
+};
+
+LQ.bindTutorChips = function () {
+  var chips = document.getElementById('tutor-chips');
+  if (!chips || chips._tutorBound) return;
+  chips._tutorBound = true;
+  chips.addEventListener('click', function (e) {
+    var btn = e.target.closest('.tutor-chip');
+    if (!btn) return;
+    e.preventDefault();
+    var idx = parseInt(btn.getAttribute('data-chip-idx'), 10);
+    if (!isNaN(idx) && LQ.TUTOR_CHIPS[idx]) LQ.tutorChip(LQ.TUTOR_CHIPS[idx]);
+  });
 };
 
 LQ.tutorChip = function (text) {
@@ -358,7 +397,16 @@ LQ.sendTutorMessage = async function () {
     }
 
     const reply = await LQ.askTutor(msg);
-    LQ.pushTutorMessage('assistant', reply);
+    var meta = null;
+    if (/use in a sentence|sentence for|write a sentence|example sentence/i.test(msg)) {
+      var wSave = LQ.findWordInMessage(msg);
+      var exText = LQ.extractSentenceFromTutorReply ? LQ.extractSentenceFromTutorReply(reply) : '';
+      if (wSave && exText) {
+        meta = { saveExampleWord: wSave.word, saveExampleText: exText };
+      }
+    }
+    LQ.pushTutorMessage('assistant', reply, meta);
+    LQ._pendingTutorExample = null;
     LQ.renderTutor();
   } catch (err) {
     console.error('Tutor send failed', err);
@@ -372,6 +420,7 @@ LQ.sendTutorMessage = async function () {
 
 LQ.initTutor = function () {
   if (!LQ.S) LQ.S = LQ.loadState();
+  LQ.bindTutorChips();
   LQ.renderTutor();
   const inp = document.getElementById('tutor-input');
   if (inp) {

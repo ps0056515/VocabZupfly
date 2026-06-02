@@ -1,0 +1,17 @@
+id,listNum,title,listType,icon,color
+list-1,1,List 1,grouped,📘,lavender
+list-2,2,List 2,grouped,📗,sky
+list-3,3,List 3,grouped,📙,coral
+list-4,4,List 4,grouped,📕,gold
+list-5,5,List 5,grouped,📓,lime
+list-6,6,List 6,grouped,📔,lavender
+list-7,7,List 7,grouped,📒,sky
+list-8,8,List 8,grouped,📚,coral
+list-9,9,List 9,grouped,🔖,gold
+list-10,10,List 10,grouped,📝,lime
+list-11,11,List 11,grouped,✏️,lavender
+list-12,12,List 12,grouped,🎯,sky
+list-13,13,List 13,grouped,🏁,lime
+dict-common,14,Common Dictionary,dictionary,📖,sky
+dict-ielts,15,IELTS Vocabulary,dictionary,🌍,mint
+dict-academic,16,Academic Words,dictionary,🎓,lavender

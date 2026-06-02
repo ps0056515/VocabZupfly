@@ -195,20 +195,28 @@ LQ.initTensesPractice = function () {
 
 /* ── Practice renderers ── */
 
+LQ.tensesSpeakCurrent = function () {
+  var text = LQ._tensesSpeakText || (LQ._tensesCurrent && LQ._tensesCurrent.text);
+  if (!text) {
+    LQ.toast('Nothing to read aloud');
+    return;
+  }
+  if (LQ.speakText) LQ.speakText(text);
+};
+
 LQ.renderTensesSentenceRepeat = function (wrap, item) {
+  LQ._tensesCurrent = item;
+  LQ._tensesSpeakText = item.text;
   wrap.innerHTML =
     '<p class="tenses-practice-label">Listen, then repeat this sentence aloud:</p>' +
     '<p class="tenses-practice-text">' +
     LQ.esc(item.text) +
     '</p>' +
     '<div class="tenses-practice-actions">' +
-    '<button type="button" class="tenses-action-btn" onclick="LQ.speakText(' +
-    JSON.stringify(item.text) +
-    ')">🔊 Hear sentence</button>' +
+    '<button type="button" class="tenses-action-btn" onclick="LQ.tensesSpeakCurrent()">🔊 Hear sentence</button>' +
     '<button type="button" class="tenses-action-btn tenses-action-primary" onclick="LQ.tensesCheckRepeat()">🎤 I repeated it</button>' +
     '</div>' +
     '<p class="tenses-hint" id="tenses-feedback"></p>';
-  LQ._tensesCurrent = item;
 };
 
 LQ.tensesCheckRepeat = function () {
@@ -357,15 +365,14 @@ LQ.tensesFinishJam = function () {
 };
 
 LQ.renderTensesSentenceReading = function (wrap, item) {
+  LQ._tensesSpeakText = item.text;
   wrap.innerHTML =
     '<p class="tenses-practice-label">Read this sentence aloud:</p>' +
     '<p class="tenses-practice-text">' +
     LQ.esc(item.text) +
     '</p>' +
     '<div class="tenses-practice-actions">' +
-    '<button type="button" class="tenses-action-btn" onclick="LQ.speakText(' +
-    JSON.stringify(item.text) +
-    ')">🔊 Model pronunciation</button>' +
+    '<button type="button" class="tenses-action-btn" onclick="LQ.tensesSpeakCurrent()">🔊 Model pronunciation</button>' +
     '<button type="button" class="tenses-action-btn tenses-action-primary" onclick="LQ.tensesMarkReading()">✓ I read it aloud</button>' +
     '</div>';
 };

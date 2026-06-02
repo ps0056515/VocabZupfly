@@ -51,6 +51,57 @@ body.portal-theme .fc-progress-fill {
 
 body.portal-theme #screen-quiz {
   background: var(--surface-2);
+  flex-direction: column;
+  min-height: 0;
+}
+
+body.portal-theme #screen-quiz.quiz-phase-setup .quiz-session {
+  display: none;
+}
+
+body.portal-theme #screen-quiz.quiz-phase-setup .quiz-lives,
+body.portal-theme #screen-quiz.quiz-phase-setup .quiz-timer {
+  display: none;
+}
+
+body.portal-theme #screen-quiz.quiz-phase-active .quiz-list-bar,
+body.portal-theme #screen-quiz.quiz-phase-done .quiz-list-bar {
+  display: none;
+}
+
+body.portal-theme #screen-quiz.quiz-phase-active .quiz-setup,
+body.portal-theme #screen-quiz.quiz-phase-done .quiz-setup {
+  flex-shrink: 0;
+}
+
+body.portal-theme .quiz-edit-link {
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  color: var(--brand-muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--body);
+  padding: 4px 8px;
+}
+
+body.portal-theme .quiz-review h3 {
+  color: var(--text);
+}
+
+body.portal-theme .quiz-review-group h4 {
+  color: var(--text-muted);
+}
+
+body.portal-theme .quiz-review-word {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+body.portal-theme .quiz-review-empty {
+  color: var(--text-muted);
 }
 
 body.portal-theme .quiz-setup {
@@ -108,6 +159,83 @@ body.portal-theme .quiz-list-chip {
   color: var(--text-muted);
   cursor: pointer;
   font-family: var(--body);
+}
+
+body.portal-theme .lists-dict-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 0 12px;
+  align-items: center;
+}
+
+body.portal-theme .lists-dict-search {
+  flex: 1;
+  min-width: 160px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: var(--body);
+}
+
+body.portal-theme .lists-dict-stats {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0 0 10px;
+}
+
+body.portal-theme .lists-dict-words {
+  max-height: none;
+}
+
+body.portal-theme .lists-type-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: rgba(59, 130, 246, 0.12);
+  color: #2563eb;
+  vertical-align: middle;
+  margin-left: 4px;
+}
+
+body.portal-theme .lists-type-badge.gre {
+  background: rgba(192, 57, 43, 0.12);
+  color: #c0392b;
+}
+
+body.portal-theme .lists-type-badge.dict {
+  background: rgba(59, 130, 246, 0.12);
+  color: #2563eb;
+}
+
+body.portal-theme .lists-side-section {
+  margin-bottom: 18px;
+}
+
+body.portal-theme .lists-side-heading {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.55px;
+  color: var(--text-muted);
+  margin: 0 0 4px 4px;
+}
+
+body.portal-theme .drill-prog {
+  color: var(--text-muted);
+}
+
+body.portal-theme .drill-word {
+  font-family: var(--head);
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.5px;
 }
 
 body.portal-theme .quiz-list-chip.active {
@@ -275,6 +403,29 @@ body.portal-theme .dash-study-plan-note {
   color: var(--text-muted);
   margin: 8px 0 0;
   line-height: 1.45;
+}
+
+body.portal-theme #screen-mock {
+  background: var(--surface-2);
+  flex-direction: column;
+}
+
+body.portal-theme #screen-mock .quiz-topbar {
+  padding: 14px 20px 10px;
+}
+
+body.portal-theme #screen-mock .quiz-page-title {
+  font-family: var(--head, var(--body));
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+body.portal-theme .portal-util-btn,
+body.portal-theme a.portal-util-btn {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
 }
 
 body.portal-theme .quiz-session {
@@ -538,6 +689,20 @@ body.portal-theme .tutor-chip {
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--text);
+  cursor: pointer;
+  font-family: var(--body);
+  font-size: 12px;
+  padding: 8px 12px;
+  border-radius: 99px;
+}
+
+body.portal-theme .tutor-chip:hover {
+  background: var(--brand-light);
+  border-color: #c5d9ce;
+}
+
+body.portal-theme .tutor-chip:active {
+  transform: scale(0.98);
 }
 
 body.portal-theme .tutor-input-row {

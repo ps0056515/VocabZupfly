@@ -55,17 +55,16 @@ LQ.boot = async function () {
       LQ.renderOnboarding();
     } else {
       LQ.goTo('home', { resetStack: true });
-      if (LQ.renderLearningPath) LQ.renderLearningPath();
       if (LQ.renderStudentDashboard) LQ.renderStudentDashboard();
       LQ.updateGreeting();
-      if (LQ.WORDS.length) {
-        LQ.toast(LQ.WORDS.length + ' words ready');
-      }
     }
   } catch (err) {
     console.error('LexiQuest boot failed', err);
-    LQ.goTo('home');
-    LQ.toast('Started with limited data — tap Settings if issues persist');
+    try {
+      LQ.S = LQ.S || LQ.loadState();
+      LQ.goTo('home', { resetStack: true });
+    } catch (e2) {}
+    LQ.toast('Something failed to load — try a hard refresh (Ctrl+Shift+R)');
   } finally {
     LQ.hideSplash();
     setTimeout(LQ.hideSplash, 300);

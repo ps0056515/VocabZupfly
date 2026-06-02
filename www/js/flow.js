@@ -4,14 +4,14 @@ window.LQ = window.LQ || {};
 LQ.SCREEN_META = {
   home: { title: 'Dashboard', parent: null, nav: 'home', hint: 'Your home base — see progress and pick what to do next.' },
   vocab: { title: 'Vocabulary', parent: 'home', nav: 'vocab', hint: 'Learn new words, revise flagged ones, then test yourself.' },
-  lists: { title: 'Word Lists', parent: 'home', nav: 'lists', hint: 'Browse synonym groups and study one cluster at a time.' },
+  lists: { title: 'Word Lists', parent: 'home', nav: 'lists', hint: 'GRE synonym groups and dictionary word banks — pick a list, then study by group or A–Z.' },
   tenses: { title: 'Tenses', parent: 'home', nav: 'tenses', hint: 'Speaking, grammar, and writing practice modules.' },
   'tenses-practice': { title: 'Practice', parent: 'tenses', nav: 'tenses', hint: '' },
   learn: { title: 'Learn', parent: 'vocab', nav: 'vocab', hint: 'Mark words you know or flag them to revise later.' },
   revise: { title: 'Revise', parent: 'vocab', nav: 'vocab', hint: 'Review flagged words until they stick.' },
   lesson: { title: 'Lesson', parent: 'lists', nav: 'lists', hint: '' },
   quiz: { title: 'Quiz', parent: 'vocab', nav: 'vocab', hint: 'Pick a word list or synonym group, then test yourself.' },
-  flashcard: { title: 'Flashcards', parent: 'vocab', nav: 'vocab', hint: 'Flip cards and rate how well you know each word.' },
+  flashcard: { title: 'Flashcards', parent: 'vocab', nav: 'vocab', hint: 'Tap to flip, then rate how well you remembered each word.' },
   spelling: { title: 'Spelling', parent: 'vocab', nav: 'vocab', hint: 'Hear the definition, spell the word.' },
   wordbank: { title: 'Word Bank', parent: 'vocab', nav: 'vocab', hint: 'Search and browse every word in the deck.' },
   drill: { title: 'Weak Drill', parent: 'vocab', nav: 'vocab', hint: 'Extra practice on words you miss most often.' },
@@ -168,7 +168,7 @@ LQ.suggestNextSteps = function (context) {
   const steps = [];
 
   if (context === 'quiz') {
-    steps.push({ icon: '🔁', label: 'Another quiz', sub: 'Same list, new words', action: 'LQ.initQuiz()' });
+    steps.push({ icon: '🔁', label: 'Another quiz', sub: 'Same list, new words', action: 'LQ.startQuizSession()' });
     if (counts.flagged > 0) {
       steps.push({ icon: '🔄', label: 'Revise flagged', sub: counts.flagged + ' words', action: "goTo('revise')" });
     }

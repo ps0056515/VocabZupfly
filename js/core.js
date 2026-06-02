@@ -178,6 +178,29 @@ LQ.goTo = function (screen, opts) {
     tenses: () => LQ.renderTensesPage && LQ.renderTensesPage(),
     'tenses-practice': () => LQ.initTensesPractice && LQ.initTensesPractice(),
   };
-  if (handlers[screen]) handlers[screen]();
+  if (handlers[screen]) {
+    try {
+      handlers[screen]();
+    } catch (err) {
+      console.error('Screen handler failed:', screen, err);
+      LQ.toast('Could not open ' + (meta.title || screen) + ' — please refresh');
+    }
+  }
 };
 window.goTo = LQ.goTo;
+
+LQ.initDOMListeners = function () {
+  if (LQ._domListenersReady) return;
+  LQ._domListenersReady = true;
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape') return;
+    if (LQ.closeMoreMenu) LQ.closeMoreMenu();
+    if (LQ.closeDailyPanel) LQ.closeDailyPanel();
+  });
+  window.addEventListener('error', function (e) {
+    console.error('LexiQuest error:', e.message, e.filename, e.lineno);
+  });
+  window.addEventListener('unhandledrejection', function (e) {
+    console.error('LexiQuest unhandled rejection:', e.reason);
+  });
+};

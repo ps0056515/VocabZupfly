@@ -12,11 +12,12 @@ LQ.CHAPTERS = [];
 
 LQ.lessonsForChapter = function (chapterId) {
   if (!LQ.ensurePathData()) return [];
+  if (LQ.isDictionaryList(chapterId)) return [];
   var lst = LQ.WORD_LISTS.lists.find(function (l) {
     return l.id === chapterId;
   });
   if (!lst) return [];
-  return lst.groups.map(function (g) {
+  return (lst.groups || []).map(function (g) {
     var short = g.title.length > 28 ? g.title.slice(0, 26) + '…' : g.title;
     return {
       id: g.id,
@@ -68,8 +69,8 @@ LQ.wordsForGroup = function (lessonId, opts) {
   return words;
 };
 
-LQ.renderGroupWordList = function (lessonId) {
-  var words = LQ.wordsForGroup(lessonId);
+LQ.renderGroupWordList = function (lessonId, wordsOverride) {
+  var words = wordsOverride || LQ.wordsForGroup(lessonId);
   if (!words.length) {
     return '<p class="lists-word-empty">No words in this group.</p>';
   }
@@ -93,7 +94,11 @@ LQ.renderGroupWordList = function (lessonId) {
         '<p class="lists-word-def">' +
         LQ.displayWordDef(w) +
         '</p>' +
-        (w.example ? '<p class="lists-word-ex">"' + w.example + '"</p>' : '') +
+        (LQ.renderExampleBlock
+          ? LQ.renderExampleBlock(w, { className: 'lists-word-ex', compact: true })
+          : w.example
+            ? '<p class="lists-word-ex">"' + w.example + '"</p>'
+            : '') +
         (w.syn
           ? '<p class="lists-word-syn"><span>Synonyms:</span> ' + LQ.esc(w.syn.replace(/,/g, ', ')) + '</p>'
           : '') +
@@ -107,6 +112,58 @@ LQ.toggleListGroup = function (lessonId) {
   LQ._expandedListGroups = LQ._expandedListGroups || {};
   LQ._expandedListGroups[lessonId] = !LQ._expandedListGroups[lessonId];
   LQ.renderWordListsPage();
+};
+
+LQ.filterDictionaryList = function (query) {
+  LQ._dictFilter = query || '';
+  LQ.renderWordListsPage();
+};
+
+LQ.renderDictionaryList = function (listId) {
+  var words = LQ.wordsFromList(listId);
+  var q = (LQ._dictFilter || '').trim().toLowerCase();
+  if (q) {
+    words = words.filter(function (w) {
+      return (
+        w.word.toLowerCase().indexOf(q) >= 0 ||
+        (w.def && w.def.toLowerCase().indexOf(q) >= 0)
+      );
+    });
+  }
+  var known = 0;
+  var flagged = 0;
+  words.forEach(function (w) {
+    var st = LQ.getWordStatus ? LQ.getWordStatus(w.word) : 'unmarked';
+    if (st === 'known') known++;
+    else if (st === 'flagged') flagged++;
+  });
+  var total = LQ.wordsFromList(listId).length;
+  return (
+    '<div class="lists-dict-toolbar">' +
+    '<input type="search" class="lists-dict-search" placeholder="Search dictionary…" value="' +
+    LQ.esc(LQ._dictFilter || '') +
+    '" oninput="LQ.filterDictionaryList(this.value)">' +
+    '<button type="button" class="lists-group-quiz" onclick="LQ.startListQuiz(\'' +
+    listId +
+    '\',null)">Quiz all</button>' +
+    '<button type="button" class="lists-group-action" onclick="goTo(\'learn\');LQ.pickLearnList(\'' +
+    listId +
+    '\')">Learn</button></div>' +
+    '<p class="lists-dict-stats">' +
+    known +
+    ' known · ' +
+    flagged +
+    ' flagged · ' +
+    total +
+    ' words total' +
+    (q ? ' · ' + words.length + ' shown' : '') +
+    '</p>' +
+    '<div class="lists-group-words lists-dict-words">' +
+    (words.length
+      ? LQ.renderGroupWordList(null, words)
+      : '<p class="lists-word-empty">No words match your search.</p>') +
+    '</div>'
+  );
 };
 
 LQ.renderWordListsPage = function () {
@@ -127,47 +184,98 @@ LQ.renderWordListsPage = function () {
   }
   var curId = LQ._pathListFilter;
 
-  sidebar.innerHTML = chapters
-    .map(function (ch) {
-      var lessons = LQ.lessonsForChapter(ch.id);
-      var done = lessons.filter(function (l) {
+  function renderSidebarItem(ch) {
+    var lessons = LQ.lessonsForChapter(ch.id);
+    var isDict = ch.listType === 'dictionary';
+    var done = 0;
+    var pct = 0;
+    var sub = '';
+    if (isDict) {
+      var prog = LQ.getListProgress().find(function (p) {
+        return p.id === ch.id;
+      });
+      done = prog ? prog.touched : 0;
+      pct = prog ? prog.pct : 0;
+      sub = done + '/' + (ch.wordCount || 0) + ' studied · ' + pct + '%';
+    } else {
+      done = lessons.filter(function (l) {
         return LQ.S.lessonProgress[l.id];
       }).length;
-      var pct = lessons.length ? Math.round((done / lessons.length) * 100) : 0;
-      var active = ch.id === curId ? ' active' : '';
-      return (
-        '<button type="button" class="lists-side-item' +
-        active +
-        '" onclick="LQ.filterPathList(\'' +
-        ch.id +
-        '\')">' +
-        '<span class="lists-side-icon" aria-hidden="true">' +
-        ch.icon +
-        '</span>' +
-        '<span class="lists-side-text">' +
-        '<span class="lists-side-name">' +
-        LQ.esc(ch.title) +
-        '</span>' +
-        '<span class="lists-side-sub">' +
-        done +
-        '/' +
-        lessons.length +
-        ' groups · ' +
-        pct +
-        '%</span></span></button>'
-      );
-    })
-    .join('');
+      pct = lessons.length ? Math.round((done / lessons.length) * 100) : 0;
+      sub = done + '/' + lessons.length + ' groups · ' + pct + '%';
+    }
+    var active = ch.id === curId ? ' active' : '';
+    var typeBadge = isDict
+      ? ' <span class="lists-type-badge dict">Dict</span>'
+      : ' <span class="lists-type-badge gre">GRE</span>';
+    return (
+      '<button type="button" class="lists-side-item' +
+      active +
+      '" onclick="LQ.filterPathList(\'' +
+      ch.id +
+      '\')">' +
+      '<span class="lists-side-icon" aria-hidden="true">' +
+      ch.icon +
+      '</span>' +
+      '<span class="lists-side-text">' +
+      '<span class="lists-side-name">' +
+      LQ.esc(ch.title) +
+      typeBadge +
+      '</span>' +
+      '<span class="lists-side-sub">' +
+      sub +
+      '</span></span></button>'
+    );
+  }
+
+  var greLists = chapters.filter(function (ch) {
+    return ch.listType !== 'dictionary';
+  });
+  var dictLists = chapters.filter(function (ch) {
+    return ch.listType === 'dictionary';
+  });
+
+  var sidebarParts = [];
+  if (greLists.length) {
+    sidebarParts.push(
+      '<div class="lists-side-section">' +
+        '<p class="lists-side-heading">GRE Word Lists</p>' +
+        '<p class="lists-side-desc">Synonym groups from your PDF deck</p>' +
+        greLists.map(renderSidebarItem).join('') +
+        '</div>'
+    );
+  }
+  if (dictLists.length) {
+    sidebarParts.push(
+      '<div class="lists-side-section">' +
+        '<p class="lists-side-heading">Dictionary</p>' +
+        '<p class="lists-side-desc">General vocabulary — flat word banks</p>' +
+        dictLists.map(renderSidebarItem).join('') +
+        '</div>'
+    );
+  }
+  sidebar.innerHTML = sidebarParts.join('');
 
   var ch =
     chapters.find(function (c) {
       return c.id === curId;
     }) || chapters[0];
+  var isDictList = ch.listType === 'dictionary';
   var lessons = LQ.lessonsForChapter(ch.id);
-  var done = lessons.filter(function (l) {
-    return LQ.S.lessonProgress[l.id];
-  }).length;
-  var pct = lessons.length ? Math.round((done / lessons.length) * 100) : 0;
+  var done = 0;
+  var pct = 0;
+  if (isDictList) {
+    var listProg = LQ.getListProgress().find(function (p) {
+      return p.id === ch.id;
+    });
+    done = listProg ? listProg.touched : 0;
+    pct = listProg ? listProg.pct : 0;
+  } else {
+    done = lessons.filter(function (l) {
+      return LQ.S.lessonProgress[l.id];
+    }).length;
+    pct = lessons.length ? Math.round((done / lessons.length) * 100) : 0;
+  }
 
   if (headEl) {
     headEl.innerHTML =
@@ -178,20 +286,45 @@ LQ.renderWordListsPage = function () {
       '</span>' +
       '<div><h2 class="lists-head-title">' +
       LQ.esc(ch.title) +
+      (isDictList
+        ? ' <span class="lists-type-badge dict">Dictionary</span>'
+        : ' <span class="lists-type-badge gre">GRE</span>') +
       '</h2>' +
       '<p class="lists-head-sub">' +
       LQ.esc(ch.subtitle) +
       '</p></div></div>' +
       '<span class="lists-head-count">' +
-      done +
-      '/' +
-      lessons.length +
+      (isDictList ? done + '/' + (ch.wordCount || 0) : done + '/' + lessons.length) +
       '</span></div>' +
       '<div class="lists-head-bar" role="progressbar" aria-valuenow="' +
       pct +
       '"><div class="lists-head-fill" style="width:' +
       pct +
       '%"></div></div>';
+  }
+
+  if (isDictList) {
+    groupsEl.innerHTML = LQ.renderDictionaryList(ch.id);
+    var commit = document.getElementById('commit-banner');
+    if (commit && LQ.S.commitmentDays) {
+      var start = LQ.S.commitmentStart ? new Date(LQ.S.commitmentStart) : new Date();
+      var elapsed = Math.floor((Date.now() - start.getTime()) / 86400000) + 1;
+      commit.innerHTML =
+        '<span class="commit-icon">🎯</span>' +
+        '<' +
+        LQ.H +
+        '><strong>' +
+        LQ.S.commitmentDays +
+        '-day goal</strong><br>Day ' +
+        Math.min(elapsed, LQ.S.commitmentDays) +
+        ' of ' +
+        LQ.S.commitmentDays +
+        '</' +
+        LQ.H +
+        '>';
+      commit.style.display = 'flex';
+    }
+    return;
   }
 
   groupsEl.innerHTML = lessons
@@ -364,9 +497,7 @@ LQ.renderLearnSlide = function (wrap) {
     '<p class="learn-def">' +
     w.def +
     '</p>' +
-    '<p class="learn-ex">"' +
-    w.example +
-    '"</p>' +
+    (LQ.renderExampleBlock ? LQ.renderExampleBlock(w) : '<p class="learn-ex">"' + w.example + '"</p>') +
     (w.syn
       ? '<' + LQ.H + ' class="learn-syn"><strong>Synonyms:</strong> ' + LQ.esc(w.syn) + '</' + LQ.H + '>'
       : '') +

@@ -30,4 +30,7 @@ fs.copyFileSync(src, dest);
 copyDir('js');
 copyDir('data');
 copyDir('css');
+const manifestSrc = path.join(root, 'manifest.json');
+const manifestDest = path.join(root, 'www', 'manifest.json');
+if (fs.existsSync(manifestSrc)) fs.copyFileSync(manifestSrc, manifestDest);
 console.log('Copied lexiquest.html → www/index.html + js/ + data/ + css/');

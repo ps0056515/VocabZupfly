@@ -1,7 +1,7 @@
 {
   "source": "Word Lists.pdf",
   "version": 2,
-  "listCount": 13,
+  "listCount": 16,
   "groupCount": 293,
   "wordCount": 1561,
   "uniqueWords": 1541,
@@ -9979,6 +9979,520 @@
           ]
         }
       ]
+    },
+    {
+      "id": "dict-common",
+      "listNum": 14,
+      "title": "Common Dictionary",
+      "listType": "dictionary",
+      "icon": "📖",
+      "color": "sky",
+      "groups": [],
+      "words": [
+        {
+          "word": "Abash",
+          "index": 1
+        },
+        {
+          "word": "Aberration",
+          "index": 2
+        },
+        {
+          "word": "Admonish",
+          "index": 3
+        },
+        {
+          "word": "Adulterate",
+          "index": 4
+        },
+        {
+          "word": "Aesthetic",
+          "index": 5
+        },
+        {
+          "word": "Alacrity",
+          "index": 6
+        },
+        {
+          "word": "Alleviate",
+          "index": 7
+        },
+        {
+          "word": "Amalgamate",
+          "index": 8
+        },
+        {
+          "word": "Ambiguous",
+          "index": 9
+        },
+        {
+          "word": "Ameliorate",
+          "index": 10
+        },
+        {
+          "word": "Anachronism",
+          "index": 11
+        },
+        {
+          "word": "Anomaly",
+          "index": 12
+        },
+        {
+          "word": "Antipathy",
+          "index": 13
+        },
+        {
+          "word": "Appease",
+          "index": 14
+        },
+        {
+          "word": "Approbation",
+          "index": 15
+        },
+        {
+          "word": "Appropriate",
+          "index": 16
+        },
+        {
+          "word": "Arbitrary",
+          "index": 17
+        },
+        {
+          "word": "Arcane",
+          "index": 18
+        },
+        {
+          "word": "Arduous",
+          "index": 19
+        },
+        {
+          "word": "Articulate",
+          "index": 20
+        },
+        {
+          "word": "Assuage",
+          "index": 21
+        },
+        {
+          "word": "Attenuate",
+          "index": 22
+        },
+        {
+          "word": "Audacious",
+          "index": 23
+        },
+        {
+          "word": "Austere",
+          "index": 24
+        },
+        {
+          "word": "Banal",
+          "index": 25
+        },
+        {
+          "word": "Belie",
+          "index": 26
+        },
+        {
+          "word": "Beneficent",
+          "index": 27
+        },
+        {
+          "word": "Bolster",
+          "index": 28
+        },
+        {
+          "word": "Burgeon",
+          "index": 29
+        },
+        {
+          "word": "Buttress",
+          "index": 30
+        },
+        {
+          "word": "Cacophony",
+          "index": 31
+        },
+        {
+          "word": "Capricious",
+          "index": 32
+        },
+        {
+          "word": "Castigate",
+          "index": 33
+        },
+        {
+          "word": "Caustic",
+          "index": 34
+        },
+        {
+          "word": "Censure",
+          "index": 35
+        },
+        {
+          "word": "Coalesce",
+          "index": 36
+        },
+        {
+          "word": "Cogent",
+          "index": 37
+        },
+        {
+          "word": "Commensurate",
+          "index": 38
+        },
+        {
+          "word": "Complacent",
+          "index": 39
+        },
+        {
+          "word": "Condone",
+          "index": 40
+        },
+        {
+          "word": "Confound",
+          "index": 41
+        },
+        {
+          "word": "Connoisseur",
+          "index": 42
+        },
+        {
+          "word": "Contentious",
+          "index": 43
+        },
+        {
+          "word": "Contrite",
+          "index": 44
+        },
+        {
+          "word": "Conundrum",
+          "index": 45
+        }
+      ]
+    },
+    {
+      "id": "dict-ielts",
+      "listNum": 15,
+      "title": "IELTS Vocabulary",
+      "listType": "dictionary",
+      "icon": "🌍",
+      "color": "mint",
+      "groups": [],
+      "words": [
+        {
+          "word": "Abash",
+          "index": 1
+        },
+        {
+          "word": "Abdicate",
+          "index": 2
+        },
+        {
+          "word": "Abeyance",
+          "index": 3
+        },
+        {
+          "word": "Abide",
+          "index": 4
+        },
+        {
+          "word": "Abound",
+          "index": 5
+        },
+        {
+          "word": "Abridge",
+          "index": 6
+        },
+        {
+          "word": "Absolute",
+          "index": 7
+        },
+        {
+          "word": "Abstract",
+          "index": 8
+        },
+        {
+          "word": "Absurd",
+          "index": 9
+        },
+        {
+          "word": "Accede",
+          "index": 10
+        },
+        {
+          "word": "Accelerate",
+          "index": 11
+        },
+        {
+          "word": "Accentuate",
+          "index": 12
+        },
+        {
+          "word": "Acclaim",
+          "index": 13
+        },
+        {
+          "word": "Accomplishment",
+          "index": 14
+        },
+        {
+          "word": "Accord",
+          "index": 15
+        },
+        {
+          "word": "Accretion",
+          "index": 16
+        },
+        {
+          "word": "Accustomed",
+          "index": 17
+        },
+        {
+          "word": "Acerbic",
+          "index": 18
+        },
+        {
+          "word": "Acquit",
+          "index": 19
+        },
+        {
+          "word": "Acrimonious",
+          "index": 20
+        },
+        {
+          "word": "Acuity",
+          "index": 21
+        },
+        {
+          "word": "Acute",
+          "index": 22
+        },
+        {
+          "word": "Ad-Hoc",
+          "index": 23
+        },
+        {
+          "word": "Adamant",
+          "index": 24
+        },
+        {
+          "word": "Adept",
+          "index": 25
+        },
+        {
+          "word": "Adhere",
+          "index": 26
+        },
+        {
+          "word": "Adjacent",
+          "index": 27
+        },
+        {
+          "word": "Adjourn",
+          "index": 28
+        },
+        {
+          "word": "Adorn",
+          "index": 29
+        },
+        {
+          "word": "Adulterate",
+          "index": 30
+        },
+        {
+          "word": "Adversity",
+          "index": 31
+        },
+        {
+          "word": "Advocate",
+          "index": 32
+        },
+        {
+          "word": "Aesthetic",
+          "index": 33
+        },
+        {
+          "word": "Affected",
+          "index": 34
+        },
+        {
+          "word": "Affiliated",
+          "index": 35
+        },
+        {
+          "word": "Affinity",
+          "index": 36
+        },
+        {
+          "word": "Affirm",
+          "index": 37
+        },
+        {
+          "word": "Afflictions",
+          "index": 38
+        },
+        {
+          "word": "Aghast",
+          "index": 39
+        },
+        {
+          "word": "Agile",
+          "index": 40
+        }
+      ]
+    },
+    {
+      "id": "dict-academic",
+      "listNum": 16,
+      "title": "Academic Words",
+      "listType": "dictionary",
+      "icon": "🎓",
+      "color": "lavender",
+      "groups": [],
+      "words": [
+        {
+          "word": "Abate",
+          "index": 1
+        },
+        {
+          "word": "Aberration",
+          "index": 2
+        },
+        {
+          "word": "Abstruse",
+          "index": 3
+        },
+        {
+          "word": "Accolade",
+          "index": 4
+        },
+        {
+          "word": "Acquiesce",
+          "index": 5
+        },
+        {
+          "word": "Acumen",
+          "index": 6
+        },
+        {
+          "word": "Admonish",
+          "index": 7
+        },
+        {
+          "word": "Adroit",
+          "index": 8
+        },
+        {
+          "word": "Adulation",
+          "index": 9
+        },
+        {
+          "word": "Adversary",
+          "index": 10
+        },
+        {
+          "word": "Aesthetic",
+          "index": 11
+        },
+        {
+          "word": "Affable",
+          "index": 12
+        },
+        {
+          "word": "Affluent",
+          "index": 13
+        },
+        {
+          "word": "Aggrandize",
+          "index": 14
+        },
+        {
+          "word": "Alacrity",
+          "index": 15
+        },
+        {
+          "word": "Alleviate",
+          "index": 16
+        },
+        {
+          "word": "Amalgamate",
+          "index": 17
+        },
+        {
+          "word": "Ambivalent",
+          "index": 18
+        },
+        {
+          "word": "Ameliorate",
+          "index": 19
+        },
+        {
+          "word": "Amenable",
+          "index": 20
+        },
+        {
+          "word": "Amiable",
+          "index": 21
+        },
+        {
+          "word": "Anachronism",
+          "index": 22
+        },
+        {
+          "word": "Anomaly",
+          "index": 23
+        },
+        {
+          "word": "Antipathy",
+          "index": 24
+        },
+        {
+          "word": "Appease",
+          "index": 25
+        },
+        {
+          "word": "Approbation",
+          "index": 26
+        },
+        {
+          "word": "Arbitrary",
+          "index": 27
+        },
+        {
+          "word": "Arcane",
+          "index": 28
+        },
+        {
+          "word": "Arduous",
+          "index": 29
+        },
+        {
+          "word": "Articulate",
+          "index": 30
+        },
+        {
+          "word": "Artifice",
+          "index": 31
+        },
+        {
+          "word": "Assuage",
+          "index": 32
+        },
+        {
+          "word": "Avarice",
+          "index": 33
+        },
+        {
+          "word": "Banal",
+          "index": 34
+        },
+        {
+          "word": "Belie",
+          "index": 35
+        }
+      ]
     }
-  ]
+  ],
+  "dictionaryListCount": 3
 }

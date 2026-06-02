@@ -3,25 +3,80 @@ window.LQ = window.LQ || {};
 LQ.renderFC = function () {
   LQ.buildFcQueue();
   const w = LQ.currentFcWord();
-  if (!w) return;
-  const q = LQ.S.fcQueue;
+  const wrap = document.getElementById('fc-wrap');
   const fc = document.getElementById('fc-counter');
   const fp = document.getElementById('fc-prog');
+  const q = LQ.S.fcQueue;
+
+  if (!w || !wrap) {
+    if (wrap) {
+      wrap.innerHTML =
+        '<div class="learn-empty"><p class="learn-empty-icon">🃏</p><h3>No words in deck</h3>' +
+        '<p>Add words via Learn or check your list filters.</p></div>';
+    }
+    if (fc) fc.textContent = '0 / 0';
+    return;
+  }
+
   if (fc) fc.textContent = (LQ.S.fcIdx + 1) + ' / ' + q.length;
   if (fp) fp.style.width = ((LQ.S.fcIdx + 1) / Math.max(1, q.length)) * 100 + '%';
-  const stage = document.getElementById('card-stage');
-  if (!stage) return;
-  const prem = w.premium ? '<span class="ctag premium">PRO</span>' : '';
-  stage.innerHTML =
-    '<' + LQ.H + ' class="the-card pop-in"><' + LQ.H + ' class="card-tag-row"><span class="ctag pos">' + w.pos + '</span>' +
-    w.tags.map((t) => '<span class="ctag ' + t.toLowerCase() + '">' + t + '</span>').join('') + prem + '</' + LQ.H + '>' +
-    '<' + LQ.H + ' class="card-word">' + w.word + '</' + LQ.H + '><' + LQ.H + ' class="card-phon">' + w.phonetic + '</' + LQ.H + '>' +
-    '<' + LQ.H + ' class="card-def">' + w.def + '</' + LQ.H + '><' + LQ.H + ' class="card-example">"' + w.example + '"</' + LQ.H + '>' +
-    '<' + LQ.H + ' class="syn-ant"><' + LQ.H + ' class="syn-box syn"><h4>Synonyms</h4><p>' + w.syn + '</p></' + LQ.H + '>' +
-    '<' + LQ.H + ' class="syn-box ant"><h4>Antonyms</h4><p>' + w.ant + '</p></' + LQ.H + '></' + LQ.H + '></' + LQ.H + '>';
+
+  if (LQ._fcFlipped === undefined) LQ._fcFlipped = false;
+  if (LQ._fcFlippedWord !== w.word) {
+    LQ._fcFlipped = false;
+    LQ._fcFlippedWord = w.word;
+  }
+
+  const group = LQ.wordGroupLabel ? LQ.wordGroupLabel(w.word) : '';
+  const flipped = LQ._fcFlipped ? ' flipped' : '';
+  const exBlock = LQ.renderExampleBlock
+    ? LQ.renderExampleBlock(w, { className: 'revise-ex', dark: true, compact: true })
+    : '<p class="revise-ex">"' + w.example + '"</p>';
+
+  wrap.innerHTML =
+    '<div class="revise-flip fc-flip' +
+    flipped +
+    '" onclick="LQ.toggleFcFlip()">' +
+    '<div class="revise-card revise-front">' +
+    '<span class="revise-tag">Tap to flip</span>' +
+    '<h2 class="revise-word">' +
+    LQ.esc(w.word) +
+    '</h2>' +
+    (w.phonetic ? '<p class="revise-group">' + LQ.esc(w.phonetic) + '</p>' : '') +
+    (group ? '<p class="revise-group">' + LQ.esc(group) + '</p>' : '') +
+    '</div>' +
+    '<div class="revise-card revise-back">' +
+    '<p class="revise-def">' +
+    (LQ.displayWordDef ? LQ.displayWordDef(w) : w.def) +
+    '</p>' +
+    exBlock +
+    LQ.formatWordPairs(w.syn, 'Synonyms') +
+    LQ.formatWordPairs(w.ant, 'Antonyms') +
+    '</div></div>' +
+    '<div class="fc-speak-row">' +
+    '<button type="button" class="speak-btn fc-speak-btn" onclick="event.stopPropagation();speakWord()">' +
+    '<span id="speak-icon">🔊</span> Pronounce</button></div>';
+
+  const ratingRow = document.querySelector('#screen-flashcard .fc-rating-row');
+  if (ratingRow) {
+    ratingRow.classList.toggle('fc-rating-locked', !LQ._fcFlipped);
+  }
+};
+
+LQ.toggleFcFlip = function () {
+  if (LQ._exampleEditing) return;
+  LQ._fcFlipped = !LQ._fcFlipped;
+  const el = document.querySelector('.fc-flip');
+  if (el) el.classList.toggle('flipped', LQ._fcFlipped);
+  const ratingRow = document.querySelector('#screen-flashcard .fc-rating-row');
+  if (ratingRow) ratingRow.classList.toggle('fc-rating-locked', !LQ._fcFlipped);
 };
 
 LQ.rate = function (r) {
+  if (!LQ._fcFlipped && !LQ._exampleEditing) {
+    LQ.toast('Flip the card first');
+    return;
+  }
   const w = LQ.currentFcWord();
   if (!w) return;
   const xpG = { miss: 3, hard: 10, good: 18, nailed: 28 }[r];
@@ -33,6 +88,8 @@ LQ.rate = function (r) {
   if (r === 'nailed') LQ.S.goalNew++;
   LQ.updateGoal();
   LQ.toast({ miss: 'Keep going!', hard: 'Almost!', good: 'Solid!', nailed: '🎯 Mastered!' }[r]);
+  LQ._fcFlipped = false;
+  LQ._fcFlippedWord = null;
   LQ.S.fcIdx = (LQ.S.fcIdx + 1) % Math.max(1, LQ.S.fcQueue.length);
   LQ.saveState();
   LQ.renderFC();
@@ -121,7 +178,7 @@ LQ.renderQuizListPicker = function () {
     var lst = LQ.WORD_LISTS.lists.find(function (l) {
       return l.id === currentList;
     });
-    if (lst) {
+    if (lst && LQ.getListType(lst) !== 'dictionary') {
       groupSection =
         '<p class="quiz-list-label">Synonym group</p><div class="quiz-list-chips">' +
         '<button type="button" class="quiz-list-chip' +
@@ -163,6 +220,7 @@ LQ.renderQuizListPicker = function () {
 LQ.pickQuizList = function (listId) {
   LQ.S.quizListId = listId;
   if (listId === 'all') LQ.S.quizGroupId = null;
+  else if (LQ.isDictionaryList && LQ.isDictionaryList(listId)) LQ.S.quizGroupId = null;
   else if (LQ.S.quizGroupId) {
     var hit = LQ.findGroup(LQ.S.quizGroupId);
     if (!hit || hit.list.id !== listId) LQ.S.quizGroupId = null;
@@ -188,6 +246,9 @@ LQ.startListQuiz = function (listId, groupId) {
   LQ.S.quizGroupId = groupId || null;
   LQ.saveState();
   LQ.goTo('quiz');
+  setTimeout(function () {
+    if (LQ.startQuizSession) LQ.startQuizSession();
+  }, 50);
 };
 window.LQ.startListQuiz = LQ.startListQuiz;
 
@@ -214,6 +275,7 @@ LQ.renderQuizEmpty = function (message) {
 };
 
 LQ.initQuiz = function () {
+  if (LQ.setQuizPhase) LQ.setQuizPhase('active');
   if (LQ.stopQuizTimer) LQ.stopQuizTimer();
   LQ.S.quizLives = 3;
   LQ.S.quizAnswered = false;
@@ -271,9 +333,18 @@ LQ.checkQ = function (idx) {
   if (LQ.finishQuizAnswer) LQ.finishQuizAnswer(correct);
 };
 
-LQ.advanceQuiz = function () { LQ.S.quizIdx++; LQ.nextQuiz(); };
+LQ.advanceQuiz = function () {
+  if (LQ._quizAdvanceTimer) {
+    clearTimeout(LQ._quizAdvanceTimer);
+    LQ._quizAdvanceTimer = null;
+  }
+  if (!LQ.S.quizAnswered) return;
+  LQ.S.quizIdx++;
+  LQ.nextQuiz();
+};
 
 LQ.showQuizEnd = function () {
+  if (LQ.setQuizPhase) LQ.setQuizPhase('done');
   if (LQ.stopQuizTimer) LQ.stopQuizTimer();
   const total = LQ._quizAnswered || (LQ.quizQuestionTotal ? LQ.quizQuestionTotal() : Math.min(10, LQ._qWords.length));
   LQ.S.goalQuiz = (LQ.S.goalQuiz || 0) + LQ._qScore;
@@ -291,7 +362,7 @@ LQ.showQuizEnd = function () {
   if (card) card.innerHTML = '<p class="quiz-label">Done!</p><p class="quiz-word" style="font-size:48px">🏆</p><p class="quiz-word" style="font-size:22px">' + LQ._qScore + '/' + total + '</p>';
   if (body) body.innerHTML = LQ.renderFlowComplete
     ? LQ.renderFlowComplete({ context: 'quiz', title: 'Quiz complete!', score: LQ._qScore + '/' + total, icon: '🏆' })
-    : '<button class="quiz-next show" onclick="LQ.initQuiz()">Again</button><button class="quiz-next portal-btn-secondary show" style="margin-top:10px" onclick="LQ.goBack()">Back</button>';
+    : '<button class="quiz-next show" onclick="LQ.startQuizSession()">Again</button><button class="quiz-next portal-btn-secondary show" style="margin-top:10px" onclick="LQ.initQuizSetup()">Change settings</button><button class="quiz-next portal-btn-secondary show" style="margin-top:10px" onclick="LQ.goBack()">Back</button>';
 };
 
 LQ.initSpelling = function () {

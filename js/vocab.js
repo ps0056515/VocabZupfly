@@ -30,10 +30,20 @@ LQ.formatWordPairs = function (val, label) {
 LQ.ensureListPrefs = function () {
   LQ.S.listPrefs = LQ.S.listPrefs || { names: {}, order: null };
   if (!LQ.S.listPrefs.names) LQ.S.listPrefs.names = {};
-  if (!LQ.S.listPrefs.order && LQ.WORD_LISTS && LQ.WORD_LISTS.lists) {
-    LQ.S.listPrefs.order = LQ.WORD_LISTS.lists.map(function (l) {
+  if (LQ.WORD_LISTS && LQ.WORD_LISTS.lists) {
+    var allIds = LQ.WORD_LISTS.lists.map(function (l) {
       return l.id;
     });
+    if (!LQ.S.listPrefs.order) {
+      LQ.S.listPrefs.order = allIds.slice();
+    } else {
+      allIds.forEach(function (id) {
+        if (LQ.S.listPrefs.order.indexOf(id) < 0) LQ.S.listPrefs.order.push(id);
+      });
+      LQ.S.listPrefs.order = LQ.S.listPrefs.order.filter(function (id) {
+        return allIds.indexOf(id) >= 0;
+      });
+    }
   }
 };
 
@@ -76,6 +86,8 @@ LQ.getOrderedChapters = function () {
         subtitle: ch.subtitle,
         listNum: ch.listNum,
         color: ch.color,
+        listType: ch.listType || 'grouped',
+        wordCount: ch.wordCount,
       };
     })
     .filter(Boolean);
@@ -273,8 +285,13 @@ LQ.getWordCounts = function () {
 };
 
 LQ.listWordNames = function (list) {
+  if (LQ.getListType(list) === 'dictionary') {
+    return (list.words || []).map(function (entry) {
+      return typeof entry === 'string' ? entry : entry.word;
+    });
+  }
   const names = [];
-  list.groups.forEach(function (g) {
+  (list.groups || []).forEach(function (g) {
     g.words.forEach(function (entry) {
       if (entry.role !== 'variant') names.push(entry.word);
     });
@@ -476,9 +493,7 @@ LQ.renderLearnScreen = function () {
     '<p class="learn-def">' +
     w.def +
     '</p>' +
-    '<p class="learn-ex">"' +
-    w.example +
-    '"</p>' +
+    (LQ.renderExampleBlock ? LQ.renderExampleBlock(w) : '<p class="learn-ex">"' + w.example + '"</p>') +
     synAnt +
     '</div>' +
     (LQ.wordDifficultyHtml ? LQ.wordDifficultyHtml(w.word) : '') +
@@ -581,6 +596,9 @@ LQ.renderReviseScreen = function () {
     '<p class="revise-def">' +
     w.def +
     '</p>' +
+    (LQ.renderExampleBlock
+      ? LQ.renderExampleBlock(w, { className: 'revise-ex', dark: true, compact: true })
+      : '') +
     (group ? '<p class="revise-group-back">Group: ' + LQ.esc(group) + '</p>' : '') +
     LQ.formatWordPairs(w.syn, 'Synonyms') +
     LQ.formatWordPairs(w.ant, 'Antonyms') +
@@ -607,6 +625,7 @@ LQ.wordGroupLabel = function (wordName) {
 };
 
 LQ.toggleReviseFlip = function () {
+  if (LQ._exampleEditing) return;
   LQ._reviseFlipped = !LQ._reviseFlipped;
   const el = document.querySelector('.revise-flip');
   if (el) el.classList.toggle('flipped', LQ._reviseFlipped);
@@ -653,7 +672,7 @@ LQ.renderQuizReview = function (score, total, misses) {
       '<p class="quiz-word" style="font-size:42px">' +
       pct +
       '%</p>' +
-      '<p style="color:rgba(255,255,255,.7);font-size:15px">' +
+      '<p class="quiz-hint">' +
       score +
       ' / ' +
       total +

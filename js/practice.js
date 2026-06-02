@@ -202,7 +202,28 @@ LQ.renderQuizBuilderHtml = function () {
   );
 };
 
+LQ.setQuizPhase = function (phase) {
+  LQ._quizPhase = phase || 'setup';
+  var sc = document.getElementById('screen-quiz');
+  if (!sc) return;
+  sc.classList.remove('quiz-phase-setup', 'quiz-phase-active', 'quiz-phase-done');
+  sc.classList.add('quiz-phase-' + LQ._quizPhase);
+  var scope = document.getElementById('quiz-scope-label');
+  if (scope && phase === 'setup') scope.textContent = LQ.getQuizScopeLabel();
+  var edit = document.getElementById('quiz-edit-link');
+  if (edit) edit.style.display = phase === 'active' ? '' : 'none';
+};
+
+LQ.updateQuizProgressChrome = function () {
+  var scope = document.getElementById('quiz-scope-label');
+  if (!scope || LQ._quizPhase !== 'active') return;
+  var total = LQ.quizQuestionTotal ? LQ.quizQuestionTotal() : (LQ._qWords || []).length;
+  scope.textContent =
+    LQ.getQuizScopeLabel() + ' · Question ' + (LQ.S.quizIdx + 1) + ' of ' + total;
+};
+
 LQ.initQuizSetup = function () {
+  LQ.setQuizPhase('setup');
   if (LQ.renderQuizListPicker) LQ.renderQuizListPicker();
   LQ.stopQuizTimer();
   var card = document.getElementById('quiz-card');
@@ -221,6 +242,7 @@ LQ.initQuizSetup = function () {
 };
 
 LQ.startQuizSession = function () {
+  LQ.setQuizPhase('active');
   if (LQ.initQuiz) LQ.initQuiz();
 };
 
@@ -282,6 +304,11 @@ LQ.blankSentence = function (w) {
     return ex.replace(new RegExp(w.word, 'i'), '______');
   }
   return 'The meaning fits best when you fill in ______ here.';
+};
+
+LQ.afterQuizQuestionRender = function () {
+  if (LQ.renderQuizPips) LQ.renderQuizPips();
+  if (LQ.updateQuizProgressChrome) LQ.updateQuizProgressChrome();
 };
 
 LQ.dispatchQuizQuestion = function () {
@@ -351,7 +378,7 @@ LQ.renderQuizMcq = function () {
         .join('') +
       '<div class="quiz-feedback-box" id="qfb"></div><button class="quiz-next" id="qnext" onclick="LQ.advanceQuiz()">Next →</button>';
   }
-  if (LQ.renderQuizPips) LQ.renderQuizPips();
+  if (LQ.afterQuizQuestionRender) LQ.afterQuizQuestionRender();
 };
 
 LQ.renderQuizBlank = function () {
@@ -386,7 +413,7 @@ LQ.renderQuizBlank = function () {
       if (inp) inp.focus();
     }, 50);
   }
-  if (LQ.renderQuizPips) LQ.renderQuizPips();
+  if (LQ.afterQuizQuestionRender) LQ.afterQuizQuestionRender();
 };
 
 LQ.checkQuizBlank = function () {
@@ -442,7 +469,7 @@ LQ.renderQuizTextCompletion = function () {
         .join('') +
       '<div class="quiz-feedback-box" id="qfb"></div><button class="quiz-next" id="qnext" onclick="LQ.advanceQuiz()">Next →</button>';
   }
-  if (LQ.renderQuizPips) LQ.renderQuizPips();
+  if (LQ.afterQuizQuestionRender) LQ.afterQuizQuestionRender();
 };
 
 LQ.checkQuizTc = function (idx) {
@@ -526,7 +553,7 @@ LQ.renderQuizSentenceEquiv = function () {
       '<button type="button" class="quiz-next show" onclick="LQ.checkQuizSe()">Submit pair</button>' +
       '<div class="quiz-feedback-box" id="qfb"></div><button class="quiz-next" id="qnext" onclick="LQ.advanceQuiz()">Next →</button>';
   }
-  if (LQ.renderQuizPips) LQ.renderQuizPips();
+  if (LQ.afterQuizQuestionRender) LQ.afterQuizQuestionRender();
 };
 
 LQ.toggleSeChoice = function (idx) {
@@ -591,6 +618,14 @@ LQ.finishQuizAnswer = function (correct) {
   LQ.recordActivity(LQ.S.quizWord.word, correct ? 'good' : 'miss');
   var nextBtn = document.getElementById('qnext');
   if (nextBtn) nextBtn.classList.add('show');
+  if (LQ._quizAdvanceTimer) clearTimeout(LQ._quizAdvanceTimer);
+  if (!correct && LQ.S.quizLives <= 0) return;
+  var delay = correct ? 750 : 1100;
+  LQ._quizAdvanceTimer = setTimeout(function () {
+    LQ._quizAdvanceTimer = null;
+    if (LQ.S.quizLives <= 0) return;
+    LQ.advanceQuiz();
+  }, delay);
 };
 
 /* ── Session analytics ── */
@@ -829,7 +864,7 @@ LQ.generateMnemonic = function (word) {
 };
 
 LQ.tutorSentence = function (word) {
-  var ex = (word.example || '').replace(/<[^>]+>/g, '');
+  var ex = LQ.getWordExamplePlain ? LQ.getWordExamplePlain(word) : (word.example || '').replace(/<[^>]+>/g, '');
   if (ex && ex.indexOf('Study ') !== 0 && ex.indexOf('In the "') !== 0) {
     return '**Example:** "' + ex + '"\n\nTry writing your own sentence using **' + word.word + '**.';
   }

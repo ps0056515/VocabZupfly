@@ -193,7 +193,7 @@ LQ.initDrill = function () {
         : '<button class="quiz-next show" onclick="LQ.goBack()">Back</button>');
     return;
   }
-  wrap.innerHTML = '<p id="drill-prog"></p><' + LQ.H + ' id="drill-body"></' + LQ.H + '>';
+  wrap.innerHTML = '<p id="drill-prog" class="drill-prog"></p><' + LQ.H + ' id="drill-body" class="drill-body"></' + LQ.H + '>';
   LQ.showDrillQ();
 };
 
@@ -204,7 +204,7 @@ LQ.showDrillQ = function () {
   const wrong = LQ.shuffle(LQ.getWords().filter((x) => x.word !== w.word)).slice(0, 3);
   LQ._drillOpts = LQ.shuffle(wrong.concat([w]));
   body.innerHTML =
-    '<p style="color:#fff;font-weight:600;margin-bottom:12px">' +
+    '<p class="drill-word">' +
     LQ.esc(w.word) +
     '</p>' +
     LQ._drillOpts
@@ -420,7 +420,8 @@ LQ.openDailyPanel = function () {
   document.getElementById('dwp-word').textContent = w.word;
   document.getElementById('dwp-phon').textContent = w.phonetic + ' · ' + w.pos;
   document.getElementById('dwp-def').textContent = w.def;
-  document.getElementById('dwp-ex').textContent = '"' + w.example.replace(/<[^>]+>/g, '') + '"';
+  document.getElementById('dwp-ex').textContent =
+    '"' + (LQ.getWordExamplePlain ? LQ.getWordExamplePlain(w) : w.example.replace(/<[^>]+>/g, '')) + '"';
   document.getElementById('daily-word-panel').classList.add('open');
   const dot = document.getElementById('notif-dot');
   if (dot) dot.style.display = 'none';

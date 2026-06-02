@@ -498,7 +498,7 @@ html,body{height:100%;background:#f1f5f9;font-family:var(--body)}
   color:var(--ink);cursor:pointer;letter-spacing:-0.2px;
   transition:opacity .15s,transform .1s;display:none;
 }
-.quiz-next.show{display:block;}
+.quiz-next.show{display:block;position:sticky;bottom:12px;z-index:5;margin-top:16px;box-shadow:0 4px 20px rgba(0,0,0,.1)}
 .quiz-next:active{transform:scale(.98);}
 
 /* ── WORD BANK SCREEN ── */
@@ -912,7 +912,11 @@ body.portal-theme.web-mobile .layout-switcher-persistent .layout-btn.active{
 .quiz-list-label:first-child{margin-top:0}
 .quiz-list-chips{display:flex;flex-wrap:wrap;gap:6px;max-height:96px;overflow-y:auto}
 .quiz-list-chip{border:1px solid rgba(0,0,0,.1);background:#fff;border-radius:99px;padding:7px 12px;font-family:var(--body);font-size:11px;font-weight:600;color:var(--muted);cursor:pointer}
-.quiz-list-chip.active{background:var(--lime);color:var(--ink);border-color:var(--lime)}
+#screen-quiz.quiz-phase-setup .quiz-edit-link{display:none}
+#screen-quiz.quiz-phase-active .quiz-list-bar,#screen-quiz.quiz-phase-done .quiz-list-bar{display:none}
+#screen-quiz.quiz-phase-setup .quiz-session{display:none}
+#screen-quiz.quiz-phase-setup .quiz-lives,#screen-quiz.quiz-phase-setup .quiz-timer{display:none}
+.quiz-edit-link{border:none;background:transparent;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--body);padding:4px 8px;margin-left:auto}
 .quiz-back-btn{background:rgba(0,0,0,.06)!important;color:var(--ink)!important}
 .list-setting-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
 .list-setting-num{width:22px;font-size:12px;font-weight:700;color:#888;text-align:center;flex-shrink:0}
@@ -924,7 +928,34 @@ body.portal-theme.web-mobile .layout-switcher-persistent .layout-btn.active{
 .learn-empty{text-align:center;padding:40px 20px;color:var(--muted)}
 .learn-empty-icon{font-size:48px;margin-bottom:12px}
 .learn-empty h3{font-family:var(--head);color:var(--ink);margin-bottom:8px}
-#screen-learn,#screen-revise{background:#F5F3EE;min-height:100%}
+#screen-learn,#screen-revise,#screen-flashcard{background:#F5F3EE;min-height:100%}
+#screen-flashcard .fc-progress-track{height:3px;background:rgba(0,0,0,.08);margin:0 20px 12px;border-radius:99px}
+#screen-flashcard .fc-progress-fill{height:100%;background:var(--lime);border-radius:99px;transition:width .4s ease}
+.fc-rating-row.fc-rating-locked{opacity:.45;pointer-events:none}
+.fc-speak-row{padding:0 20px 8px;display:flex;justify-content:center}
+.fc-speak-btn{background:#fff!important;border:1px solid rgba(0,0,0,.1)!important;color:var(--ink)!important}
+.revise-ex{font-size:13px;color:rgba(255,255,255,.75);font-style:italic;line-height:1.55;margin-top:10px;max-width:100%}
+.ex-user-badge{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:2px 8px;border-radius:6px;background:rgba(245,166,35,.2);color:#b8860b;margin:6px 0 4px}
+.ex-edit-btn{border:none;background:rgba(0,0,0,.06);color:var(--muted);font-size:11px;font-weight:600;padding:6px 10px;border-radius:8px;cursor:pointer;font-family:var(--body);margin-top:6px}
+.ex-edit-btn-sm{font-size:10px;padding:4px 8px}
+.ex-edit-wrap{margin-top:10px;text-align:left;width:100%}
+.ex-edit-wrap-dark .ex-edit-label{color:rgba(255,255,255,.7)}
+.ex-edit-wrap-dark .ex-edit-input{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.2);color:#fff}
+.ex-edit-label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:6px}
+.ex-edit-input{width:100%;padding:10px 12px;border:1px solid rgba(0,0,0,.12);border-radius:10px;font-family:var(--body);font-size:14px;resize:vertical;box-sizing:border-box}
+.ex-edit-actions{display:flex;gap:8px;margin-top:8px}
+.ex-edit-save,.ex-edit-cancel{padding:8px 14px;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--body)}
+.ex-edit-save{background:var(--lime);color:var(--ink)}
+.ex-edit-cancel{background:rgba(0,0,0,.06);color:var(--muted)}
+.tutor-save-ex{display:block;margin-top:10px;padding:8px 12px;border:1px solid rgba(192,57,43,.35);background:rgba(192,57,43,.08);color:#c0392b;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--body);width:100%;text-align:left}
+.lists-side-section{margin-bottom:18px}
+.lists-side-heading{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.55px;color:var(--muted);margin:0 0 4px 4px}
+.lists-side-desc{font-size:11px;color:var(--muted);margin:0 0 8px 4px;line-height:1.4}
+.lists-type-badge.gre{background:rgba(192,57,43,.12);color:#c0392b}
+.drill-prog{font-size:13px;font-weight:600;color:var(--muted);margin-bottom:16px}
+.drill-word{font-family:var(--head);font-size:32px;font-weight:700;color:var(--ink);letter-spacing:-1px;margin:0 0 16px;line-height:1.15}
+#screen-drill{background:#F5F3EE}
+#screen-drill .screen-panel{background:transparent}
 .revise-flip{perspective:1000px;height:280px;margin:16px 20px;cursor:pointer;position:relative}
 .revise-flip .revise-card{position:absolute;inset:0;backface-visibility:hidden;border-radius:24px;padding:28px 24px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;transition:transform .45s ease;box-shadow:0 8px 32px rgba(0,0,0,.08)}
 .revise-front{background:#fff}
@@ -1089,7 +1120,7 @@ body.native-app .desktop-only-ui{display:none!important}
 <link rel="stylesheet" href="css/kanban.css?v=20260520a">
 <link rel="stylesheet" href="css/desktop.css?v=20260527a">
 <link rel="stylesheet" href="css/portal.css?v=20260528a">
-<link rel="stylesheet" href="css/portal-pages.css?v=20260528b">
+<link rel="stylesheet" href="css/portal-pages.css?v=20260602a">
 <link rel="stylesheet" href="css/tenses.css?v=20260526a">
 <link rel="stylesheet" href="css/zupfly-theme.css?v=20260526b">
 <link rel="stylesheet" href="css/flow.css?v=20260526c">
@@ -1187,8 +1218,7 @@ body.native-app .desktop-only-ui{display:none!important}
                 <p class="portal-tagline" id="dash-tagline">Pick up where you left off — small steps add up fast.</p>
               </div>
               <div class="portal-header-actions portal-header-utils">
-                <button type="button" class="portal-util-btn" onclick="LQ.toast('Walkthrough coming soon')">🎥 Walkthrough</button>
-                <button type="button" class="portal-util-btn" onclick="LQ.toast('Email support@lexiquest.app')">📞 Support</button>
+                <a class="portal-util-btn" href="mailto:support@lexiquest.app">📞 Support</a>
                 <div class="portal-avatar" title="Profile">👤</div>
               </div>
             </div>
@@ -1229,7 +1259,7 @@ body.native-app .desktop-only-ui{display:none!important}
             <div class="portal-header-row">
               <div>
                 <h1 class="portal-title">Word Lists</h1>
-                <p class="portal-tagline">Synonym clusters — study one group at a time</p>
+                <p class="portal-tagline">GRE synonym groups + general vocabulary dictionaries</p>
               </div>
             </div>
           </div>
@@ -1358,43 +1388,34 @@ body.native-app .desktop-only-ui{display:none!important}
           <div id="revise-wrap"></div>
         </div>
 
-        <!-- ══ FLASHCARD ══ -->
+        <!-- ══ FLASHCARD (Jamboree flip) ══ -->
         <div class="screen" id="screen-flashcard">
-          <div class="fc-header">
-            <button class="back-btn" onclick="LQ.goBack()">←</button>
-            <h2>Flashcards</h2>
-            <span class="fc-counter" id="fc-counter">1 / 15</span>
+          <div class="lesson-top">
+            <button class="back-btn" style="background:rgba(0,0,0,.06);color:var(--ink)" onclick="LQ.goBack()">←</button>
+            <h2 style="font-family:var(--head);font-size:18px;font-weight:700;color:var(--ink);flex:1">Flashcards</h2>
+            <span class="fc-counter" id="fc-counter" style="font-size:12px;font-weight:700;color:var(--muted)">1 / 15</span>
           </div>
           <div class="fc-progress-track"><div class="fc-progress-fill" id="fc-prog" style="width:6.7%"></div></div>
+          <div id="fc-wrap"></div>
 
-          <div style="padding:0 20px 4px;display:flex;align-items:center;gap:8px;">
-            <button class="speak-btn" id="speak-btn" onclick="speakWord()">
-              <div class="speak-wave" id="speak-wave" style="display:none">
-                <span></span><span></span><span></span><span></span><span></span>
-              </div>
-              <span id="speak-icon">🔊</span>
-              <span id="speak-label">Pronounce</span>
-            </button>
-          </div>
-          <div class="card-stage" id="card-stage"></div>
-
-          <div class="rating-row">
+          <div class="rating-row fc-rating-row fc-rating-locked">
             <button class="rate-btn miss" onclick="rate('miss')"><span class="rbicon">✕</span>Missed</button>
             <button class="rate-btn hard" onclick="rate('hard')"><span class="rbicon">△</span>Hard</button>
             <button class="rate-btn good" onclick="rate('good')"><span class="rbicon">◇</span>Good</button>
             <button class="rate-btn nailed" onclick="rate('nailed')"><span class="rbicon">✓</span>Nailed!</button>
           </div>
+          <p class="fc-rate-hint" style="text-align:center;font-size:11px;color:var(--muted);margin:-8px 20px 12px">Flip the card, then rate your recall</p>
 
-          <div class="ai-hint-wrap">
-            <button class="ai-hint-btn" onclick="loadAIHint()">
+          <div class="ai-hint-wrap" style="padding-bottom:24px">
+            <button class="ai-hint-btn" style="background:#fff;border:1px solid rgba(0,0,0,.1);color:var(--ink)" onclick="loadAIHint()">
               <span class="sparkle">✦</span>
               <span id="hint-btn-label">Ask AI for a mnemonic trick</span>
             </button>
-            <button type="button" class="ai-hint-btn" style="margin-top:8px" onclick="openTutorFromCard()">
+            <button type="button" class="ai-hint-btn" style="margin-top:8px;background:#fff;border:1px solid rgba(0,0,0,.1);color:var(--ink)" onclick="openTutorFromCard()">
               <span class="sparkle">💬</span>
               <span>Chat with AI Tutor about this word</span>
             </button>
-            <div class="ai-hint-box" id="ai-hint-box"></div>
+            <div class="ai-hint-box" id="ai-hint-box" style="background:#fff;border:1px solid rgba(0,0,0,.08);color:var(--ink)"></div>
           </div>
         </div>
 
@@ -1403,7 +1424,7 @@ body.native-app .desktop-only-ui{display:none!important}
           <div class="tutor-header">
             <button class="back-btn" onclick="LQ.goBack()">←</button>
             <h2>AI Tutor</h2>
-            <span class="tutor-badge">BETA</span>
+            <span class="tutor-badge">AI</span>
           </div>
           <div class="tutor-messages" id="tutor-messages"></div>
           <div class="tutor-chips" id="tutor-chips"></div>
@@ -1422,6 +1443,7 @@ body.native-app .desktop-only-ui{display:none!important}
                 <span class="quiz-page-title">Quiz</span>
                 <span class="quiz-scope-label" id="quiz-scope-label">All lists</span>
               </div>
+              <button type="button" class="quiz-edit-link" id="quiz-edit-link" onclick="LQ.initQuizSetup()">Edit setup</button>
               <div class="quiz-timer" id="quiz-timer"></div>
               <div class="quiz-lives" id="quiz-lives">
                 <span class="heart">❤️</span><span class="heart">❤️</span><span class="heart">❤️</span>
@@ -1640,29 +1662,30 @@ body.native-app .desktop-only-ui{display:none!important}
 </div>
 
 
-<script src="js/config.js?v=20260527a"></script>
-<script src="js/platform.js?v=20260519h"></script>
-<script src="js/unlock.js?v=20260519f"></script>
-<script src="js/words.js?v=20260528c"></script>
-<script src="js/srs.js?v=20260519f"></script>
-<script src="js/streak.js?v=20260519f"></script>
-<script src="js/state.js?v=20260528b"></script>
-<script src="js/core.js?v=20260528a"></script>
-<script src="js/ai.js?v=20260527a"></script>
-<script src="js/speech.js?v=20260519f"></script>
-<script src="js/firebase-sync.js?v=20260519f"></script>
-<script src="js/notifications.js?v=20260519f"></script>
-<script src="js/celebrate.js?v=20260519f"></script>
-<script src="js/lessons.js?v=20260528c"></script>
-<script src="js/dashboard.js?v=20260525b"></script>
-<script src="js/vocab.js?v=20260528d"></script>
-<script src="js/features.js?v=20260528a"></script>
-<script src="js/tutor.js?v=20260528a"></script>
-<script src="js/practice.js?v=20260528a"></script>
-<script src="js/study.js?v=20260528c"></script>
-<script src="js/tenses.js?v=20260526a"></script>
-<script src="js/flow.js?v=20260528b"></script>
-<script src="js/boot.js?v=20260520b"></script>
-<script src="js/native-bridge.js?v=20260519f"></script>
+<script src="js/config.js?v=20260529a"></script>
+<script src="js/platform.js?v=20260529a"></script>
+<script src="js/unlock.js?v=20260529a"></script>
+<script src="js/words.js?v=20260529a"></script>
+<script src="js/srs.js?v=20260529a"></script>
+<script src="js/streak.js?v=20260529a"></script>
+<script src="js/state.js?v=20260530a"></script>
+<script src="js/core.js?v=20260530a"></script>
+<script src="js/content.js?v=20260530a"></script>
+<script src="js/ai.js?v=20260529a"></script>
+<script src="js/speech.js?v=20260529b"></script>
+<script src="js/firebase-sync.js?v=20260529a"></script>
+<script src="js/notifications.js?v=20260529a"></script>
+<script src="js/celebrate.js?v=20260529a"></script>
+<script src="js/lessons.js?v=20260530a"></script>
+<script src="js/dashboard.js?v=20260529a"></script>
+<script src="js/vocab.js?v=20260530a"></script>
+<script src="js/features.js?v=20260602a"></script>
+<script src="js/tutor.js?v=20260530a"></script>
+<script src="js/practice.js?v=20260602b"></script>
+<script src="js/study.js?v=20260602b"></script>
+<script src="js/tenses.js?v=20260529b"></script>
+<script src="js/flow.js?v=20260530a"></script>
+<script src="js/boot.js?v=20260529a"></script>
+<script src="js/native-bridge.js?v=20260529a"></script>
 </body>
 </html>

@@ -9,6 +9,7 @@ LQ.wordListsReady = fetch('data/word-lists.json')
   })
   .then(function (data) {
     LQ.WORD_LISTS = data;
+    LQ._pathDataReady = false;
     return data;
   })
   .catch(function (err) {
@@ -114,7 +115,8 @@ LQ.findGroup = function (lessonId) {
   if (!LQ.WORD_LISTS || !LQ.WORD_LISTS.lists) return null;
   for (var i = 0; i < LQ.WORD_LISTS.lists.length; i++) {
     var lst = LQ.WORD_LISTS.lists[i];
-    for (var j = 0; j < lst.groups.length; j++) {
+    if (LQ.getListType(lst) === 'dictionary') continue;
+    for (var j = 0; j < (lst.groups || []).length; j++) {
       if (lst.groups[j].id === lessonId) {
         return { list: lst, group: lst.groups[j] };
       }
@@ -123,21 +125,54 @@ LQ.findGroup = function (lessonId) {
   return null;
 };
 
+LQ.getListType = function (listOrId) {
+  var lst =
+    typeof listOrId === 'string'
+      ? (LQ.WORD_LISTS && LQ.WORD_LISTS.lists
+          ? LQ.WORD_LISTS.lists.find(function (l) {
+              return l.id === listOrId;
+            })
+          : null)
+      : listOrId;
+  if (!lst) return 'grouped';
+  return lst.listType === 'dictionary' ? 'dictionary' : 'grouped';
+};
+
+LQ.isDictionaryList = function (listId) {
+  return LQ.getListType(listId) === 'dictionary';
+};
+
 LQ.ensurePathData = function () {
   if (!LQ.WORD_LISTS || !LQ.WORD_LISTS.lists || !LQ.WORD_LISTS.lists.length) return false;
   if (LQ._pathDataReady) return true;
   LQ.CHAPTERS = LQ.WORD_LISTS.lists.map(function (lst) {
+    var listType = LQ.getListType(lst);
     var wordCount = 0;
-    lst.groups.forEach(function (g) {
+    if (listType === 'dictionary') {
+      wordCount = (lst.words || []).length;
+      return {
+        id: lst.id,
+        title: lst.title,
+        icon: lst.icon || '📖',
+        subtitle: wordCount + ' words · general vocabulary',
+        listNum: lst.listNum,
+        color: lst.color || 'sky',
+        listType: 'dictionary',
+        wordCount: wordCount,
+      };
+    }
+    (lst.groups || []).forEach(function (g) {
       wordCount += g.words.length;
     });
     return {
       id: lst.id,
       title: lst.title,
       icon: lst.icon || '📘',
-      subtitle: lst.groups.length + ' groups · ' + wordCount + ' words',
+      subtitle: (lst.groups || []).length + ' GRE groups · ' + wordCount + ' words',
       listNum: lst.listNum,
       color: lst.color || 'lavender',
+      listType: 'grouped',
+      wordCount: wordCount,
     };
   });
   LQ._pathDataReady = true;

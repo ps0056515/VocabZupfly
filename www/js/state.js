@@ -67,6 +67,8 @@ LQ.defaultState = function () {
     examDate: '',
     /** Tenses practice module progress: moduleId -> { solved, correct } */
     tensesProgress: {},
+    /** Local overrides: word -> { example } */
+    wordOverrides: {},
   };
 };
 
@@ -171,6 +173,7 @@ LQ.saveState = function (S) {
         quizSessions: s.quizSessions || [],
         examDate: s.examDate || '',
         tensesProgress: s.tensesProgress || {},
+        wordOverrides: s.wordOverrides || {},
       })
     );
     if (LQ.Firebase && LQ.Firebase.sync) LQ.Firebase.sync();
