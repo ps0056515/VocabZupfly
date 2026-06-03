@@ -146,6 +146,9 @@ LQ.renderDictionaryList = function (listId) {
     '<button type="button" class="lists-group-quiz" onclick="LQ.startListQuiz(\'' +
     listId +
     '\',null)">Quiz all</button>' +
+    '<button type="button" class="lists-group-action" onclick="LQ.startListFlashcards(\'' +
+    listId +
+    '\')">Flashcards</button>' +
     '<button type="button" class="lists-group-action" onclick="goTo(\'learn\');LQ.pickLearnList(\'' +
     listId +
     '\')">Learn</button></div>' +
@@ -367,6 +370,11 @@ LQ.renderWordListsPage = function () {
         '\',\'' +
         les.id +
         '\')">Quiz</button>' +
+        '<button type="button" class="lists-group-action" onclick="event.stopPropagation();LQ.startListFlashcards(\'' +
+        ch.id +
+        '\',\'' +
+        les.id +
+        '\')">Cards</button>' +
         '<button type="button" class="lists-group-action" ' +
         (unlocked ? 'onclick="LQ.startLesson(\'' + les.id + '\')"' : 'disabled') +
         '>' +

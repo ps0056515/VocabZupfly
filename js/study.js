@@ -1,6 +1,7 @@
 window.LQ = window.LQ || {};
 
 LQ.renderFC = function () {
+  if (LQ.renderFcListPicker) LQ.renderFcListPicker();
   LQ.buildFcQueue();
   const w = LQ.currentFcWord();
   const wrap = document.getElementById('fc-wrap');
@@ -27,7 +28,15 @@ LQ.renderFC = function () {
     LQ._fcFlippedWord = w.word;
   }
 
-  const group = LQ.wordGroupLabel ? LQ.wordGroupLabel(w.word) : '';
+  const group = LQ.S.fcGroupId
+    ? LQ.wordContextLabel
+      ? LQ.wordContextLabel(w.word, LQ.S.fcListId)
+      : ''
+    : LQ.wordContextLabel
+      ? LQ.wordContextLabel(w.word, LQ.S.fcListId)
+      : LQ.wordGroupLabel
+        ? LQ.wordGroupLabel(w.word)
+        : '';
   const flipped = LQ._fcFlipped ? ' flipped' : '';
   const exBlock = LQ.renderExampleBlock
     ? LQ.renderExampleBlock(w, { className: 'revise-ex', dark: true, compact: true })

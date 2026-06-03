@@ -200,8 +200,7 @@ LQ.wordsFromList = function (listId) {
     var key = n.toLowerCase();
     if (seen[key]) return;
     seen[key] = true;
-    var w = LQ.wordByName(n);
-    out.push(w || LQ.resolveWord(n, { groupTitle: lst.title, listTitle: lst.title }));
+    out.push(LQ.resolveWordFromList ? LQ.resolveWordFromList(n, lst) : LQ.wordByName(n));
   });
   return out;
 };
@@ -244,6 +243,73 @@ LQ.pickLearnList = function (listId) {
   LQ.saveState();
   LQ.initLearn();
 };
+
+LQ.renderFcListPicker = function () {
+  var bar = document.getElementById('fc-list-bar');
+  if (!bar || !LQ.ensurePathData()) return;
+  var current = LQ.S.fcListId || 'all';
+  var lists = LQ.getOrderedLists();
+  var chips =
+    '<button type="button" class="learn-list-chip' +
+    (current === 'all' ? ' active' : '') +
+    '" onclick="LQ.pickFcList(\'all\')">All lists</button>' +
+    lists
+      .map(function (lst) {
+        var lbl = LQ.getListTitle(lst.id, lst.title);
+        var badge =
+          LQ.getListType(lst) === 'dictionary'
+            ? ' <span class="lists-type-badge dict">Dict</span>'
+            : ' <span class="lists-type-badge gre">GRE</span>';
+        return (
+          '<button type="button" class="learn-list-chip' +
+          (current === lst.id ? ' active' : '') +
+          '" onclick="LQ.pickFcList(\'' +
+          lst.id +
+          '\')">' +
+          LQ.esc(lbl) +
+          badge +
+          '</button>'
+        );
+      })
+      .join('');
+  bar.innerHTML =
+    '<p class="learn-list-label">Cards from</p><div class="learn-list-chips">' +
+    chips +
+    '</div><p class="fc-scope-hint">' +
+    LQ.esc(LQ.getFcScopeLabel ? LQ.getFcScopeLabel() : current) +
+    '</p>';
+};
+
+LQ.pickFcList = function (listId) {
+  LQ.S.fcListId = listId || 'all';
+  LQ.S.fcGroupId = null;
+  LQ.S.fcIdx = 0;
+  LQ._fcFlipped = false;
+  LQ._fcFlippedWord = null;
+  LQ.saveState();
+  if (LQ.renderFcListPicker) LQ.renderFcListPicker();
+  if (LQ.renderFC) LQ.renderFC();
+};
+
+LQ.startListFlashcards = function (listId, groupId) {
+  LQ.S.fcListId = listId || 'all';
+  LQ.S.fcGroupId = groupId || null;
+  if (groupId && LQ.findGroup) {
+    var hit = LQ.findGroup(groupId);
+    if (hit) LQ.S.fcListId = hit.list.id;
+  }
+  LQ.S.fcIdx = 0;
+  LQ._fcFlipped = false;
+  LQ._fcFlippedWord = null;
+  LQ.saveState();
+  LQ.goTo('flashcard');
+  setTimeout(function () {
+    if (LQ.renderFcListPicker) LQ.renderFcListPicker();
+    if (LQ.renderFC) LQ.renderFC();
+  }, 50);
+};
+window.LQ.startListFlashcards = LQ.startListFlashcards;
+window.LQ.pickFcList = LQ.pickFcList;
 
 /* ── Word status (Jamboree-style: known / flagged / unmarked) ── */
 
@@ -310,7 +376,7 @@ LQ.getListProgress = function () {
       const key = name.toLowerCase();
       if (seen[key]) return;
       seen[key] = true;
-      const w = LQ.wordByName(name);
+      const w = LQ.resolveWordFromList ? LQ.resolveWordFromList(name, lst) : LQ.wordByName(name);
       if (!w) return;
       const st = LQ.getWordStatus(w.word);
       if (st === 'known') {
@@ -614,14 +680,59 @@ LQ.wordGroupLabel = function (wordName) {
   const key = wordName.toLowerCase();
   for (var i = 0; i < LQ.WORD_LISTS.lists.length; i++) {
     var lst = LQ.WORD_LISTS.lists[i];
-    for (var j = 0; j < lst.groups.length; j++) {
+    if (LQ.getListType(lst) === 'dictionary') {
+      for (var d = 0; d < (lst.words || []).length; d++) {
+        var ent = lst.words[d];
+        var wn = typeof ent === 'string' ? ent : ent.word;
+        if (wn && wn.toLowerCase() === key) {
+          return LQ.getListTitle(lst.id, lst.title);
+        }
+      }
+      continue;
+    }
+    for (var j = 0; j < (lst.groups || []).length; j++) {
       var g = lst.groups[j];
       for (var k = 0; k < g.words.length; k++) {
-        if (g.words[k].word.toLowerCase() === key) return g.title;
+        if (g.words[k].word.toLowerCase() === key) {
+          return LQ.formatGroupTitle ? LQ.formatGroupTitle(g.title) : g.title;
+        }
       }
     }
   }
   return '';
+};
+
+LQ.wordContextLabel = function (wordName, scopeListId) {
+  scopeListId = scopeListId || (LQ.S && LQ.S.fcListId) || 'all';
+  var key = (wordName || '').toLowerCase();
+  if (!key || !LQ.WORD_LISTS || !LQ.WORD_LISTS.lists) return '';
+  if (scopeListId !== 'all') {
+    var scoped = LQ.WORD_LISTS.lists.find(function (l) {
+      return l.id === scopeListId;
+    });
+    if (scoped) {
+      var names = LQ.listWordNames(scoped);
+      if (
+        names.some(function (n) {
+          return n.toLowerCase() === key;
+        })
+      ) {
+        if (LQ.getListType(scoped) === 'dictionary') {
+          return LQ.getListTitle(scoped.id, scoped.title);
+        }
+        for (var j = 0; j < (scoped.groups || []).length; j++) {
+          var g = scoped.groups[j];
+          for (var k = 0; k < g.words.length; k++) {
+            if (g.words[k].word.toLowerCase() === key) {
+              return LQ.formatGroupTitle ? LQ.formatGroupTitle(g.title) : g.title;
+            }
+          }
+        }
+        return LQ.getListTitle(scoped.id, scoped.title);
+      }
+    }
+  }
+  return LQ.wordGroupLabel(wordName);
 };
 
 LQ.toggleReviseFlip = function () {

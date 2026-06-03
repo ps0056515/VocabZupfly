@@ -47,24 +47,107 @@ LQ.getWeakWords = function () {
   });
 };
 
+LQ.getFcScopeLabel = function () {
+  if (LQ.S.fcGroupId && LQ.findGroup) {
+    var hit = LQ.findGroup(LQ.S.fcGroupId);
+    if (hit) {
+      var listPart = LQ.getListTitle(hit.list.id, hit.list.title);
+      var groupPart = LQ.formatGroupTitle ? LQ.formatGroupTitle(hit.group.title) : hit.group.title;
+      return listPart + ' · ' + groupPart;
+    }
+  }
+  var listId = LQ.S.fcListId || 'all';
+  if (listId === 'all') return 'All lists';
+  return LQ.getListTitle ? LQ.getListTitle(listId, listId) : listId;
+};
+
+/** Words available for the current flashcard list scope */
+LQ.fcWordPool = function () {
+  var pool;
+  if (LQ.S.fcGroupId && LQ.wordsForGroup) {
+    pool = LQ.wordsForGroup(LQ.S.fcGroupId);
+  } else {
+    pool = LQ.wordsFromList ? LQ.wordsFromList(LQ.S.fcListId || 'all') : LQ.getWords();
+  }
+  if (!LQ.S.premium && !(LQ.Config && LQ.Config.enableAllFeatures)) {
+    pool = pool.filter(function (w) {
+      return !w.premium;
+    });
+  }
+  return pool.filter(function (w) {
+    return w && w.word;
+  });
+};
+
 LQ.buildFcQueue = function () {
-  const due = LQ.getDueWords().map((w) => w.word);
-  const weak = LQ.getWeakWords()
-    .map((w) => w.word)
-    .filter((w) => !due.includes(w));
-  const rest = LQ.getWords('free')
-    .map((w) => w.word)
-    .filter((w) => !due.includes(w) && !weak.includes(w));
-  const prem = LQ.S.premium
-    ? LQ.getWords('premium').map((w) => w.word).filter((w) => !due.includes(w))
-    : [];
-  LQ.S.fcQueue = [...due, ...weak, ...rest, ...prem];
-  if (!LQ.S.fcQueue.length) LQ.S.fcQueue = LQ.getWords().map((w) => w.word);
+  var pool = LQ.fcWordPool();
+  if (!pool.length) {
+    LQ.S.fcQueue = [];
+    return;
+  }
+  var now = Date.now();
+  var due = pool
+    .filter(function (w) {
+      var s = LQ.S.srs[w.word];
+      return s && s.due <= now;
+    })
+    .sort(function (a, b) {
+      return (LQ.S.srs[a.word].due || 0) - (LQ.S.srs[b.word].due || 0);
+    })
+    .map(function (w) {
+      return w.word;
+    });
+  var weak = pool
+    .filter(function (w) {
+      var m = LQ.S.mastery[w.word];
+      var s = LQ.S.srs[w.word];
+      return (
+        m === 'new' ||
+        m === 'learning' ||
+        (s && (s.lastRating === 'miss' || s.lastRating === 'hard'))
+      );
+    })
+    .map(function (w) {
+      return w.word;
+    })
+    .filter(function (w) {
+      return due.indexOf(w) < 0;
+    });
+  var rest = pool
+    .map(function (w) {
+      return w.word;
+    })
+    .filter(function (w) {
+      return due.indexOf(w) < 0 && weak.indexOf(w) < 0;
+    });
+  var prem = [];
+  if (LQ.S.premium) {
+    prem = pool
+      .filter(function (w) {
+        return w.premium;
+      })
+      .map(function (w) {
+        return w.word;
+      })
+      .filter(function (w) {
+        return due.indexOf(w) < 0;
+      });
+  }
+  LQ.S.fcQueue = due.concat(weak, rest, prem);
+  if (!LQ.S.fcQueue.length) LQ.S.fcQueue = pool.map(function (w) {
+    return w.word;
+  });
   if (LQ.S.fcIdx >= LQ.S.fcQueue.length) LQ.S.fcIdx = 0;
 };
 
 LQ.currentFcWord = function () {
   LQ.buildFcQueue();
-  const name = LQ.S.fcQueue[LQ.S.fcIdx % LQ.S.fcQueue.length];
-  return LQ.wordByName(name);
+  const name = LQ.S.fcQueue[LQ.S.fcIdx % Math.max(1, LQ.S.fcQueue.length)];
+  if (!name) return null;
+  var pool = LQ.fcWordPool();
+  var hit = pool.find(function (w) {
+    return w.word === name;
+  });
+  if (hit) return hit;
+  return LQ.wordByName(name) || (LQ.resolveWord ? LQ.resolveWord(name) : null);
 };

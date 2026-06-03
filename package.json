@@ -9,6 +9,7 @@
     "enrich:examples": "node scripts/enrich-examples.js",
     "seed:dictionary": "node scripts/seed-dictionary-list.js",
     "expand:dictionary": "node scripts/expand-dictionary-lists.js",
+    "cms": "node scripts/cms-server.mjs",
     "cms:export": "node scripts/cms-export-csv.js",
     "cms:import": "node scripts/cms-import-csv.js",
     "smoke": "node scripts/smoke-test.js",

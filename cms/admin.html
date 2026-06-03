@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LexiQuest Content Manager</title>
+  <link rel="stylesheet" href="/cms-admin.css">
+</head>
+<body>
+  <div id="login-screen" class="login-screen">
+    <div class="login-card">
+      <h1>LexiQuest CMS</h1>
+      <p>Content manager for business editors. Add or edit words, GRE lists, and dictionary lists.</p>
+      <label>API key</label>
+      <input type="password" id="cms-key-inp" placeholder="Ask your tech lead for the CMS key" autocomplete="off">
+      <button type="button" id="cms-login-btn" class="btn primary">Sign in</button>
+      <p class="login-hint">Default dev key: <code>lexiquest-cms-dev</code> — change with <code>CMS_API_KEY</code> env.</p>
+    </div>
+  </div>
+
+  <div id="app" class="app hidden">
+    <header class="cms-header">
+      <div>
+        <h1>LexiQuest Content Manager</h1>
+        <p id="cms-stats" class="cms-stats">Loading…</p>
+      </div>
+      <div class="cms-header-actions">
+        <button type="button" class="btn" id="btn-reload">Reload</button>
+        <button type="button" class="btn primary" id="btn-publish">Publish to app</button>
+        <button type="button" class="btn danger-outline" id="btn-logout">Sign out</button>
+      </div>
+    </header>
+
+    <nav class="cms-nav">
+      <button type="button" class="nav-btn active" data-tab="overview">Overview</button>
+      <button type="button" class="nav-btn" data-tab="words">Words</button>
+      <button type="button" class="nav-btn" data-tab="lists">Lists</button>
+      <button type="button" class="nav-btn" data-tab="dictionary">Dictionary</button>
+      <button type="button" class="nav-btn" data-tab="import">Import CSV</button>
+      <button type="button" class="nav-btn" data-tab="export">Export</button>
+    </nav>
+
+    <main class="cms-main">
+      <section id="tab-overview" class="tab-panel active">
+        <div class="card">
+          <h2>How business editing works</h2>
+          <ol class="cms-steps">
+            <li><strong>Words</strong> — edit definitions, examples, synonyms (master word bank).</li>
+            <li><strong>Lists</strong> — rename lists, set GRE vs dictionary type.</li>
+            <li><strong>Dictionary</strong> — add/remove words in flat dictionary lists.</li>
+            <li><strong>Import CSV</strong> — bulk edit in Google Sheets, then upload here.</li>
+            <li><strong>Publish</strong> — saves JSON and syncs the student app (<code>www/</code>).</li>
+          </ol>
+        </div>
+        <div class="card">
+          <h2>Google Sheets workflow</h2>
+          <p>Export CSVs → edit in Sheets (one tab per file) → Import CSV tab → Publish.</p>
+          <p>Or edit directly in this CMS without Sheets.</p>
+        </div>
+      </section>
+
+      <section id="tab-words" class="tab-panel">
+        <div class="toolbar">
+          <input type="search" id="word-search" placeholder="Search words…" class="inp">
+          <button type="button" class="btn primary" id="btn-add-word">+ Add word</button>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table" id="words-table">
+            <thead>
+              <tr>
+                <th>Word</th>
+                <th>Definition</th>
+                <th>Example</th>
+                <th>Tags</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="words-tbody"></tbody>
+          </table>
+        </div>
+        <p id="words-count" class="muted"></p>
+      </section>
+
+      <section id="tab-lists" class="tab-panel">
+        <p class="muted">GRE lists use synonym <strong>groups</strong> (edit structure via CSV Import). Dictionary lists use a flat word list.</p>
+        <div id="lists-editor"></div>
+      </section>
+
+      <section id="tab-dictionary" class="tab-panel">
+        <div class="toolbar">
+          <label>Dictionary list</label>
+          <select id="dict-list-select" class="inp"></select>
+          <input type="text" id="dict-add-word" placeholder="Word to add" class="inp">
+          <button type="button" class="btn primary" id="btn-dict-add">Add word</button>
+        </div>
+        <ul id="dict-word-list" class="dict-word-list"></ul>
+      </section>
+
+      <section id="tab-import" class="tab-panel">
+        <div class="card">
+          <h2>Upload CSV files</h2>
+          <p class="muted">From Google Sheets: File → Download → CSV. Upload one or more files.</p>
+          <div class="import-grid" id="import-grid"></div>
+          <button type="button" class="btn primary" id="btn-import-run">Import uploaded files</button>
+        </div>
+      </section>
+
+      <section id="tab-export" class="tab-panel">
+        <div class="card">
+          <h2>Download for Google Sheets</h2>
+          <p class="muted">Download CSVs, edit in Sheets, re-import on the Import tab.</p>
+          <div id="export-buttons" class="export-buttons"></div>
+          <button type="button" class="btn" id="btn-export-disk">Write to cms/export/ folder</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="word-modal" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-card">
+      <h2 id="word-modal-title">Edit word</h2>
+      <form id="word-form">
+        <label>Word</label>
+        <input name="word" required class="inp">
+        <label>Phonetic</label>
+        <input name="phonetic" class="inp">
+        <label>Part of speech</label>
+        <input name="pos" class="inp" placeholder="verb, adjective…">
+        <label>Definition</label>
+        <textarea name="def" rows="3" class="inp"></textarea>
+        <label>Example sentence</label>
+        <textarea name="example" rows="2" class="inp"></textarea>
+        <label>Synonyms (comma-separated)</label>
+        <input name="syn" class="inp">
+        <label>Antonyms (comma-separated)</label>
+        <input name="ant" class="inp">
+        <label>Tags (pipe-separated: GRE|GMAT|IELTS)</label>
+        <input name="tags" class="inp">
+        <label class="chk"><input type="checkbox" name="premium"> Premium word</label>
+        <div class="modal-actions">
+          <button type="button" class="btn" id="word-modal-cancel">Cancel</button>
+          <button type="submit" class="btn primary">Save word</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+  <script src="/cms-admin.js"></script>
+</body>
+</html>

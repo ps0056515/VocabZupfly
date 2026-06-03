@@ -1,87 +1,119 @@
-# LexiQuest Google Sheets CMS
+# LexiQuest Content Manager (CMS)
 
-Edit vocabulary content in Google Sheets without redeploying code. Export → edit → import → sync.
+Business editors can add and change vocabulary **without editing code**. Two ways to work:
 
-## Workflow
+| Method | Best for |
+|--------|----------|
+| **Web CMS** (`npm run cms`) | Day-to-day edits, one word at a time, publish in one click |
+| **Google Sheets + CSV** | Bulk edits, copywriters, offline review |
 
-```mermaid
-flowchart LR
-  App["data/*.json"] --> Export["npm run cms:export"]
-  Export --> CSV["cms/export/*.csv"]
-  CSV --> Sheets["Google Sheets"]
-  Sheets --> ImportDir["cms/import/*.csv"]
-  ImportDir --> Import["npm run cms:import"]
-  Import --> App
-  App --> Web["npm run prepare:web"]
-```
+---
 
-## 1. Export current content
+## Quick start (web CMS)
 
 ```bash
-npm run cms:export
+npm run cms
 ```
 
-Creates CSV files in `cms/export/`:
+1. Open **http://localhost:3457**
+2. Sign in with API key: `lexiquest-cms-dev` (or set `CMS_API_KEY` in the environment)
+3. Edit **Words**, **Lists**, **Dictionary**, or **Import CSV**
+4. Click **Publish to app** — updates `data/*.json` and runs `npm run prepare:web`
 
-| File | Sheet tab | Contents |
-|------|-----------|----------|
-| `Words.csv` | Words | Master word bank (def, example, syn, ant, tags) |
-| `WordLists.csv` | WordLists | List metadata (`grouped` = GRE, `dictionary` = flat) |
-| `Groups.csv` | Groups | GRE synonym group titles |
-| `GroupWords.csv` | GroupWords | Word membership in GRE groups |
-| `DictionaryWords.csv` | DictionaryWords | Flat dictionary list membership |
+From the student app: **Settings → Open Content Manager** (when `showCmsLink` is true in `js/config.js`).
 
-## 2. Upload to Google Sheets
+---
 
-1. Create a new Google Sheet (e.g. **LexiQuest CMS**).
-2. Import each CSV as a separate tab (File → Import → Upload).
-3. Share with editors who maintain content.
+## What business can edit
 
-### Column rules
+| Area | CMS tab | Notes |
+|------|---------|--------|
+| Definitions, examples, synonyms | **Words** | Master word bank used everywhere |
+| List titles, GRE vs dictionary | **Lists** | Structure of GRE groups still via CSV |
+| Dictionary membership | **Dictionary** | Add words to flat lists |
+| Bulk changes | **Import CSV** | From Google Sheets export |
+| Handoff to Sheets | **Export** | Download CSVs |
 
-- **Words.word** — primary key; do not rename lightly (breaks list references).
-- **Words.example** — plain text; HTML like `<em>word</em>` is optional.
-- **Words.tags** — pipe-separated: `GRE|GMAT|IELTS`.
-- **WordLists.listType** — `grouped` (GRE synonym lists) or `dictionary` (flat A–Z banks).
-- **DictionaryWords** — one row per word per dictionary list.
+Student-only edits (example overrides in the app) stay in each user’s browser — not in CMS.
 
-## 3. Download edits
+---
 
-After editing in Sheets:
-
-1. Download each tab as CSV (File → Download → Comma-separated values).
-2. Place files in `cms/import/` with exact names:
-   - `Words.csv`
-   - `WordLists.csv`
-   - `Groups.csv`
-   - `GroupWords.csv`
-   - `DictionaryWords.csv`
-
-You can import only `Words.csv` if you only changed definitions/examples.
-
-## 4. Import back to the app
+## Google Sheets workflow
 
 ```bash
-npm run cms:import
-npm run prepare:web
+npm run cms:export    # creates cms/export/*.csv
 ```
 
-This overwrites `data/words-merged.json` and/or `data/word-lists.json`.
+1. Upload CSVs to a Google Sheet (one tab per file).
+2. Editors change rows in Sheets.
+3. Download each tab as CSV into `cms/import/`.
+4. Either:
+   - **Web CMS → Import CSV → Publish**, or
+   - `npm run cms:import` then `npm run prepare:web`
 
-## User example overrides (not in CMS)
+### CSV files
 
-Students can edit example sentences in the app (stored in `localStorage` as `wordOverrides`). CMS controls the **default** bundled content only.
+| File | Contents |
+|------|----------|
+| `Words.csv` | word, phonetic, pos, def, example, syn, ant, tags, premium, stub |
+| `WordLists.csv` | id, listNum, title, listType (`grouped` \| `dictionary`), icon, color |
+| `Groups.csv` | GRE synonym groups |
+| `GroupWords.csv` | Word ↔ group membership |
+| `DictionaryWords.csv` | Word ↔ dictionary list |
 
-## Dictionary lists
+---
 
-Add a row to `WordLists.csv` with `listType=dictionary`, then add words in `DictionaryWords.csv`. Run import + `npm run expand:dictionary` is not required if you manage lists fully via CMS.
-
-Quick seed for starter dictionary lists:
+## Security (production)
 
 ```bash
-npm run expand:dictionary
+set CMS_API_KEY=your-secret-key-here
+set CMS_PORT=3457
+npm run cms
 ```
 
-## Future: live publish
+Update `cmsApiKey` in `js/config.js` only for the in-app link query param — prefer sharing the key out of band.
 
-For production without rebuild, host `words-merged.json` and `word-lists.json` on a CDN/Firebase Storage and bump a `contentVersion` in `js/config.js`. The import pipeline stays the same; only the publish step changes.
+Do not expose the CMS port on the public internet without HTTPS and a strong key.
+
+---
+
+## Live content without rebuild (optional)
+
+1. Publish from CMS (writes `data/content-manifest.json` with a new `version`).
+2. Host `words-merged.json`, `word-lists.json`, and `content-manifest.json` on a CDN or Firebase Storage.
+3. In `js/config.js`:
+
+```javascript
+contentBaseUrl: 'https://your-cdn.com/lexiquest/content',
+contentVersion: 1730123456,  // match manifest version
+```
+
+4. Redeploy the app shell once; later content updates only need CDN upload + version bump.
+
+---
+
+## API (for integrations)
+
+All routes require header `X-CMS-Key: <CMS_API_KEY>`.
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| GET | `/api/content` | Full words + lists + manifest |
+| POST | `/api/word` | Upsert one word |
+| PUT | `/api/words` | Replace all words |
+| PUT | `/api/lists` | Replace word-lists.json |
+| POST | `/api/dictionary/add` | Add word to dictionary list |
+| POST | `/api/import/csv` | Body: `{ "Words.csv": "..." }` |
+| GET | `/api/export/csv` | All CSVs as JSON |
+| POST | `/api/publish` | Body: `{ "syncWeb": true }` |
+
+---
+
+## Files
+
+| Path | Role |
+|------|------|
+| `scripts/cms-lib.js` | Import/export/publish engine |
+| `scripts/cms-server.mjs` | HTTP server + API |
+| `cms/admin.html` | Business UI |
+| `data/content-manifest.json` | Published version stamp |

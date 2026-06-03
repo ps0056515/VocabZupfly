@@ -271,6 +271,13 @@ LQ.genLeagueBoard = function () {
 };
 
 /* ── SETTINGS / PREMIUM ── */
+LQ.openCmsAdmin = function () {
+  var url = (LQ.Config && LQ.Config.cmsAdminUrl) || 'http://localhost:3457';
+  var key = LQ.Config && LQ.Config.cmsApiKey;
+  if (key) url += (url.indexOf('?') >= 0 ? '&' : '?') + 'key=' + encodeURIComponent(key);
+  window.open(url, '_blank', 'noopener');
+};
+
 LQ.renderSettings = function () {
   const wrap = document.getElementById('settings-wrap');
   if (!wrap) return;
@@ -347,6 +354,15 @@ LQ.renderSettings = function () {
     (allOn ? 'Open' : 'Linear') +
     '</span><span class="settings-stat-lbl">Lesson unlock</span></div>' +
     '</div></div></section>' +
+    (LQ.Config.showCmsLink
+      ? '<section class="settings-card">' +
+        '<div class="settings-card-head"><h3>Content manager (CMS)</h3>' +
+        '<p>Business team: add or edit words, GRE lists, dictionary lists, and examples.</p></div>' +
+        '<div class="settings-card-body settings-action-stack">' +
+        '<button type="button" class="portal-btn show" onclick="LQ.openCmsAdmin()">Open Content Manager</button>' +
+        '<p class="settings-text" style="margin:0">Run <code>npm run cms</code> on the dev machine, then sign in. Publish pushes changes to the app.</p>' +
+        '</div></section>'
+      : '') +
     '<section class="settings-card">' +
     '<div class="settings-card-head"><h3>Word lists</h3>' +
     '<p>Rename lists and change their order. PDF content stays the same.</p></div>' +

@@ -53,6 +53,10 @@ LQ.defaultState = function () {
     listPrefs: { names: {}, order: null },
     /** Learn filter: 'all' or list id e.g. list-1 */
     learnListId: 'all',
+    /** Flashcard deck scope: 'all' or list id (GRE or dictionary) */
+    fcListId: 'all',
+    /** Optional GRE synonym group for flashcards */
+    fcGroupId: null,
     /** Quiz scope: list id ('all' = entire deck) and optional synonym group id */
     quizListId: 'all',
     quizGroupId: null,
@@ -161,6 +165,8 @@ LQ.saveState = function (S) {
         lastQuizMisses: s.lastQuizMisses || [],
         listPrefs: s.listPrefs || { names: {}, order: null },
         learnListId: s.learnListId || 'all',
+        fcListId: s.fcListId || 'all',
+        fcGroupId: s.fcGroupId || null,
         quizListId: s.quizListId || 'all',
         quizGroupId: s.quizGroupId || null,
         quizMode: s.quizMode || 'mcq',

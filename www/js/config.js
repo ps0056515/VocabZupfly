@@ -52,5 +52,18 @@ window.LQ.Config = {
 
   /** Remote tutor/API timeout (ms) when endpoints are set */
   aiTimeoutMs: 2500,
+
+  /**
+   * Content CMS — business edits via npm run cms (http://localhost:3457).
+   * After publish, optional CDN base for live updates without app rebuild.
+   */
+  cmsAdminUrl: 'http://localhost:3457',
+  cmsApiKey: 'lexiquest-cms-dev',
+  showCmsLink: true,
+
+  /** e.g. 'https://your-cdn.com/lexiquest/content' — null = bundled data/ only */
+  contentBaseUrl: null,
+  /** Bump when remote content changes (matches data/content-manifest.json version) */
+  contentVersion: null,
 };
 

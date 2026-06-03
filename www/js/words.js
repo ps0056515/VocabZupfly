@@ -2,7 +2,17 @@ window.LQ = window.LQ || {};
 LQ.WORDS = [];
 LQ.WORD_LISTS = null;
 
-LQ.wordListsReady = fetch('data/word-lists.json')
+LQ.contentUrl = function (localPath) {
+  var base = LQ.Config && LQ.Config.contentBaseUrl;
+  if (!base) return localPath;
+  var file = localPath.replace(/^data\//, '');
+  var url = base.replace(/\/$/, '') + '/' + file;
+  var v = LQ.Config.contentVersion;
+  if (v != null && v !== '') url += (url.indexOf('?') >= 0 ? '&' : '?') + 'v=' + encodeURIComponent(String(v));
+  return url;
+};
+
+LQ.wordListsReady = fetch(LQ.contentUrl('data/word-lists.json'))
   .then(function (r) {
     if (!r.ok) throw new Error('word-lists.json ' + r.status);
     return r.json();
@@ -19,10 +29,10 @@ LQ.wordListsReady = fetch('data/word-lists.json')
   });
 
 LQ.wordsReady = Promise.all([
-  fetch('data/words-merged.json')
+  fetch(LQ.contentUrl('data/words-merged.json'))
     .then(function (r) {
       if (r.ok) return r.json();
-      return fetch('data/words.json').then(function (r2) {
+      return fetch(LQ.contentUrl('data/words.json')).then(function (r2) {
         if (!r2.ok) throw new Error('words json ' + r2.status);
         return r2.json();
       });
@@ -57,21 +67,44 @@ LQ.wordByName = function (name) {
 };
 
 LQ.resolveWord = function (name, meta) {
+  meta = meta || {};
   const found = LQ.wordByName(name);
-  if (found) return found;
-  const label = meta && meta.groupTitle ? meta.groupTitle : 'vocabulary';
+  if (found) {
+    const out = Object.assign({}, found);
+    if (meta.listId && !out.listId) out.listId = meta.listId;
+    if (meta.listType) out.listType = meta.listType;
+    return out;
+  }
+  const label = meta.groupTitle || meta.listTitle || 'vocabulary';
+  const isDict = meta.listType === 'dictionary';
   return {
     word: name,
     phonetic: '',
     pos: 'word',
-    def: 'Word from group: ' + (LQ.formatGroupTitle ? LQ.formatGroupTitle(label) : label) + '.',
+    def: isDict
+      ? 'Vocabulary word from the "' + label + '" dictionary list.'
+      : 'Word from group: ' + (LQ.formatGroupTitle ? LQ.formatGroupTitle(label) : label) + '.',
     example: 'The passage used <em>' + name.toLowerCase() + '</em> in a way that clarified its meaning.',
     syn: '',
     ant: '',
     tags: ['GRE', 'GMAT', 'IELTS'],
     premium: false,
     stub: true,
+    listId: meta.listId || null,
+    listType: meta.listType || 'grouped',
   };
+};
+
+LQ.resolveWordFromList = function (name, list) {
+  if (!list) return LQ.wordByName(name);
+  var listType = LQ.getListType(list);
+  var meta = {
+    listTitle: list.title,
+    listId: list.id,
+    listType: listType,
+    groupTitle: listType === 'dictionary' ? list.title : undefined,
+  };
+  return LQ.resolveWord(name, meta);
 };
 
 /** Turn raw PDF group codes like SIGN(WARNING)(-) into readable labels */
