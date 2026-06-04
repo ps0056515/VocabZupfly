@@ -27,6 +27,7 @@ function copyDir(name) {
 
 fs.mkdirSync(path.join(root, 'www'), { recursive: true });
 fs.copyFileSync(src, dest);
+fs.copyFileSync(src, path.join(root, 'www', 'lexiquest.html'));
 copyDir('js');
 copyDir('data');
 copyDir('css');

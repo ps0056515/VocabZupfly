@@ -12,15 +12,23 @@ Business editors can add and change vocabulary **without editing code**. Two way
 ## Quick start (web CMS)
 
 ```bash
-npm run cms
+npm run dev
 ```
 
-1. Open **http://localhost:3457**
-2. Sign in with API key: `lexiquest-cms-dev` (or set `CMS_API_KEY` in the environment)
-3. Edit **Words**, **Lists**, **Dictionary**, or **Import CSV**
-4. Click **Publish to app** — updates `data/*.json` and runs `npm run prepare:web`
+One port for everything:
 
-From the student app: **Settings → Open Content Manager** (when `showCmsLink` is true in `js/config.js`).
+| URL | Purpose |
+|-----|---------|
+| http://localhost:3456/lexiquest.html | Student app |
+| http://localhost:3456/cms/ | Content manager |
+
+1. Run `npm run dev`
+2. Open **http://localhost:3456/cms/**
+3. Sign in with API key: `lexiquest-cms-dev` (or set `CMS_API_KEY` in the environment)
+4. Edit **Words**, **Lists**, **Dictionary**, or **Import CSV**
+5. Click **Publish to app** — updates `data/*.json` and runs `npm run prepare:web`
+
+From the student app: **Settings → Open Content Manager**.
 
 ---
 
@@ -98,14 +106,14 @@ All routes require header `X-CMS-Key: <CMS_API_KEY>`.
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| GET | `/api/content` | Full words + lists + manifest |
-| POST | `/api/word` | Upsert one word |
-| PUT | `/api/words` | Replace all words |
-| PUT | `/api/lists` | Replace word-lists.json |
-| POST | `/api/dictionary/add` | Add word to dictionary list |
-| POST | `/api/import/csv` | Body: `{ "Words.csv": "..." }` |
-| GET | `/api/export/csv` | All CSVs as JSON |
-| POST | `/api/publish` | Body: `{ "syncWeb": true }` |
+| GET | `/api/cms/content` | Full words + lists + manifest |
+| POST | `/api/cms/word` | Upsert one word |
+| PUT | `/api/cms/words` | Replace all words |
+| PUT | `/api/cms/lists` | Replace word-lists.json |
+| POST | `/api/cms/dictionary/add` | Add word to dictionary list |
+| POST | `/api/cms/import/csv` | Body: `{ "Words.csv": "..." }` |
+| GET | `/api/cms/export/csv` | All CSVs as JSON |
+| POST | `/api/cms/publish` | Body: `{ "syncWeb": true }` |
 
 ---
 

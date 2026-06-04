@@ -54,10 +54,9 @@ window.LQ.Config = {
   aiTimeoutMs: 2500,
 
   /**
-   * Content CMS — business edits via npm run cms (http://localhost:3457).
-   * After publish, optional CDN base for live updates without app rebuild.
+   * Content CMS — same port as dev server: /cms/ (npm run dev).
    */
-  cmsAdminUrl: 'http://localhost:3457',
+  cmsAdminPath: '/cms/',
   cmsApiKey: 'lexiquest-cms-dev',
   showCmsLink: true,
 

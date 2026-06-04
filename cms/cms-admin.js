@@ -1,4 +1,5 @@
 (function () {
+  var API_BASE = '/api/cms';
   var STORAGE_KEY = 'lexiquest_cms_key';
   var state = { words: [], wordLists: { lists: [] }, manifest: {} };
   var importFiles = {};
@@ -30,13 +31,19 @@
       headers['Content-Type'] = 'application/json';
       opts.body = JSON.stringify(opts.body);
     }
-    return fetch(path, {
+    return fetch(API_BASE + path, {
       method: opts.method || 'GET',
       headers: headers,
       body: opts.body,
     }).then(function (r) {
-      return r.json().then(function (data) {
-        if (!r.ok) throw new Error(data.error || r.statusText);
+      return r.text().then(function (text) {
+        var data = {};
+        try {
+          data = text ? JSON.parse(text) : {};
+        } catch (e) {
+          if (!r.ok) throw new Error('Server error ' + r.status + ' — is npm run dev running?');
+        }
+        if (!r.ok) throw new Error(data.error || r.statusText || 'Request failed');
         return data;
       });
     });
@@ -54,14 +61,18 @@
       return;
     }
     sessionStorage.setItem(STORAGE_KEY, key);
-    api('/api/status')
+    api('/status')
       .then(function () {
         showApp(true);
         loadContent();
       })
       .catch(function (e) {
         sessionStorage.removeItem(STORAGE_KEY);
-        toast(e.message || 'Login failed');
+        var msg = e.message || 'Login failed';
+        if (msg.indexOf('fetch') >= 0 || msg === 'Failed to fetch') {
+          msg = 'Cannot reach server — run npm run dev and open http://localhost:3456/cms/';
+        }
+        toast(msg);
       });
   }
 
@@ -71,7 +82,7 @@
   }
 
   function loadContent() {
-    return api('/api/content').then(function (data) {
+    return api('/content').then(function (data) {
       state.words = data.words || [];
       state.wordLists = data.wordLists || { lists: [] };
       state.manifest = data.manifest || {};
@@ -190,7 +201,7 @@
       premium: f.premium.checked,
       stub: false,
     };
-    api('/api/word', { method: 'POST', body: payload })
+    api('/word', { method: 'POST', body: payload })
       .then(function () {
         toast('Word saved', true);
         closeWordModal();
@@ -236,7 +247,7 @@
       lst.listType = row.querySelector('[data-f=listType]').value;
       lst.icon = row.querySelector('[data-f=icon]').value.trim() || lst.icon;
     });
-    api('/api/lists', { method: 'PUT', body: state.wordLists })
+    api('/lists', { method: 'PUT', body: state.wordLists })
       .then(function () {
         toast('Lists saved', true);
         return loadContent();
@@ -285,7 +296,7 @@
       toast('Enter a word');
       return;
     }
-    api('/api/dictionary/add', { method: 'POST', body: { listId: listId, word: word } })
+    api('/dictionary/add', { method: 'POST', body: { listId: listId, word: word } })
       .then(function (data) {
         state.wordLists = data.wordLists;
         $('dict-add-word').value = '';
@@ -332,7 +343,7 @@
       toast('Upload at least one CSV file');
       return;
     }
-    api('/api/import/csv', { method: 'POST', body: importFiles })
+    api('/import/csv', { method: 'POST', body: importFiles })
       .then(function () {
         importFiles = {};
         toast('Import complete', true);
@@ -355,7 +366,7 @@
   }
 
   function downloadCsv(name) {
-    api('/api/export/csv')
+    api('/export/csv')
       .then(function (data) {
         var text = data.files[name];
         if (!text) {
@@ -376,7 +387,7 @@
 
   function publish() {
     if (!confirm('Publish content to the app? This updates data/*.json and syncs www/.')) return;
-    api('/api/publish', { method: 'POST', body: { syncWeb: true } })
+    api('/publish', { method: 'POST', body: { syncWeb: true } })
       .then(function (data) {
         toast('Published · ' + data.wordCount + ' words', true);
         return loadContent();
@@ -403,7 +414,7 @@
   $('btn-dict-add').onclick = addDictWord;
   $('btn-import-run').onclick = runImport;
   $('btn-export-disk').onclick = function () {
-    api('/api/export/write', { method: 'POST', body: {} })
+    api('/export/write', { method: 'POST', body: {} })
       .then(function (data) {
         toast('Wrote ' + data.files.length + ' files to cms/export/', true);
       })
@@ -437,7 +448,7 @@
   $('tab-lists').appendChild(listsSaveBtn);
 
   if (sessionStorage.getItem(STORAGE_KEY)) {
-    api('/api/status')
+    api('/status')
       .then(function () {
         showApp(true);
         loadContent();

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>LexiQuest Content Manager</title>
-  <link rel="stylesheet" href="/cms-admin.css">
+  <link rel="stylesheet" href="cms-admin.css">
 </head>
 <body>
   <div id="login-screen" class="login-screen">
@@ -12,9 +12,9 @@
       <h1>LexiQuest CMS</h1>
       <p>Content manager for business editors. Add or edit words, GRE lists, and dictionary lists.</p>
       <label>API key</label>
-      <input type="password" id="cms-key-inp" placeholder="Ask your tech lead for the CMS key" autocomplete="off">
+      <input type="password" id="cms-key-inp" value="lexiquest-cms-dev" placeholder="API key" autocomplete="off">
       <button type="button" id="cms-login-btn" class="btn primary">Sign in</button>
-      <p class="login-hint">Default dev key: <code>lexiquest-cms-dev</code> — change with <code>CMS_API_KEY</code> env.</p>
+      <p class="login-hint">Same server as the app (port 3456). Default key: <code>lexiquest-cms-dev</code></p>
     </div>
   </div>
 
@@ -147,6 +147,6 @@
   </div>
 
   <div id="toast" class="toast hidden"></div>
-  <script src="/cms-admin.js"></script>
+  <script src="cms-admin.js"></script>
 </body>
 </html>

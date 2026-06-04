@@ -7,6 +7,24 @@
 <meta name="color-scheme" content="light">
 <link rel="manifest" href="manifest.json">
 <title>LexiQuest</title>
+<script>
+(function () {
+  if (location.protocol !== 'file:') return;
+  document.addEventListener('DOMContentLoaded', function () {
+    var el = document.createElement('div');
+    el.id = 'file-protocol-warn';
+    el.setAttribute('role', 'alert');
+    el.style.cssText =
+      'position:fixed;inset:0;z-index:99999;background:#0f172a;color:#f8fafc;padding:24px;font:16px/1.5 system-ui,sans-serif;display:flex;align-items:center;justify-content:center;text-align:center';
+    el.innerHTML =
+      '<div style="max-width:420px"><h1 style="margin:0 0 12px;font-size:22px">Open via dev server</h1>' +
+      '<p style="margin:0 0 16px;opacity:.9">LexiQuest cannot load word data when opened as a file. Run in the project folder:</p>' +
+      '<code style="display:block;background:#1e293b;padding:12px;border-radius:8px;margin-bottom:16px">npm run dev</code>' +
+      '<p style="margin:0;opacity:.85">Then open <strong>http://localhost:3456/</strong></p></div>';
+    document.body.appendChild(el);
+  });
+})();
+</script>
 <style>
 @font-face{font-family:'Plus Jakarta Sans';font-style:normal;font-weight:400;font-display:swap;src:url('fonts/plus-jakarta-400.woff2') format('woff2')}
 @font-face{font-family:'Plus Jakarta Sans';font-style:italic;font-weight:400;font-display:swap;src:url('fonts/plus-jakarta-400-italic.woff2') format('woff2')}
@@ -1665,7 +1683,7 @@ body.native-app .desktop-only-ui{display:none!important}
 </div>
 
 
-<script src="js/config.js?v=20260602d"></script>
+<script src="js/config.js?v=20260603a"></script>
 <script src="js/platform.js?v=20260529a"></script>
 <script src="js/unlock.js?v=20260529a"></script>
 <script src="js/words.js?v=20260602d"></script>
@@ -1682,7 +1700,7 @@ body.native-app .desktop-only-ui{display:none!important}
 <script src="js/lessons.js?v=20260530a"></script>
 <script src="js/dashboard.js?v=20260529a"></script>
 <script src="js/vocab.js?v=20260602c"></script>
-<script src="js/features.js?v=20260602d"></script>
+<script src="js/features.js?v=20260603a"></script>
 <script src="js/tutor.js?v=20260530a"></script>
 <script src="js/practice.js?v=20260602b"></script>
 <script src="js/study.js?v=20260602c"></script>
