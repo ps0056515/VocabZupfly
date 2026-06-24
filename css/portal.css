@@ -1214,6 +1214,186 @@ body.portal-theme .lists-group-row.locked .lists-group-action {
   color: var(--text-muted);
 }
 
+body.portal-theme .lists-toggle-words-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px dashed var(--border);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s ease;
+  margin: 6px 0 2px;
+}
+
+body.portal-theme .lists-toggle-words-btn:hover {
+  background: var(--brand-light);
+  border-color: #c5d9ce;
+  color: var(--brand-dark);
+}
+
+body.portal-theme .word-role-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  margin-left: 8px;
+  vertical-align: middle;
+  letter-spacing: 0.3px;
+}
+
+body.portal-theme .word-role-badge.opposite {
+  background: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+}
+
+body.portal-theme .word-role-badge.similar {
+  background: rgba(34, 197, 94, 0.12);
+  color: #16a34a;
+}
+
+/* General Dictionary styling */
+body.portal-theme .general-dict-results-container {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 250px;
+  width: 100%;
+  box-sizing: border-box;
+}
+body.portal-theme .general-dict-placeholder,
+body.portal-theme .general-dict-loading,
+body.portal-theme .general-dict-error {
+  padding: 30px 20px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-muted);
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  font-family: var(--body);
+  width: 100%;
+  box-sizing: border-box;
+}
+body.portal-theme .general-dict-error {
+  color: #dc2626;
+  background: #fef2f2;
+  border-color: #fca5a5;
+}
+body.portal-theme .general-dict-result-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+  text-align: left;
+  width: 100%;
+  box-sizing: border-box;
+}
+body.portal-theme .general-dict-result-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+}
+body.portal-theme .general-dict-result-word {
+  font-size: 20px;
+  font-weight: 800;
+  margin: 0;
+  color: var(--text);
+}
+body.portal-theme .general-dict-result-phon {
+  font-size: 14px;
+  color: var(--text-muted);
+  font-family: monospace;
+}
+body.portal-theme .general-dict-audio-btn {
+  margin-left: auto;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+body.portal-theme .general-dict-audio-btn:hover {
+  background: var(--brand-light);
+  border-color: #c5d9ce;
+  color: var(--brand-dark);
+}
+body.portal-theme .general-dict-meaning-section {
+  margin-bottom: 20px;
+}
+body.portal-theme .general-dict-meaning-section:last-child {
+  margin-bottom: 0;
+}
+body.portal-theme .general-dict-pos {
+  font-size: 11px;
+  text-transform: uppercase;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  color: var(--brand);
+  margin: 0 0 10px;
+  background: var(--brand-light);
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+body.portal-theme .general-dict-definitions-list {
+  margin: 0 0 12px;
+  padding-left: 20px;
+}
+body.portal-theme .general-dict-definitions-list li {
+  margin-bottom: 10px;
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.5;
+}
+body.portal-theme .general-dict-definitions-list li:last-child {
+  margin-bottom: 0;
+}
+body.portal-theme .general-dict-def-text {
+  margin: 0 0 4px;
+}
+body.portal-theme .general-dict-def-ex {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-style: italic;
+  margin: 0;
+}
+body.portal-theme .general-dict-synonyms,
+body.portal-theme .general-dict-antonyms {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 6px 0 0;
+  line-height: 1.4;
+}
+body.portal-theme .general-dict-synonyms strong,
+body.portal-theme .general-dict-antonyms strong {
+  color: var(--text);
+  font-weight: 700;
+}
+
 /* ── Word Lists: desktop (split panel) ── */
 body.portal-theme.web-desktop #screen-lists {
   background: #f8fafc;
@@ -1224,10 +1404,12 @@ body.portal-theme.web-desktop .lists-page {
   display: flex;
   flex-direction: row;
   gap: 0;
+  width: 100%;
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 40px 48px;
   min-height: calc(100vh - 160px);
+  box-sizing: border-box;
 }
 
 body.portal-theme.web-desktop .lists-sidebar {

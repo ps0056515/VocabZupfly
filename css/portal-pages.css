@@ -167,6 +167,8 @@ body.portal-theme .lists-dict-toolbar {
   gap: 8px;
   padding: 0 0 12px;
   align-items: center;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 body.portal-theme .lists-dict-search {

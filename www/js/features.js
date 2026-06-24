@@ -272,7 +272,8 @@ LQ.genLeagueBoard = function () {
 
 /* ── SETTINGS / PREMIUM ── */
 LQ.openCmsAdmin = function () {
-  var url = (LQ.Config && LQ.Config.cmsAdminUrl) || 'http://localhost:3457';
+  var cmsPath = (LQ.Config && LQ.Config.cmsAdminPath) || '/cms/';
+  var url = new URL(cmsPath, window.location.href).href;
   var key = LQ.Config && LQ.Config.cmsApiKey;
   if (key) url += (url.indexOf('?') >= 0 ? '&' : '?') + 'key=' + encodeURIComponent(key);
   window.open(url, '_blank', 'noopener');
@@ -360,7 +361,7 @@ LQ.renderSettings = function () {
         '<p>Business team: add or edit words, GRE lists, dictionary lists, and examples.</p></div>' +
         '<div class="settings-card-body settings-action-stack">' +
         '<button type="button" class="portal-btn show" onclick="LQ.openCmsAdmin()">Open Content Manager</button>' +
-        '<p class="settings-text" style="margin:0">Run <code>npm run cms</code> on the dev machine, then sign in. Publish pushes changes to the app.</p>' +
+        '<p class="settings-text" style="margin:0">Opens on the same server (<code>/cms/</code>). Run <code>npm run dev</code>, then sign in and Publish.</p>' +
         '</div></section>'
       : '') +
     '<section class="settings-card">' +
