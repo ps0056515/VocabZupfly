@@ -167,6 +167,8 @@ body.portal-theme .lists-dict-toolbar {
   gap: 8px;
   padding: 0 0 12px;
   align-items: center;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 body.portal-theme .lists-dict-search {
@@ -782,25 +784,25 @@ body.portal-theme .settings-page-header {
   margin-bottom: 0;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
-  padding: 20px 24px 24px;
+  padding: 12px 24px 12px;
   box-shadow: var(--shadow-sm);
 }
 
 body.portal-theme.web-desktop .settings-page-header {
-  padding: 28px 40px 24px;
+  padding: 16px 40px 16px;
 }
 
 body.portal-theme .settings-body {
   max-width: 720px;
   margin: 0 auto;
-  padding: 20px 24px 48px;
+  padding: 8px 24px 48px;
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
 body.portal-theme.web-desktop .settings-body {
-  padding: 24px 40px 56px;
+  padding: 8px 40px 56px;
 }
 
 body.portal-theme .settings-card {
@@ -1191,3 +1193,105 @@ body.portal-theme .portal-btn-secondary.show {
 body.portal-theme #screen-onboarding {
   background: var(--surface-2) !important;
 }
+
+/* ── Flashcard List View Styles ── */
+body.portal-theme .fc-list-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+  padding: 0 20px 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+body.portal-theme .fc-list-tabs::-webkit-scrollbar {
+  display: none;
+}
+body.portal-theme .fc-list-tab {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-family: var(--body);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 6px 12px;
+  border-radius: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+body.portal-theme .fc-list-tab:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+body.portal-theme .fc-list-tab.active {
+  background: var(--text);
+  color: var(--surface);
+  border-color: var(--text);
+}
+body.portal-theme .fc-tab-count {
+  font-size: 10px;
+  background: rgba(0, 0, 0, 0.08);
+  color: inherit;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-weight: 700;
+}
+body.portal-theme .fc-list-tab.active .fc-tab-count {
+  background: rgba(255, 255, 255, 0.2);
+}
+body.portal-theme .fc-word-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: inline-block;
+}
+body.portal-theme .fc-word-badge.badge-miss {
+  background: rgba(231, 76, 60, 0.1);
+  color: #e74c3c;
+}
+body.portal-theme .fc-word-badge.badge-hard {
+  background: rgba(243, 156, 18, 0.15);
+  color: #d35400;
+}
+body.portal-theme .fc-word-badge.badge-good {
+  background: rgba(52, 152, 219, 0.1);
+  color: #2980b9;
+}
+body.portal-theme .fc-word-badge.badge-nailed {
+  background: rgba(46, 204, 113, 0.1);
+  color: #27ae60;
+}
+body.portal-theme .fc-word-badge.badge-unrated {
+  background: rgba(149, 165, 166, 0.1);
+  color: #7f8c8d;
+}
+
+body.portal-theme .fc-toggle-list-btn {
+  width: auto !important;
+  height: 38px !important;
+  padding: 0 14px !important;
+  font-size: 13px !important;
+  border-radius: 12px !important;
+  margin-left: 8px;
+  background: rgba(0, 0, 0, 0.06) !important;
+  color: var(--text) !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  border: none !important;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+body.portal-theme .fc-toggle-list-btn:hover {
+  background: rgba(0, 0, 0, 0.1) !important;
+}
+
+

@@ -10,6 +10,27 @@ LQ.EXAM_TIPS = [
 
 LQ.CHAPTERS = [];
 
+LQ.goToWordListsCategory = function (category) {
+  LQ._activeListCategory = category;
+  var chapters = LQ.getOrderedChapters ? LQ.getOrderedChapters() : LQ.CHAPTERS;
+  if (chapters && chapters.length) {
+    if (category === 'gre') {
+      var firstGre = chapters.find(function (ch) { return ch.listType !== 'dictionary'; });
+      if (firstGre) {
+        LQ._pathListFilter = firstGre.id;
+      }
+    } else {
+      LQ._pathListFilter = 'dict-general';
+    }
+  }
+  var searchInp = document.getElementById('lists-search-input');
+  if (searchInp) {
+    searchInp.value = '';
+  }
+  LQ._lastSearchQuery = '';
+  goTo('lists');
+};
+
 LQ.lessonsForChapter = function (chapterId) {
   if (!LQ.ensurePathData()) return [];
   if (LQ.isDictionaryList(chapterId)) return [];
@@ -62,11 +83,25 @@ LQ.wordsForGroup = function (lessonId, opts) {
   if (!hit) return [];
   var meta = { groupTitle: hit.group.title, listTitle: hit.list.title };
   var words = hit.group.words.map(function (entry) {
-    return LQ.resolveWord(entry.word, meta);
+    var resolved = LQ.resolveWord(entry.word, meta);
+    resolved.groupRole = entry.role;
+    return resolved;
   });
   if (opts.shuffle) words = LQ.shuffle(words);
   if (opts.limit && words.length > opts.limit) words = words.slice(0, opts.limit);
   return words;
+};
+
+LQ.toggleOppositeSimilarWords = function (btn, targetId) {
+  var el = document.getElementById(targetId);
+  if (!el) return;
+  if (el.style.display === 'none') {
+    el.style.display = 'flex';
+    btn.innerHTML = btn.innerHTML.replace('Show', 'Hide').replace('\u25BC', '\u25B2');
+  } else {
+    el.style.display = 'none';
+    btn.innerHTML = btn.innerHTML.replace('Hide', 'Show').replace('\u25B2', '\u25BC');
+  }
 };
 
 LQ.renderGroupWordList = function (lessonId, wordsOverride) {
@@ -74,38 +109,72 @@ LQ.renderGroupWordList = function (lessonId, wordsOverride) {
   if (!words.length) {
     return '<p class="lists-word-empty">No words in this group.</p>';
   }
-  return words
-    .map(function (w) {
-      var status = LQ.getWordStatus ? LQ.getWordStatus(w.word) : 'unmarked';
-      return (
-        '<article class="lists-word-row status-' +
-        status +
-        '">' +
-        '<div class="lists-word-head">' +
-        '<strong class="lists-word-name">' +
-        LQ.esc(w.word) +
-        '</strong>' +
-        (w.phonetic
-          ? '<span class="lists-word-phon">' + LQ.esc(w.phonetic) + '</span>'
-          : w.pos
-            ? '<span class="lists-word-pos">' + LQ.esc(w.pos) + '</span>'
-            : '') +
-        '</div>' +
-        '<p class="lists-word-def">' +
-        LQ.displayWordDef(w) +
-        '</p>' +
-        (LQ.renderExampleBlock
-          ? LQ.renderExampleBlock(w, { className: 'lists-word-ex', compact: true })
-          : w.example
-            ? '<p class="lists-word-ex">"' + w.example + '"</p>'
-            : '') +
-        (w.syn
-          ? '<p class="lists-word-syn"><span>Synonyms:</span> ' + LQ.esc(w.syn.replace(/,/g, ', ')) + '</p>'
+
+  var mainWords = [];
+  var toggleWords = [];
+
+  words.forEach(function (w) {
+    if (w.groupRole === 'antonym' || w.groupRole === 'note' || w.groupRole === 'contrast') {
+      toggleWords.push(w);
+    } else {
+      mainWords.push(w);
+    }
+  });
+
+  function renderWordRow(w) {
+    var status = LQ.getWordStatus ? LQ.getWordStatus(w.word) : 'unmarked';
+    var badge = '';
+    if (w.groupRole === 'antonym' || w.groupRole === 'contrast') {
+      badge = '<span class="word-role-badge opposite">Opposite (X)</span>';
+    } else if (w.groupRole === 'note') {
+      badge = '<span class="word-role-badge similar">Similar (*)</span>';
+    }
+
+    return (
+      '<article class="lists-word-row status-' +
+      status +
+      '">' +
+      '<div class="lists-word-head">' +
+      '<strong class="lists-word-name">' +
+      LQ.esc(w.word) +
+      '</strong>' +
+      badge +
+      (w.phonetic
+        ? '<span class="lists-word-phon">' + LQ.esc(w.phonetic) + '</span>'
+        : w.pos
+          ? '<span class="lists-word-pos">' + LQ.esc(w.pos) + '</span>'
           : '') +
-        '</article>'
-      );
-    })
-    .join('');
+      '</div>' +
+      '<p class="lists-word-def">' +
+      LQ.displayWordDef(w) +
+      '</p>' +
+      (LQ.renderExampleBlock
+        ? LQ.renderExampleBlock(w, { className: 'lists-word-ex', compact: true })
+        : w.example
+          ? '<p class="lists-word-ex">"' + w.example + '"</p>'
+          : '') +
+      (w.syn
+        ? '<p class="lists-word-syn"><span>Synonyms:</span> ' + LQ.esc(w.syn.replace(/,/g, ', ')) + '</p>'
+        : '') +
+      '</article>'
+    );
+  }
+
+  var html = mainWords.map(renderWordRow).join('');
+
+  if (toggleWords.length > 0) {
+    var cleanId = (lessonId || 'rand-' + Math.random().toString(36).substr(2, 9)).replace(/[^a-zA-Z0-9-]/g, '-');
+    var targetId = 'toggle-words-' + cleanId;
+    var toggleHtml = toggleWords.map(renderWordRow).join('');
+
+    html += '<button type="button" class="lists-toggle-words-btn" onclick="LQ.toggleOppositeSimilarWords(this, \'' + targetId + '\')">' +
+            'Show Similar & Opposite Words (' + toggleWords.length + ') \u25BC</button>' +
+            '<div id="' + targetId + '" class="lists-toggle-words-list" style="display: none; margin-top: 8px; flex-direction: column; gap: 8px;">' +
+            toggleHtml +
+            '</div>';
+  }
+
+  return html;
 };
 
 LQ.toggleListGroup = function (lessonId) {
@@ -182,10 +251,26 @@ LQ.renderWordListsPage = function () {
   LQ.S.lessonProgress = LQ.S.lessonProgress || {};
   var chapters = LQ.getOrderedChapters ? LQ.getOrderedChapters() : LQ.CHAPTERS;
   if (!chapters.length) return;
-  if (LQ._pathListFilter === undefined || LQ._pathListFilter === 'all') {
-    LQ._pathListFilter = chapters[0].id;
+
+  if (!LQ._activeListCategory) {
+    LQ._activeListCategory = 'gre';
   }
+
+  var firstGre = chapters.find(function (ch) { return ch.listType !== 'dictionary'; });
+  var firstGreId = firstGre ? firstGre.id : chapters[0].id;
+  var firstDictId = 'dict-general';
+
   var curId = LQ._pathListFilter;
+  var currentChapter = chapters.find(function (c) { return c.id === curId; });
+  var isCurDict = curId === 'dict-general' || (currentChapter && currentChapter.listType === 'dictionary');
+
+  if (LQ._activeListCategory === 'gre' && (isCurDict || !curId)) {
+    curId = firstGreId;
+    LQ._pathListFilter = firstGreId;
+  } else if (LQ._activeListCategory === 'dict' && (!isCurDict || !curId)) {
+    curId = firstDictId;
+    LQ._pathListFilter = firstDictId;
+  }
 
   function renderSidebarItem(ch) {
     var lessons = LQ.lessonsForChapter(ch.id);
@@ -239,7 +324,7 @@ LQ.renderWordListsPage = function () {
   });
 
   var sidebarParts = [];
-  if (greLists.length) {
+  if (LQ._activeListCategory === 'gre' && greLists.length) {
     sidebarParts.push(
       '<div class="lists-side-section">' +
         '<p class="lists-side-heading">GRE Word Lists</p>' +
@@ -248,16 +333,45 @@ LQ.renderWordListsPage = function () {
         '</div>'
     );
   }
-  if (dictLists.length) {
+
+  var activeGeneral = curId === 'dict-general' ? ' active' : '';
+  var generalItemHtml =
+    '<button type="button" class="lists-side-item' +
+    activeGeneral +
+    '" onclick="LQ.filterPathList(\'dict-general\')">' +
+    '<span class="lists-side-icon" aria-hidden="true">🔍</span>' +
+    '<span class="lists-side-text">' +
+    '<span class="lists-side-name">General Dictionary <span class="lists-type-badge dict" style="background:rgba(192,57,43,0.1);color:#c0392b;margin-left:4px;font-size:9px">Global</span></span>' +
+    '<span class="lists-side-sub">Search any English word</span></span></button>';
+
+  if (LQ._activeListCategory === 'dict' && (dictLists.length || true)) {
     sidebarParts.push(
       '<div class="lists-side-section">' +
         '<p class="lists-side-heading">Dictionary</p>' +
         '<p class="lists-side-desc">General vocabulary — flat word banks</p>' +
+        generalItemHtml +
         dictLists.map(renderSidebarItem).join('') +
         '</div>'
     );
   }
   sidebar.innerHTML = sidebarParts.join('');
+
+  if (curId === 'dict-general') {
+    if (headEl) {
+      headEl.innerHTML =
+        '<div class="lists-head-top">' +
+        '<div class="lists-head-info">' +
+        '<span class="lists-head-icon" aria-hidden="true">🔍</span>' +
+        '<div><h2 class="lists-head-title">General Dictionary <span class="lists-type-badge dict" style="background:rgba(192,57,43,0.1);color:#c0392b">Global</span></h2>' +
+        '<p class="lists-head-sub">Search definitions, phonetics, examples, and synonyms from the web</p></div></div>' +
+        '</div>' +
+        '<div class="lists-head-bar" role="progressbar" aria-valuenow="100"><div class="lists-head-fill" style="width:100%"></div></div>';
+    }
+    groupsEl.innerHTML = LQ.renderGeneralDictionaryView();
+    var commit = document.getElementById('commit-banner');
+    if (commit) commit.style.display = 'none';
+    return;
+  }
 
   var ch =
     chapters.find(function (c) {
@@ -412,8 +526,140 @@ LQ.renderWordListsPage = function () {
 LQ.renderLearningPath = LQ.renderWordListsPage;
 
 LQ.filterPathList = function (listId) {
+  var searchInp = document.getElementById('lists-search-input');
+  if (searchInp) {
+    searchInp.value = '';
+  }
+  LQ._lastSearchQuery = '';
   LQ._pathListFilter = listId;
   LQ.renderWordListsPage();
+};
+
+LQ.searchWordLists = function (query) {
+  var q = (query || '').trim().toLowerCase();
+  var searchResultsEl = document.getElementById('lists-groups');
+  var headEl = document.getElementById('lists-main-head');
+  
+  if (!q) {
+    LQ._lastSearchQuery = '';
+    LQ.renderWordListsPage();
+    return;
+  }
+  
+  LQ._lastSearchQuery = query;
+  
+  var matches = [];
+  if (LQ.WORD_LISTS && LQ.WORD_LISTS.lists) {
+    LQ.WORD_LISTS.lists.forEach(function (lst) {
+      var isDict = lst.listType === 'dictionary';
+      var listTitle = LQ.getListTitle ? LQ.getListTitle(lst.id, lst.title) : lst.title;
+      
+      if (isDict) {
+        (lst.words || []).forEach(function (entry) {
+          var wName = entry && (entry.word || entry);
+          if (typeof wName === 'string' && wName.toLowerCase().indexOf(q) >= 0) {
+            matches.push({
+              wordName: wName,
+              listId: lst.id,
+              listTitle: listTitle,
+              isDict: true,
+              groupTitle: null,
+              groupNum: null,
+              role: null
+            });
+          }
+        });
+      } else {
+        (lst.groups || []).forEach(function (g) {
+          var groupTitle = g.title || '';
+          (g.words || []).forEach(function (entry) {
+            var wName = entry.word || entry;
+            if (typeof wName === 'string' && wName.toLowerCase().indexOf(q) >= 0) {
+              matches.push({
+                wordName: wName,
+                listId: lst.id,
+                listTitle: listTitle,
+                isDict: false,
+                groupTitle: groupTitle,
+                groupNum: g.groupNum,
+                role: entry.role || null
+              });
+            }
+          });
+        });
+      }
+    });
+  }
+  
+  if (headEl) {
+    headEl.innerHTML = 
+      '<div class="lists-head-top">' +
+      '<div class="lists-head-info">' +
+      '<span class="lists-head-icon" aria-hidden="true">🔍</span>' +
+      '<div><h2 class="lists-head-title">Search Results</h2>' +
+      '<p class="lists-head-sub">Showing ' + matches.length + ' matching words for "' + LQ.esc(query) + '"</p></div></div>' +
+      '</div>' +
+      '<div class="lists-head-bar" role="progressbar" aria-valuenow="100"><div class="lists-head-fill" style="width:100%"></div></div>';
+  }
+  
+  if (!matches.length) {
+    searchResultsEl.innerHTML = '<p class="lists-word-empty">No matching words found.</p>';
+    return;
+  }
+  
+  var html = matches.map(function (match) {
+    var meta = { listId: match.listId, listType: match.isDict ? 'dictionary' : 'grouped' };
+    var resolvedWord = LQ.resolveWord(match.wordName, meta);
+    resolvedWord.groupRole = match.role;
+    
+    var status = LQ.getWordStatus ? LQ.getWordStatus(match.wordName) : 'unmarked';
+    
+    var badgeTypeClass = match.isDict ? 'dict' : 'gre';
+    var badgeText = match.isDict ? 'Dict' : 'GRE';
+    var originHtml = 
+      '<div class="lists-word-origin" style="font-size: 12px; color: var(--text-muted); margin-bottom: 6px; display: flex; gap: 6px; align-items: center;">' +
+      '<span class="lists-type-badge ' + badgeTypeClass + '" style="margin-left: 0;">' + badgeText + '</span>' +
+      '<span><strong>' + LQ.esc(match.listTitle) + '</strong></span>';
+      
+    if (!match.isDict) {
+      var theme = (LQ.formatGroupTitle ? LQ.formatGroupTitle(match.groupTitle) : match.groupTitle);
+      originHtml += '<span>&rsaquo;</span><span>Group ' + match.groupNum + ' &middot; <em>' + LQ.esc(theme) + '</em></span>';
+    }
+    originHtml += '</div>';
+    
+    var roleBadge = '';
+    if (match.role === 'antonym' || match.role === 'contrast') {
+      roleBadge = '<span class="word-role-badge opposite">Opposite (X)</span>';
+    } else if (match.role === 'note') {
+      roleBadge = '<span class="word-role-badge similar">Similar (*)</span>';
+    }
+    
+    return (
+      '<article class="lists-word-row status-' + status + '" style="margin-bottom: 12px;">' +
+      originHtml +
+      '<div class="lists-word-head">' +
+      '<strong class="lists-word-name">' + LQ.esc(match.wordName) + '</strong>' +
+      roleBadge +
+      (resolvedWord.phonetic
+        ? '<span class="lists-word-phon">' + LQ.esc(resolvedWord.phonetic) + '</span>'
+        : resolvedWord.pos
+          ? '<span class="lists-word-pos">' + LQ.esc(resolvedWord.pos) + '</span>'
+          : '') +
+      '</div>' +
+      '<p class="lists-word-def">' + LQ.displayWordDef(resolvedWord) + '</p>' +
+      (LQ.renderExampleBlock
+        ? LQ.renderExampleBlock(resolvedWord, { className: 'lists-word-ex', compact: true })
+        : resolvedWord.example
+          ? '<p class="lists-word-ex">"' + resolvedWord.example + '"</p>'
+          : '') +
+      (resolvedWord.syn
+        ? '<p class="lists-word-syn"><span>Synonyms:</span> ' + LQ.esc(resolvedWord.syn.replace(/,/g, ', ')) + '</p>'
+        : '') +
+      '</article>'
+    );
+  }).join('');
+  
+  searchResultsEl.innerHTML = '<div class="lists-search-results" style="padding-top: 8px;">' + html + '</div>';
 };
 
 LQ.startLesson = function (lessonId) {
@@ -779,4 +1025,169 @@ LQ.finishLesson = function () {
     title: 'Group complete!',
     sub: LQ._lessonTitle ? 'Finished: ' + LQ._lessonTitle : 'Next group unlocked.',
   });
+};
+
+/* ── General Dictionary (Global search using free open-source API) ── */
+
+LQ.renderGeneralDictionaryView = function () {
+  var lastWord = LQ._generalDictLastWord || '';
+  var resultsHtml = '';
+  if (LQ._generalDictLoading) {
+    resultsHtml = '<div class="general-dict-loading">Searching word details...</div>';
+  } else if (LQ._generalDictError) {
+    resultsHtml = '<div class="general-dict-error">' + LQ.esc(LQ._generalDictError) + '</div>';
+  } else if (LQ._generalDictResult) {
+    resultsHtml = LQ.renderGeneralDictResultHtml(LQ._generalDictResult);
+  } else {
+    resultsHtml = '<div class="general-dict-placeholder">Enter a word above to search definitions, synonyms, antonyms and pronunciation.</div>';
+  }
+
+  return (
+    '<div class="lists-dict-toolbar">' +
+    '<input type="search" id="general-dict-search-input" class="lists-dict-search" placeholder="Search any word..." value="' +
+    LQ.esc(lastWord) +
+    '" onkeydown="if(event.key === \'Enter\') { event.preventDefault(); LQ.searchGeneralDictionary(this.value); }">' +
+    '<button type="button" class="lists-group-quiz" onclick="LQ.searchGeneralDictionary(document.getElementById(\'general-dict-search-input\').value)">Search</button>' +
+    '</div>' +
+    '<div id="general-dict-results-wrapper" class="general-dict-results-container">' +
+    resultsHtml +
+    '</div>'
+  );
+};
+
+LQ.searchGeneralDictionary = function (word) {
+  word = (word || '').trim();
+  if (!word) return;
+  LQ._generalDictLastWord = word;
+  LQ._generalDictLoading = true;
+  LQ._generalDictError = null;
+  LQ._generalDictResult = null;
+  
+  var resultsWrapper = document.getElementById('general-dict-results-wrapper');
+  if (resultsWrapper) {
+    var card = resultsWrapper.querySelector('.general-dict-result-card');
+    if (card) {
+      card.style.opacity = '0.5';
+      card.style.pointerEvents = 'none';
+      var loader = resultsWrapper.querySelector('.general-dict-loading-indicator');
+      if (!loader) {
+        var loaderDiv = document.createElement('div');
+        loaderDiv.className = 'general-dict-loading-indicator';
+        loaderDiv.innerHTML = 'Searching "' + LQ.esc(word) + '"...';
+        loaderDiv.style.padding = '8px 12px';
+        loaderDiv.style.background = 'var(--brand-light)';
+        loaderDiv.style.color = 'var(--brand-dark)';
+        loaderDiv.style.borderRadius = '8px';
+        loaderDiv.style.marginBottom = '12px';
+        loaderDiv.style.fontSize = '12px';
+        loaderDiv.style.fontWeight = '600';
+        loaderDiv.style.textAlign = 'center';
+        resultsWrapper.insertBefore(loaderDiv, card);
+      }
+    } else {
+      resultsWrapper.innerHTML = '<div class="general-dict-loading">Searching word details...</div>';
+    }
+  }
+  
+  fetch('https://api.dictionaryapi.dev/api/v2/entries/en/' + encodeURIComponent(word))
+    .then(function (r) {
+      if (!r.ok) {
+        if (r.status === 404) {
+          throw new Error('Word not found in dictionary.');
+        }
+        throw new Error('Error fetching word details (status: ' + r.status + ').');
+      }
+      return r.json();
+    })
+    .then(function (data) {
+      LQ._generalDictLoading = false;
+      var result = null;
+      if (Array.isArray(data) && data.length > 0) {
+        result = data[0];
+      }
+      LQ._generalDictResult = result;
+      
+      var wrapper = document.getElementById('general-dict-results-wrapper');
+      if (wrapper) {
+        if (result) {
+          wrapper.innerHTML = LQ.renderGeneralDictResultHtml(result);
+        } else {
+          LQ._generalDictError = 'No details found for this word.';
+          wrapper.innerHTML = '<div class="general-dict-error">No details found for this word.</div>';
+        }
+      }
+    })
+    .catch(function (err) {
+      LQ._generalDictLoading = false;
+      LQ._generalDictError = err.message || 'Failed to search dictionary.';
+      var wrapper = document.getElementById('general-dict-results-wrapper');
+      if (wrapper) {
+        wrapper.innerHTML = '<div class="general-dict-error">' + LQ.esc(LQ._generalDictError) + '</div>';
+      }
+    });
+};
+
+LQ.renderGeneralDictResultHtml = function (data) {
+  var html = '<div class="general-dict-result-card">';
+  
+  html += '<div class="general-dict-result-head">';
+  html += '<h3 class="general-dict-result-word">' + LQ.esc(data.word) + '</h3>';
+  
+  var phoneticText = data.phonetic || '';
+  if (!phoneticText && data.phonetics && Array.isArray(data.phonetics)) {
+    var hit = data.phonetics.find(function(p) { return p.text; });
+    if (hit) phoneticText = hit.text;
+  }
+  if (phoneticText) {
+    html += '<span class="general-dict-result-phon">' + LQ.esc(phoneticText) + '</span>';
+  }
+  
+  var audioUrl = '';
+  if (data.phonetics && Array.isArray(data.phonetics)) {
+    var usAudio = data.phonetics.find(function (p) { return p.audio && (p.audio.indexOf('-us') >= 0 || p.audio.indexOf('/us/') >= 0); });
+    var ukAudio = data.phonetics.find(function (p) { return p.audio && (p.audio.indexOf('-uk') >= 0 || p.audio.indexOf('/uk/') >= 0); });
+    var anyEnglish = data.phonetics.find(function (p) { return p.audio && (p.audio.indexOf('/en/') >= 0 || p.audio.indexOf('-us') >= 0 || p.audio.indexOf('-uk') >= 0 || p.audio.indexOf('-au') >= 0); });
+    var fallbackAudio = data.phonetics.find(function (p) { return p.audio; });
+    var selected = usAudio || ukAudio || anyEnglish || fallbackAudio;
+    if (selected) audioUrl = selected.audio;
+  }
+  if (audioUrl) {
+    html += '<button type="button" class="general-dict-audio-btn" onclick="new Audio(\'' + LQ.esc(audioUrl) + '\').play()">🔊 Play Pronunciation</button>';
+  }
+  
+  html += '</div>';
+  
+  if (data.meanings && Array.isArray(data.meanings)) {
+    data.meanings.forEach(function (meaning) {
+      html += '<div class="general-dict-meaning-section">';
+      html += '<h4 class="general-dict-pos">' + LQ.esc(meaning.partOfSpeech) + '</h4>';
+      
+      if (meaning.definitions && Array.isArray(meaning.definitions)) {
+        html += '<ol class="general-dict-definitions-list">';
+        meaning.definitions.forEach(function (def) {
+          html += '<li>';
+          html += '<p class="general-dict-def-text">' + LQ.esc(def.definition) + '</p>';
+          if (def.example) {
+            html += '<p class="general-dict-def-ex">"' + LQ.esc(def.example) + '"</p>';
+          }
+          html += '</li>';
+        });
+        html += '</ol>';
+      }
+      
+      if (meaning.synonyms && meaning.synonyms.length > 0) {
+        html += '<p class="general-dict-synonyms"><strong>Synonyms:</strong> ' + 
+                meaning.synonyms.map(function(s) { return LQ.esc(s); }).join(', ') + '</p>';
+      }
+      if (meaning.antonyms && meaning.antonyms.length > 0) {
+        html += '<p class="general-dict-antonyms"><strong>Antonyms:</strong> ' + 
+                meaning.antonyms.map(function(s) { return LQ.esc(s); }).join(', ') + '</p>';
+      }
+      
+      html += '</div>';
+    });
+  }
+  
+  html += '</div>';
+  return html;
 };

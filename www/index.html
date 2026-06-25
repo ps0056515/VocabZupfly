@@ -7,6 +7,24 @@
 <meta name="color-scheme" content="light">
 <link rel="manifest" href="manifest.json">
 <title>LexiQuest</title>
+<script>
+(function () {
+  if (location.protocol !== 'file:') return;
+  document.addEventListener('DOMContentLoaded', function () {
+    var el = document.createElement('div');
+    el.id = 'file-protocol-warn';
+    el.setAttribute('role', 'alert');
+    el.style.cssText =
+      'position:fixed;inset:0;z-index:99999;background:#0f172a;color:#f8fafc;padding:24px;font:16px/1.5 system-ui,sans-serif;display:flex;align-items:center;justify-content:center;text-align:center';
+    el.innerHTML =
+      '<div style="max-width:420px"><h1 style="margin:0 0 12px;font-size:22px">Open via dev server</h1>' +
+      '<p style="margin:0 0 16px;opacity:.9">LexiQuest cannot load word data when opened as a file. Run in the project folder:</p>' +
+      '<code style="display:block;background:#1e293b;padding:12px;border-radius:8px;margin-bottom:16px">npm run dev</code>' +
+      '<p style="margin:0;opacity:.85">Then open <strong>http://localhost:3456/</strong></p></div>';
+    document.body.appendChild(el);
+  });
+})();
+</script>
 <style>
 @font-face{font-family:'Plus Jakarta Sans';font-style:normal;font-weight:400;font-display:swap;src:url('fonts/plus-jakarta-400.woff2') format('woff2')}
 @font-face{font-family:'Plus Jakarta Sans';font-style:italic;font-weight:400;font-display:swap;src:url('fonts/plus-jakarta-400-italic.woff2') format('woff2')}
@@ -886,13 +904,13 @@ body.portal-theme.web-mobile .layout-switcher-persistent .layout-btn.active{
 .more-tools-panel{display:none}
 .more-tools-panel.open{display:block}
 .learn-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
-.learn-actions .learn-act.skip{grid-column:1/-1}
+.learn-act:disabled{opacity:.35;cursor:not-allowed;pointer-events:none}
 .learn-next-btn{margin-top:10px;width:100%}
 .learn-next-hint{font-size:11px;color:var(--muted);text-align:center;margin-top:6px}
 .learn-act{border:none;border-radius:12px;padding:14px 8px;font-family:var(--body);font-size:12px;font-weight:700;cursor:pointer}
 .learn-act.known{background:rgba(61,214,140,.2);color:#1a8f5a}
 .learn-act.flag{background:rgba(255,209,102,.25);color:#b8860b}
-.learn-act.skip{background:rgba(0,0,0,.06);color:var(--muted)}
+.learn-act.prev, .learn-act.skip{background:rgba(0,0,0,.06);color:var(--muted)}
 .learn-card-prompt{text-align:center;padding:32px 20px}
 .learn-hint{font-size:13px;color:var(--muted);line-height:1.5;margin-top:12px}
 .learn-syn,.learn-ant{font-size:13px;margin-top:10px;line-height:1.5}
@@ -987,7 +1005,8 @@ body.portal-theme.web-mobile .layout-switcher-persistent .layout-btn.active{
 .lesson-group-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);padding:0 20px 4px;margin:0}
 .lesson-wrap{padding:12px 20px 24px;flex:1}
 .lesson-phase-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:12px}
-.learn-card{background:#fff;border-radius:24px;padding:24px 20px;box-shadow:0 4px 24px rgba(0,0,0,.06);margin-bottom:20px}
+.learn-card{position:relative;background:#fff;border-radius:24px;padding:24px 20px;box-shadow:0 4px 24px rgba(0,0,0,.06);margin-bottom:20px}
+.learn-relation-badge{position:absolute;top:12px;right:16px;margin-left:0!important}
 .learn-badge{display:inline-block;background:rgba(245,166,35,.25);color:var(--lime-dk);font-size:10px;font-weight:700;padding:4px 10px;border-radius:99px;margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px}
 .learn-word{font-family:var(--head);font-size:40px;font-weight:700;color:var(--ink);letter-spacing:-1.5px;line-height:1}
 .learn-phon{font-size:13px;color:var(--muted);margin:6px 0 14px;font-style:italic}
@@ -1169,8 +1188,11 @@ body.native-app .desktop-only-ui{display:none!important}
           <button type="button" class="desktop-rail-item" id="desktop-nav-tenses" onclick="goTo('tenses')">
             <span class="rail-icon">🕐</span> Tenses
           </button>
-          <button type="button" class="desktop-rail-item" id="desktop-nav-lists" onclick="goTo('lists')">
-            <span class="rail-icon">📋</span> Word Lists
+          <button type="button" class="desktop-rail-item" id="desktop-nav-lists" onclick="LQ.goToWordListsCategory('gre')">
+            <span class="rail-icon">📋</span> Word Lists (GRE)
+          </button>
+          <button type="button" class="desktop-rail-item" id="desktop-nav-dictionary" onclick="LQ.goToWordListsCategory('dict')">
+            <span class="rail-icon">📖</span> Dictionary
           </button>
           <p class="desktop-rail-label">Practice</p>
           <button type="button" class="desktop-rail-item" id="desktop-nav-learn" onclick="goTo('learn')">
@@ -1262,6 +1284,12 @@ body.native-app .desktop-only-ui{display:none!important}
               <div>
                 <h1 class="portal-title">Word Lists</h1>
                 <p class="portal-tagline">GRE synonym groups + general vocabulary dictionaries</p>
+              </div>
+              <div class="portal-header-actions">
+                <div class="portal-search">
+                  <span aria-hidden="true">🔍</span>
+                  <input id="lists-search-input" placeholder="Search words..." autocomplete="off" oninput="LQ.searchWordLists(this.value)">
+                </div>
               </div>
             </div>
           </div>
@@ -1396,10 +1424,12 @@ body.native-app .desktop-only-ui{display:none!important}
             <button class="back-btn" style="background:rgba(0,0,0,.06);color:var(--ink)" onclick="LQ.goBack()">←</button>
             <h2 style="font-family:var(--head);font-size:18px;font-weight:700;color:var(--ink);flex:1">Flashcards</h2>
             <span class="fc-counter" id="fc-counter" style="font-size:12px;font-weight:700;color:var(--muted)">1 / 15</span>
+            <button type="button" class="back-btn fc-toggle-list-btn" onclick="LQ.toggleFcListView()">List 📋</button>
           </div>
           <div class="learn-list-bar" id="fc-list-bar"></div>
           <div class="fc-progress-track"><div class="fc-progress-fill" id="fc-prog" style="width:6.7%"></div></div>
           <div id="fc-wrap"></div>
+          <div id="fc-list-view-container" style="display:none; padding: 12px 0 24px;"></div>
 
           <div class="rating-row fc-rating-row fc-rating-locked">
             <button class="rate-btn miss" onclick="rate('miss')"><span class="rbicon">✕</span>Missed</button>
@@ -1665,24 +1695,24 @@ body.native-app .desktop-only-ui{display:none!important}
 </div>
 
 
-<script src="js/config.js?v=20260602d"></script>
+<script src="js/config.js?v=20260603a"></script>
 <script src="js/platform.js?v=20260529a"></script>
 <script src="js/unlock.js?v=20260529a"></script>
 <script src="js/words.js?v=20260602d"></script>
 <script src="js/srs.js?v=20260602c"></script>
 <script src="js/streak.js?v=20260529a"></script>
 <script src="js/state.js?v=20260602c"></script>
-<script src="js/core.js?v=20260530a"></script>
+<script src="js/core.js?v=20260624a"></script>
 <script src="js/content.js?v=20260530a"></script>
 <script src="js/ai.js?v=20260529a"></script>
 <script src="js/speech.js?v=20260529b"></script>
 <script src="js/firebase-sync.js?v=20260529a"></script>
 <script src="js/notifications.js?v=20260529a"></script>
 <script src="js/celebrate.js?v=20260529a"></script>
-<script src="js/lessons.js?v=20260530a"></script>
+<script src="js/lessons.js?v=20260625a"></script>
 <script src="js/dashboard.js?v=20260529a"></script>
 <script src="js/vocab.js?v=20260602c"></script>
-<script src="js/features.js?v=20260602d"></script>
+<script src="js/features.js?v=20260603a"></script>
 <script src="js/tutor.js?v=20260530a"></script>
 <script src="js/practice.js?v=20260602b"></script>
 <script src="js/study.js?v=20260602c"></script>
