@@ -97,19 +97,34 @@ body.portal-theme #screen-vocab.active {
 }
 
 body.portal-theme #screen-vocab .home-bg.air-home,
-body.portal-theme #screen-vocab .portal-header,
+body.portal-theme .portal-header,
 body.portal-theme #screen-home .portal-header.student-dash-header {
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   border-radius: 0;
-  padding: 20px 24px 24px;
+  padding: 12px 24px 12px;
   box-shadow: var(--shadow-sm);
 }
 
 body.portal-theme.web-desktop #screen-vocab .home-bg.air-home,
-body.portal-theme.web-desktop #screen-vocab .portal-header,
+body.portal-theme.web-desktop .portal-header,
 body.portal-theme.web-desktop #screen-home .portal-header.student-dash-header {
-  padding: 28px 40px 24px;
+  padding: 16px 40px 16px;
+}
+
+body.portal-theme.web-desktop .portal-header > .portal-breadcrumb,
+body.portal-theme.web-desktop .portal-header > .portal-header-row {
+  max-width: 1120px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+body.portal-theme.web-desktop .tenses-page-body {
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 8px 40px 48px;
+  box-sizing: border-box;
 }
 
 body.portal-theme .portal-breadcrumb {
@@ -219,11 +234,11 @@ body.portal-theme #screen-vocab .home-topbar {
 
 body.portal-theme #screen-vocab .home-body.air-body {
   background: transparent;
-  padding: 24px;
+  padding: 8px 24px 24px;
 }
 
 body.portal-theme.web-desktop #screen-vocab .home-body.air-body {
-  padding: 28px 40px 48px;
+  padding: 8px 40px 48px;
   max-width: 1200px;
   margin: 0 auto;
   width: 100%;
@@ -373,6 +388,17 @@ body.portal-theme #screen-revise .revise-front {
   box-shadow: var(--shadow-sm);
 }
 
+body.portal-theme #screen-learn .learn-card {
+  position: relative;
+}
+
+body.portal-theme .learn-relation-badge {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  margin-left: 0 !important;
+}
+
 body.portal-theme .learn-act.known {
   background: var(--brand-light);
   color: var(--brand-dark);
@@ -383,11 +409,18 @@ body.portal-theme .lesson-cta {
   color: #fff !important;
 }
 
+body.portal-theme .learn-act.prev,
 body.portal-theme .learn-act.skip {
   background: var(--surface);
   color: var(--brand);
   border: 1.5px solid var(--brand);
   font-weight: 700;
+}
+
+body.portal-theme .learn-act:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 /* ── Activity strip (compact gamification) ── */
@@ -477,13 +510,13 @@ body.portal-theme .student-dash-header .layout-btn {
 }
 
 body.portal-theme .student-dash-body {
-  padding: 24px;
+  padding: 8px 24px 24px;
   max-width: 1200px;
   margin: 0 auto;
 }
 
 body.portal-theme.web-desktop .student-dash-body {
-  padding: 28px 40px 48px;
+  padding: 8px 40px 48px;
 }
 
 body.portal-theme .portal-header-utils {
@@ -1407,7 +1440,7 @@ body.portal-theme.web-desktop .lists-page {
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 40px 48px;
+  padding: 8px 40px 48px;
   min-height: calc(100vh - 160px);
   box-sizing: border-box;
 }
@@ -1431,7 +1464,7 @@ body.portal-theme.web-desktop .lists-side-item {
 body.portal-theme.web-desktop .lists-main {
   flex: 1;
   min-width: 0;
-  padding: 0 0 0 24px;
+  padding: 8px 0 0 24px;
 }
 
 body.portal-theme.web-desktop .lists-groups {
@@ -1477,7 +1510,7 @@ body.portal-theme.native-app .lists-page {
   gap: 0;
   max-width: none;
   margin: 0;
-  padding: 0 16px calc(84px + env(safe-area-inset-bottom, 0));
+  padding: 8px 16px calc(84px + env(safe-area-inset-bottom, 0));
   min-height: auto;
 }
 

@@ -10,6 +10,27 @@ LQ.EXAM_TIPS = [
 
 LQ.CHAPTERS = [];
 
+LQ.goToWordListsCategory = function (category) {
+  LQ._activeListCategory = category;
+  var chapters = LQ.getOrderedChapters ? LQ.getOrderedChapters() : LQ.CHAPTERS;
+  if (chapters && chapters.length) {
+    if (category === 'gre') {
+      var firstGre = chapters.find(function (ch) { return ch.listType !== 'dictionary'; });
+      if (firstGre) {
+        LQ._pathListFilter = firstGre.id;
+      }
+    } else {
+      LQ._pathListFilter = 'dict-general';
+    }
+  }
+  var searchInp = document.getElementById('lists-search-input');
+  if (searchInp) {
+    searchInp.value = '';
+  }
+  LQ._lastSearchQuery = '';
+  goTo('lists');
+};
+
 LQ.lessonsForChapter = function (chapterId) {
   if (!LQ.ensurePathData()) return [];
   if (LQ.isDictionaryList(chapterId)) return [];
@@ -230,10 +251,26 @@ LQ.renderWordListsPage = function () {
   LQ.S.lessonProgress = LQ.S.lessonProgress || {};
   var chapters = LQ.getOrderedChapters ? LQ.getOrderedChapters() : LQ.CHAPTERS;
   if (!chapters.length) return;
-  if (LQ._pathListFilter === undefined || LQ._pathListFilter === 'all') {
-    LQ._pathListFilter = chapters[0].id;
+
+  if (!LQ._activeListCategory) {
+    LQ._activeListCategory = 'gre';
   }
+
+  var firstGre = chapters.find(function (ch) { return ch.listType !== 'dictionary'; });
+  var firstGreId = firstGre ? firstGre.id : chapters[0].id;
+  var firstDictId = 'dict-general';
+
   var curId = LQ._pathListFilter;
+  var currentChapter = chapters.find(function (c) { return c.id === curId; });
+  var isCurDict = curId === 'dict-general' || (currentChapter && currentChapter.listType === 'dictionary');
+
+  if (LQ._activeListCategory === 'gre' && (isCurDict || !curId)) {
+    curId = firstGreId;
+    LQ._pathListFilter = firstGreId;
+  } else if (LQ._activeListCategory === 'dict' && (!isCurDict || !curId)) {
+    curId = firstDictId;
+    LQ._pathListFilter = firstDictId;
+  }
 
   function renderSidebarItem(ch) {
     var lessons = LQ.lessonsForChapter(ch.id);
@@ -287,7 +324,7 @@ LQ.renderWordListsPage = function () {
   });
 
   var sidebarParts = [];
-  if (greLists.length) {
+  if (LQ._activeListCategory === 'gre' && greLists.length) {
     sidebarParts.push(
       '<div class="lists-side-section">' +
         '<p class="lists-side-heading">GRE Word Lists</p>' +
@@ -307,7 +344,7 @@ LQ.renderWordListsPage = function () {
     '<span class="lists-side-name">General Dictionary <span class="lists-type-badge dict" style="background:rgba(192,57,43,0.1);color:#c0392b;margin-left:4px;font-size:9px">Global</span></span>' +
     '<span class="lists-side-sub">Search any English word</span></span></button>';
 
-  if (dictLists.length || true) {
+  if (LQ._activeListCategory === 'dict' && (dictLists.length || true)) {
     sidebarParts.push(
       '<div class="lists-side-section">' +
         '<p class="lists-side-heading">Dictionary</p>' +
@@ -489,8 +526,140 @@ LQ.renderWordListsPage = function () {
 LQ.renderLearningPath = LQ.renderWordListsPage;
 
 LQ.filterPathList = function (listId) {
+  var searchInp = document.getElementById('lists-search-input');
+  if (searchInp) {
+    searchInp.value = '';
+  }
+  LQ._lastSearchQuery = '';
   LQ._pathListFilter = listId;
   LQ.renderWordListsPage();
+};
+
+LQ.searchWordLists = function (query) {
+  var q = (query || '').trim().toLowerCase();
+  var searchResultsEl = document.getElementById('lists-groups');
+  var headEl = document.getElementById('lists-main-head');
+  
+  if (!q) {
+    LQ._lastSearchQuery = '';
+    LQ.renderWordListsPage();
+    return;
+  }
+  
+  LQ._lastSearchQuery = query;
+  
+  var matches = [];
+  if (LQ.WORD_LISTS && LQ.WORD_LISTS.lists) {
+    LQ.WORD_LISTS.lists.forEach(function (lst) {
+      var isDict = lst.listType === 'dictionary';
+      var listTitle = LQ.getListTitle ? LQ.getListTitle(lst.id, lst.title) : lst.title;
+      
+      if (isDict) {
+        (lst.words || []).forEach(function (entry) {
+          var wName = entry && (entry.word || entry);
+          if (typeof wName === 'string' && wName.toLowerCase().indexOf(q) >= 0) {
+            matches.push({
+              wordName: wName,
+              listId: lst.id,
+              listTitle: listTitle,
+              isDict: true,
+              groupTitle: null,
+              groupNum: null,
+              role: null
+            });
+          }
+        });
+      } else {
+        (lst.groups || []).forEach(function (g) {
+          var groupTitle = g.title || '';
+          (g.words || []).forEach(function (entry) {
+            var wName = entry.word || entry;
+            if (typeof wName === 'string' && wName.toLowerCase().indexOf(q) >= 0) {
+              matches.push({
+                wordName: wName,
+                listId: lst.id,
+                listTitle: listTitle,
+                isDict: false,
+                groupTitle: groupTitle,
+                groupNum: g.groupNum,
+                role: entry.role || null
+              });
+            }
+          });
+        });
+      }
+    });
+  }
+  
+  if (headEl) {
+    headEl.innerHTML = 
+      '<div class="lists-head-top">' +
+      '<div class="lists-head-info">' +
+      '<span class="lists-head-icon" aria-hidden="true">🔍</span>' +
+      '<div><h2 class="lists-head-title">Search Results</h2>' +
+      '<p class="lists-head-sub">Showing ' + matches.length + ' matching words for "' + LQ.esc(query) + '"</p></div></div>' +
+      '</div>' +
+      '<div class="lists-head-bar" role="progressbar" aria-valuenow="100"><div class="lists-head-fill" style="width:100%"></div></div>';
+  }
+  
+  if (!matches.length) {
+    searchResultsEl.innerHTML = '<p class="lists-word-empty">No matching words found.</p>';
+    return;
+  }
+  
+  var html = matches.map(function (match) {
+    var meta = { listId: match.listId, listType: match.isDict ? 'dictionary' : 'grouped' };
+    var resolvedWord = LQ.resolveWord(match.wordName, meta);
+    resolvedWord.groupRole = match.role;
+    
+    var status = LQ.getWordStatus ? LQ.getWordStatus(match.wordName) : 'unmarked';
+    
+    var badgeTypeClass = match.isDict ? 'dict' : 'gre';
+    var badgeText = match.isDict ? 'Dict' : 'GRE';
+    var originHtml = 
+      '<div class="lists-word-origin" style="font-size: 12px; color: var(--text-muted); margin-bottom: 6px; display: flex; gap: 6px; align-items: center;">' +
+      '<span class="lists-type-badge ' + badgeTypeClass + '" style="margin-left: 0;">' + badgeText + '</span>' +
+      '<span><strong>' + LQ.esc(match.listTitle) + '</strong></span>';
+      
+    if (!match.isDict) {
+      var theme = (LQ.formatGroupTitle ? LQ.formatGroupTitle(match.groupTitle) : match.groupTitle);
+      originHtml += '<span>&rsaquo;</span><span>Group ' + match.groupNum + ' &middot; <em>' + LQ.esc(theme) + '</em></span>';
+    }
+    originHtml += '</div>';
+    
+    var roleBadge = '';
+    if (match.role === 'antonym' || match.role === 'contrast') {
+      roleBadge = '<span class="word-role-badge opposite">Opposite (X)</span>';
+    } else if (match.role === 'note') {
+      roleBadge = '<span class="word-role-badge similar">Similar (*)</span>';
+    }
+    
+    return (
+      '<article class="lists-word-row status-' + status + '" style="margin-bottom: 12px;">' +
+      originHtml +
+      '<div class="lists-word-head">' +
+      '<strong class="lists-word-name">' + LQ.esc(match.wordName) + '</strong>' +
+      roleBadge +
+      (resolvedWord.phonetic
+        ? '<span class="lists-word-phon">' + LQ.esc(resolvedWord.phonetic) + '</span>'
+        : resolvedWord.pos
+          ? '<span class="lists-word-pos">' + LQ.esc(resolvedWord.pos) + '</span>'
+          : '') +
+      '</div>' +
+      '<p class="lists-word-def">' + LQ.displayWordDef(resolvedWord) + '</p>' +
+      (LQ.renderExampleBlock
+        ? LQ.renderExampleBlock(resolvedWord, { className: 'lists-word-ex', compact: true })
+        : resolvedWord.example
+          ? '<p class="lists-word-ex">"' + resolvedWord.example + '"</p>'
+          : '') +
+      (resolvedWord.syn
+        ? '<p class="lists-word-syn"><span>Synonyms:</span> ' + LQ.esc(resolvedWord.syn.replace(/,/g, ', ')) + '</p>'
+        : '') +
+      '</article>'
+    );
+  }).join('');
+  
+  searchResultsEl.innerHTML = '<div class="lists-search-results" style="padding-top: 8px;">' + html + '</div>';
 };
 
 LQ.startLesson = function (lessonId) {

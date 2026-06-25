@@ -139,7 +139,10 @@ LQ.goTo = function (screen, opts) {
   const sc = document.getElementById('screen-' + screen);
   if (sc) sc.classList.add('active');
   const meta = LQ.getScreenMeta ? LQ.getScreenMeta(screen) : { nav: screen };
-  const navId = meta.nav || screen;
+  var navId = meta.nav || screen;
+  if (navId === 'lists') {
+    navId = (LQ._activeListCategory === 'dict') ? 'dictionary' : 'lists';
+  }
   const nav = document.getElementById('nav-' + navId);
   if (nav) nav.classList.add('active');
   const rail = document.getElementById('desktop-nav-' + navId);
@@ -158,6 +161,11 @@ LQ.goTo = function (screen, opts) {
       if (LQ.renderVocabPage) LQ.renderVocabPage();
     },
     lists: () => {
+      var searchInp = document.getElementById('lists-search-input');
+      if (searchInp) {
+        searchInp.value = '';
+      }
+      LQ._lastSearchQuery = '';
       if (LQ.renderWordListsPage) LQ.renderWordListsPage();
     },
     learn: () => LQ.initLearn && LQ.initLearn(),

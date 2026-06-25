@@ -1,6 +1,29 @@
 window.LQ = window.LQ || {};
 
 LQ.renderFC = function () {
+  if (LQ._fcListViewActive) {
+    LQ.renderFcListView();
+    return;
+  }
+  
+  var fcWrap = document.getElementById('fc-wrap');
+  var progressTrack = document.querySelector('#screen-flashcard .fc-progress-track');
+  var fcRatingRow = document.querySelector('#screen-flashcard .fc-rating-row');
+  var rateHint = document.querySelector('#screen-flashcard .fc-rate-hint');
+  var aiHintWrap = document.querySelector('#screen-flashcard .ai-hint-wrap');
+  var listViewContainer = document.getElementById('fc-list-view-container');
+  var toggleBtn = document.querySelector('#screen-flashcard .fc-toggle-list-btn');
+  var counterEl = document.getElementById('fc-counter');
+  
+  if (fcWrap) fcWrap.style.display = 'block';
+  if (progressTrack) progressTrack.style.display = 'block';
+  if (fcRatingRow) fcRatingRow.style.display = 'flex';
+  if (rateHint) rateHint.style.display = 'block';
+  if (aiHintWrap) aiHintWrap.style.display = 'block';
+  if (listViewContainer) listViewContainer.style.display = 'none';
+  if (counterEl) counterEl.style.display = 'inline';
+  if (toggleBtn) toggleBtn.innerHTML = 'List 📋';
+
   if (LQ.renderFcListPicker) LQ.renderFcListPicker();
   LQ.buildFcQueue();
   const w = LQ.currentFcWord();
@@ -104,6 +127,137 @@ LQ.rate = function (r) {
   LQ.renderFC();
 };
 window.rate = LQ.rate;
+
+LQ.toggleFcListView = function () {
+  LQ._fcListViewActive = !LQ._fcListViewActive;
+  
+  var fcWrap = document.getElementById('fc-wrap');
+  var progressTrack = document.querySelector('#screen-flashcard .fc-progress-track');
+  var ratingRow = document.querySelector('#screen-flashcard .fc-rating-row');
+  var rateHint = document.querySelector('#screen-flashcard .fc-rate-hint');
+  var aiHintWrap = document.querySelector('#screen-flashcard .ai-hint-wrap');
+  var listViewContainer = document.getElementById('fc-list-view-container');
+  var toggleBtn = document.querySelector('#screen-flashcard .fc-toggle-list-btn');
+  var counterEl = document.getElementById('fc-counter');
+  
+  if (LQ._fcListViewActive) {
+    if (fcWrap) fcWrap.style.display = 'none';
+    if (progressTrack) progressTrack.style.display = 'none';
+    if (ratingRow) ratingRow.style.display = 'none';
+    if (rateHint) rateHint.style.display = 'none';
+    if (aiHintWrap) aiHintWrap.style.display = 'none';
+    if (listViewContainer) listViewContainer.style.display = 'block';
+    if (counterEl) counterEl.style.display = 'none';
+    if (toggleBtn) toggleBtn.innerHTML = 'Card 🃏';
+    
+    LQ._fcActiveTab = LQ._fcActiveTab || 'all';
+    LQ.renderFcListView();
+  } else {
+    if (fcWrap) fcWrap.style.display = 'block';
+    if (progressTrack) progressTrack.style.display = 'block';
+    if (ratingRow) ratingRow.style.display = 'flex';
+    if (rateHint) rateHint.style.display = 'block';
+    if (aiHintWrap) aiHintWrap.style.display = 'block';
+    if (listViewContainer) listViewContainer.style.display = 'none';
+    if (counterEl) counterEl.style.display = 'inline';
+    if (toggleBtn) toggleBtn.innerHTML = 'List 📋';
+    
+    LQ.renderFC();
+  }
+};
+
+LQ.renderFcListView = function () {
+  var container = document.getElementById('fc-list-view-container');
+  if (!container) return;
+  
+  var pool = LQ.fcWordPool ? LQ.fcWordPool() : [];
+  var counts = { all: pool.length, miss: 0, hard: 0, good: 0, nailed: 0 };
+  
+  pool.forEach(function (w) {
+    var srsData = LQ.S.srs[w.word];
+    var rating = srsData ? srsData.lastRating : null;
+    if (rating && counts[rating] !== undefined) {
+      counts[rating]++;
+    }
+  });
+  
+  LQ._fcActiveTab = LQ._fcActiveTab || 'all';
+  
+  var tabs = [
+    { id: 'all', label: 'All', count: counts.all },
+    { id: 'miss', label: 'Missed', count: counts.miss },
+    { id: 'hard', label: 'Hard', count: counts.hard },
+    { id: 'good', label: 'Good', count: counts.good },
+    { id: 'nailed', label: 'Nailed', count: counts.nailed }
+  ];
+  
+  var tabsHtml = '<div class="fc-list-tabs">' +
+    tabs.map(function (tab) {
+      var activeClass = (LQ._fcActiveTab === tab.id) ? ' active' : '';
+      return '<button type="button" class="fc-list-tab' + activeClass + '" onclick="LQ.setFcListTab(\'' + tab.id + '\')">' +
+             tab.label + ' <span class="fc-tab-count">' + tab.count + '</span>' +
+             '</button>';
+    }).join('') +
+    '</div>';
+    
+  var filteredWords = pool.filter(function (w) {
+    if (LQ._fcActiveTab === 'all') return true;
+    var srsData = LQ.S.srs[w.word];
+    var rating = srsData ? srsData.lastRating : null;
+    return rating === LQ._fcActiveTab;
+  });
+  
+  var wordsHtml = '';
+  if (!filteredWords.length) {
+    wordsHtml = '<div class="learn-empty" style="padding: 40px 20px;">' +
+      '<p class="learn-empty-icon" style="font-size: 24px;">📭</p>' +
+      '<h3 style="font-size: 15px; margin-top: 8px;">No words found</h3>' +
+      '<p style="font-size: 12px; color: var(--text-muted);">No words are currently marked under this filter in this list.</p>' +
+      '</div>';
+  } else {
+    wordsHtml = '<div style="padding: 0 20px;">' +
+      filteredWords.map(function (w) {
+        var resolved = LQ.resolveWord ? LQ.resolveWord(w.word) : w;
+        var srsData = LQ.S.srs[w.word];
+        var rating = srsData ? srsData.lastRating : null;
+        
+        var badgeHtml = '';
+        if (rating === 'miss') {
+          badgeHtml = '<span class="fc-word-badge badge-miss">Missed</span>';
+        } else if (rating === 'hard') {
+          badgeHtml = '<span class="fc-word-badge badge-hard">Hard</span>';
+        } else if (rating === 'good') {
+          badgeHtml = '<span class="fc-word-badge badge-good">Good</span>';
+        } else if (rating === 'nailed') {
+          badgeHtml = '<span class="fc-word-badge badge-nailed">Nailed</span>';
+        } else {
+          badgeHtml = '<span class="fc-word-badge badge-unrated">Unrated</span>';
+        }
+        
+        return (
+          '<div class="fc-word-row" style="background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:16px; margin-bottom:12px; box-shadow:var(--shadow-sm); display:flex; flex-direction:column; gap:6px;">' +
+            '<div style="display:flex; justify-content:space-between; align-items:center;">' +
+              '<div style="display:flex; align-items:center; gap:8px;">' +
+                '<strong style="font-size:16px; color:var(--text);">' + LQ.esc(w.word) + '</strong>' +
+                '<button type="button" class="speak-btn-mini" onclick="event.stopPropagation();LQ.speakText(\'' + LQ.esc(w.word).replace(/'/g, "\\'") + '\')" style="background:none; border:none; padding:4px; cursor:pointer; font-size:14px; display:inline-flex; align-items:center;" title="Pronounce">🔊</button>' +
+              '</div>' +
+              badgeHtml +
+            '</div>' +
+            (resolved.phonetic ? '<div style="font-size:12px; color:var(--text-muted); font-style:italic;">' + LQ.esc(resolved.phonetic) + '</div>' : '') +
+            '<p style="font-size:13px; color:var(--text); margin:4px 0 0; line-height:1.4;">' + (LQ.displayWordDef ? LQ.displayWordDef(resolved) : (resolved.def || '')) + '</p>' +
+          '</div>'
+        );
+      }).join('') +
+      '</div>';
+  }
+  
+  container.innerHTML = tabsHtml + wordsHtml;
+};
+
+LQ.setFcListTab = function (tabId) {
+  LQ._fcActiveTab = tabId;
+  LQ.renderFcListView();
+};
 window.speakWord = function () { LQ.speakWord(); };
 window.loadAIHint = function () { LQ.loadAIHint(); };
 

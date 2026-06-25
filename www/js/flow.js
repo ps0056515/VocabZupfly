@@ -55,13 +55,11 @@ LQ.getEncouragement = function () {
 };
 
 LQ.canSessionBack = function () {
-  if (LQ._currentScreen === 'learn' && LQ._learnIdx > 0) return true;
   if (LQ._currentScreen === 'revise' && LQ._reviseIdx > 0) return true;
   return false;
 };
 
 LQ.sessionBack = function () {
-  if (LQ._currentScreen === 'learn' && LQ.learnPrev && LQ.learnPrev()) return true;
   if (LQ._currentScreen === 'revise' && LQ.revisePrev && LQ.revisePrev()) return true;
   return false;
 };
@@ -136,8 +134,8 @@ LQ.renderFlowSubnav = function (screen, meta) {
     el.remove();
   });
   if (!meta.parent) return;
-  /* Quiz & mock have their own header — avoid duplicate back bar */
-  if (screen === 'quiz' || screen === 'mock') return;
+  /* Quiz, mock, learn, revise & flashcard have their own header — avoid duplicate back bar */
+  if (screen === 'quiz' || screen === 'mock' || screen === 'learn' || screen === 'revise' || screen === 'flashcard') return;
 
   const sc = document.getElementById('screen-' + screen);
   if (!sc) return;

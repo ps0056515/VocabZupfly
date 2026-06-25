@@ -25,6 +25,97 @@ LQ.formatWordPairs = function (val, label) {
   );
 };
 
+LQ.getWordGroupRole = function (wordName, listId) {
+  if (!LQ.WORD_LISTS || !LQ.WORD_LISTS.lists) return null;
+  var key = (wordName || '').trim().toLowerCase();
+  if (!key) return null;
+
+  if (listId && listId !== 'all') {
+    var lst = LQ.WORD_LISTS.lists.find(function (l) {
+      return l.id === listId;
+    });
+    if (lst && LQ.getListType(lst) !== 'dictionary') {
+      for (var j = 0; j < (lst.groups || []).length; j++) {
+        var g = lst.groups[j];
+        var foundEntry = g.words.find(function (entry) {
+          return entry.word && entry.word.toLowerCase() === key;
+        });
+        if (foundEntry && foundEntry.role) {
+          return foundEntry.role;
+        }
+      }
+    }
+  } else {
+    for (var i = 0; i < LQ.WORD_LISTS.lists.length; i++) {
+      var lst = LQ.WORD_LISTS.lists[i];
+      if (LQ.getListType(lst) === 'dictionary') continue;
+      for (var j = 0; j < (lst.groups || []).length; j++) {
+        var g = lst.groups[j];
+        var foundEntry = g.words.find(function (entry) {
+          return entry.word && entry.word.toLowerCase() === key;
+        });
+        if (foundEntry && foundEntry.role) {
+          return foundEntry.role;
+        }
+      }
+    }
+  }
+  return null;
+};
+
+LQ.getWordRelationBadgeHTML = function (wordName, listId) {
+  var role = LQ.getWordGroupRole(wordName, listId);
+  if (!role) return '';
+  if (role === 'antonym' || role === 'contrast') {
+    return '<span class="word-role-badge opposite learn-relation-badge">Opposite</span>';
+  } else if (role === 'note') {
+    return '<span class="word-role-badge similar learn-relation-badge">Similar</span>';
+  }
+  return '';
+};
+
+LQ.getGroupOppositeWords = function (wordName) {
+  if (!LQ.WORD_LISTS || !LQ.WORD_LISTS.lists) return [];
+  var key = (wordName || '').trim().toLowerCase();
+  if (!key) return [];
+
+  var opposites = [];
+  for (var i = 0; i < LQ.WORD_LISTS.lists.length; i++) {
+    var lst = LQ.WORD_LISTS.lists[i];
+    if (LQ.getListType(lst) === 'dictionary') continue;
+    for (var j = 0; j < (lst.groups || []).length; j++) {
+      var g = lst.groups[j];
+      var targetEntry = g.words.find(function (ew) {
+        return ew.word && ew.word.toLowerCase() === key;
+      });
+      if (targetEntry) {
+        var role = targetEntry.role || '';
+        var isOppositeWord = (role === 'antonym' || role === 'contrast');
+        
+        g.words.forEach(function (ew) {
+          if (!ew.word || ew.word.toLowerCase() === key) return;
+          var ewRole = ew.role || '';
+          if (isOppositeWord) {
+            if (ewRole !== 'antonym' && ewRole !== 'contrast' && ewRole !== 'note' && ewRole !== 'variant') {
+              opposites.push(ew.word);
+            }
+          } else {
+            if (ewRole === 'antonym' || ewRole === 'contrast') {
+              opposites.push(ew.word);
+            }
+          }
+        });
+      }
+    }
+  }
+  return opposites;
+};
+
+LQ.groupHasOpposites = function (wordName) {
+  var ants = LQ.getGroupOppositeWords(wordName);
+  return ants && ants.length > 0;
+};
+
 /* ── List names & order ── */
 
 LQ.ensureListPrefs = function () {
@@ -301,6 +392,7 @@ LQ.startListFlashcards = function (listId, groupId) {
   LQ.S.fcIdx = 0;
   LQ._fcFlipped = false;
   LQ._fcFlippedWord = null;
+  LQ._fcListViewActive = false;
   LQ.saveState();
   LQ.goTo('flashcard');
   setTimeout(function () {
@@ -522,16 +614,88 @@ LQ.renderLearnScreen = function () {
   if (counter) counter.textContent = LQ._learnIdx + 1 + ' / ' + LQ._learnQueue.length;
   if (!w) return;
 
+  var dictSyns = String(w.syn || '')
+    .split(',')
+    .map(function (s) { return s.trim(); })
+    .filter(Boolean);
+  var groupSyns = [];
+  if (LQ.WORD_LISTS && LQ.WORD_LISTS.lists) {
+    var key = w.word.toLowerCase();
+    for (var i = 0; i < LQ.WORD_LISTS.lists.length; i++) {
+      var lst = LQ.WORD_LISTS.lists[i];
+      if (LQ.getListType(lst) === 'dictionary') continue;
+      for (var j = 0; j < (lst.groups || []).length; j++) {
+        var g = lst.groups[j];
+        var targetEntry = g.words.find(function (ew) {
+          return ew.word && ew.word.toLowerCase() === key;
+        });
+        if (targetEntry) {
+          var role = targetEntry.role || '';
+          var isOppositeWord = (role === 'antonym' || role === 'contrast');
+          g.words.forEach(function (ew) {
+            if (!ew.word || ew.word.toLowerCase() === key) return;
+            var ewRole = ew.role || '';
+            if (isOppositeWord) {
+              if (ewRole === 'antonym' || ewRole === 'contrast') {
+                groupSyns.push(ew.word);
+              }
+            } else {
+              if (ewRole !== 'antonym' && ewRole !== 'contrast' && ewRole !== 'variant') {
+                groupSyns.push(ew.word);
+              }
+            }
+          });
+        }
+      }
+    }
+  }
+  var allSyns = [];
+  var seenSyn = {};
+  dictSyns.concat(groupSyns).forEach(function (synWord) {
+    var lower = synWord.toLowerCase();
+    if (!seenSyn[lower]) {
+      seenSyn[lower] = true;
+      allSyns.push(synWord);
+    }
+  });
+  const synString = allSyns.join(', ');
+
+  var dictAnts = String(w.ant || '')
+    .split(',')
+    .map(function (s) { return s.trim(); })
+    .filter(Boolean);
+  var groupAnts = LQ.getGroupOppositeWords ? LQ.getGroupOppositeWords(w.word) : [];
+  var allAnts = [];
+  var seenAnt = {};
+  dictAnts.concat(groupAnts).forEach(function (antWord) {
+    var lower = antWord.toLowerCase();
+    if (!seenAnt[lower]) {
+      seenAnt[lower] = true;
+      allAnts.push(antWord);
+    }
+  });
+  const antString = allAnts.join(', ');
+
   const synAnt =
-    LQ.formatWordPairs(w.syn, 'Synonyms') + LQ.formatWordPairs(w.ant, 'Antonyms');
+    LQ.formatWordPairs(synString, 'Synonyms') + LQ.formatWordPairs(antString, 'Antonyms');
+
+  const hasPrev = LQ._learnIdx > 0;
+  const prevBtn = '<button class="learn-act prev" onclick="LQ.learnPrev()"' + (hasPrev ? '' : ' disabled') + '>← Prev</button>';
 
   const actions =
     '<div class="learn-actions">' +
     '<button class="learn-act known" onclick="LQ.learnMark(\'known\')">✓ Known</button>' +
     '<button class="learn-act flag" onclick="LQ.learnMark(\'flagged\')">🚩 Flag</button>' +
+    prevBtn +
     '<button class="learn-act skip" onclick="LQ.learnSkip()">Next →</button>' +
     '</div>' +
     '<p class="learn-next-hint">Next moves on without marking · Known and Flag save your progress</p>';
+
+  const listId = LQ.S.learnListId || 'all';
+  const relationBadge = LQ.getWordRelationBadgeHTML ? LQ.getWordRelationBadgeHTML(w.word, listId) : '';
+
+  const hasOpposites = (w.ant && w.ant.trim()) || (LQ.groupHasOpposites && LQ.groupHasOpposites(w.word));
+  const revealBtnText = hasOpposites ? 'Show meaning & opposites' : 'Show meaning';
 
   if (!LQ._learnReveal) {
     wrap.innerHTML =
@@ -539,13 +703,14 @@ LQ.renderLearnScreen = function () {
       LQ.esc(listLabel) +
       ' · Do you know this word?</p>' +
       '<div class="learn-card learn-card-prompt">' +
+      relationBadge +
       '<h2 class="learn-word">' +
       LQ.esc(w.word) +
       '</h2>' +
       (w.phonetic ? '<p class="learn-phon">' + LQ.esc(w.phonetic) + '</p>' : '') +
       '<p class="learn-hint">Mark <strong>Known</strong> if you know the meaning, or <strong>Flag</strong> to revise later.</p>' +
       '</div>' +
-      '<button class="lesson-cta lesson-cta-secondary" onclick="LQ.revealLearn()">Show meaning & opposites</button>' +
+      '<button class="lesson-cta lesson-cta-secondary" onclick="LQ.revealLearn()">' + revealBtnText + '</button>' +
       (LQ.wordDifficultyHtml ? LQ.wordDifficultyHtml(w.word) : '') +
       actions;
     return;
@@ -556,6 +721,7 @@ LQ.renderLearnScreen = function () {
     LQ.esc(w.word) +
     '</p>' +
     '<div class="learn-card">' +
+    relationBadge +
     '<p class="learn-def">' +
     w.def +
     '</p>' +
@@ -566,6 +732,7 @@ LQ.renderLearnScreen = function () {
     '<div class="learn-actions">' +
     '<button class="learn-act known" onclick="LQ.learnMark(\'known\')">✓ Known</button>' +
     '<button class="learn-act flag" onclick="LQ.learnMark(\'flagged\')">🚩 Flag to revise</button>' +
+    prevBtn +
     '<button class="learn-act skip" onclick="LQ.learnSkip()">Next →</button>' +
     '</div>' +
     '<p class="learn-next-hint">Next moves on without marking · Known and Flag save your progress</p>';

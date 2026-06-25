@@ -9,7 +9,7 @@ body.portal-theme #screen-tenses-practice.active {
 
 .tenses-page-body {
   flex: 1;
-  padding: 20px 24px 32px;
+  padding: 8px 24px 32px;
   overflow-y: auto;
 }
 
@@ -32,7 +32,7 @@ body.portal-theme #screen-tenses-practice.active {
     padding: 0;
   }
   .tenses-page-body {
-    padding: 16px;
+    padding: 8px 16px 16px;
   }
 }
 
@@ -142,7 +142,7 @@ body.portal-theme #screen-tenses-practice.active {
 /* Practice screen */
 #screen-tenses-practice .tenses-practice-panel {
   flex: 1;
-  padding: 20px 24px 32px;
+  padding: 8px 24px 32px;
   overflow-y: auto;
   max-width: 720px;
   margin: 0 auto;
