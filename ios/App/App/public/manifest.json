@@ -1,0 +1,10 @@
+{
+  "name": "LexiQuest",
+  "short_name": "LexiQuest",
+  "description": "GRE, GMAT, IELTS vocabulary trainer",
+  "start_url": "lexiquest.html",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "orientation": "portrait"
+}

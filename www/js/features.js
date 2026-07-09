@@ -244,6 +244,7 @@ LQ.renderLeagues = function () {
   if (!wrap) return;
   wrap.innerHTML =
     '<' + LQ.H + ' class="league-header-card"><span class="league-trophy">🏆</span><h3>Rookie League</h3><p>Top learners this week earn bragging rights</p></' + LQ.H + '>' +
+    '<div class="league-board-list">' +
     board
       .slice(0, 15)
       .map(
@@ -262,7 +263,8 @@ LQ.renderLeagues = function () {
           LQ.H +
           '>'
       )
-      .join('');
+      .join('') +
+    '</div>';
 };
 
 LQ.genLeagueBoard = function () {

@@ -1,0 +1,1297 @@
+/**
+ * Portal theme — practice & utility screens
+ * Matches Vocab page: white surfaces, green accent, light grey bg.
+ */
+
+body.portal-theme .screen {
+  background: var(--surface-2) !important;
+}
+
+body.portal-theme #screen-learn,
+body.portal-theme #screen-revise,
+body.portal-theme #screen-lesson {
+  background: var(--surface-2) !important;
+}
+
+/* ── Shared headers ── */
+body.portal-theme .fc-header,
+body.portal-theme .tutor-header,
+body.portal-theme .wb-header,
+body.portal-theme .prog-header,
+body.portal-theme .lesson-top {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+body.portal-theme .fc-header h2,
+body.portal-theme .tutor-header h2,
+body.portal-theme .wb-topbar h2,
+body.portal-theme .prog-topbar h2,
+body.portal-theme .lesson-top h2 {
+  color: var(--text);
+}
+
+body.portal-theme .back-btn {
+  background: var(--brand-light) !important;
+  color: var(--text) !important;
+}
+
+body.portal-theme .fc-counter {
+  color: var(--text-muted);
+}
+
+body.portal-theme .fc-progress-track {
+  background: var(--border);
+}
+
+body.portal-theme .fc-progress-fill {
+  background: linear-gradient(90deg, #c0392b, #f5a623);
+}
+
+body.portal-theme #screen-quiz {
+  background: var(--surface-2);
+  flex-direction: column;
+  min-height: 0;
+}
+
+body.portal-theme #screen-quiz.quiz-phase-setup .quiz-session {
+  display: none;
+}
+
+body.portal-theme #screen-quiz.quiz-phase-setup .quiz-lives,
+body.portal-theme #screen-quiz.quiz-phase-setup .quiz-timer {
+  display: none;
+}
+
+body.portal-theme #screen-quiz.quiz-phase-active .quiz-list-bar,
+body.portal-theme #screen-quiz.quiz-phase-done .quiz-list-bar {
+  display: none;
+}
+
+body.portal-theme #screen-quiz.quiz-phase-active .quiz-setup,
+body.portal-theme #screen-quiz.quiz-phase-done .quiz-setup {
+  flex-shrink: 0;
+}
+
+body.portal-theme .quiz-edit-link {
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  color: var(--brand-muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--body);
+  padding: 4px 8px;
+}
+
+body.portal-theme .quiz-review h3 {
+  color: var(--text);
+}
+
+body.portal-theme .quiz-review-group h4 {
+  color: var(--text-muted);
+}
+
+body.portal-theme .quiz-review-word {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+body.portal-theme .quiz-review-empty {
+  color: var(--text-muted);
+}
+
+body.portal-theme .quiz-setup {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+body.portal-theme .quiz-topbar {
+  padding: 14px 20px 10px;
+  margin-bottom: 0;
+}
+
+body.portal-theme .quiz-page-title {
+  font-family: var(--head, var(--body));
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.3px;
+}
+
+body.portal-theme .quiz-scope-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+body.portal-theme .quiz-list-bar {
+  padding: 0 20px 14px;
+}
+
+body.portal-theme .quiz-list-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  margin: 8px 0 8px;
+}
+
+body.portal-theme .quiz-list-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-height: 96px;
+  overflow-y: auto;
+}
+
+body.portal-theme .quiz-list-chip {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 99px;
+  padding: 7px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: var(--body);
+}
+
+body.portal-theme .lists-dict-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 0 12px;
+  align-items: center;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+body.portal-theme .lists-dict-search {
+  flex: 1;
+  min-width: 160px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: var(--body);
+}
+
+body.portal-theme .lists-dict-stats {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0 0 10px;
+}
+
+body.portal-theme .lists-dict-words {
+  max-height: none;
+}
+
+body.portal-theme .lists-type-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: rgba(59, 130, 246, 0.12);
+  color: #2563eb;
+  vertical-align: middle;
+  margin-left: 4px;
+}
+
+body.portal-theme .lists-type-badge.gre {
+  background: rgba(192, 57, 43, 0.12);
+  color: #c0392b;
+}
+
+body.portal-theme .lists-type-badge.dict {
+  background: rgba(59, 130, 246, 0.12);
+  color: #2563eb;
+}
+
+body.portal-theme .lists-side-section {
+  margin-bottom: 18px;
+}
+
+body.portal-theme .lists-side-heading {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.55px;
+  color: var(--text-muted);
+  margin: 0 0 4px 4px;
+}
+
+body.portal-theme .drill-prog {
+  color: var(--text-muted);
+}
+
+body.portal-theme .drill-word {
+  font-family: var(--head);
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.5px;
+}
+
+body.portal-theme .quiz-list-chip.active {
+  background: rgba(192, 57, 43, 0.12);
+  color: #c0392b;
+  border-color: rgba(192, 57, 43, 0.35);
+}
+
+body.portal-theme .quiz-timer {
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #c0392b;
+  min-width: 42px;
+  text-align: center;
+}
+
+body.portal-theme .quiz-builder {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+body.portal-theme .quiz-start-btn {
+  display: block;
+  width: 100%;
+  margin-top: 14px;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #c0392b, #e74c3c);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: var(--body);
+}
+
+body.portal-theme .quiz-blank-input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 16px;
+  margin: 10px 0;
+  font-family: var(--body);
+}
+
+body.portal-theme .quiz-blank-sent {
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--text);
+  margin: 8px 0 4px;
+}
+
+body.portal-theme .se-opt.selected {
+  border-color: #c0392b;
+  background: rgba(192, 57, 43, 0.08);
+}
+
+body.portal-theme .word-difficulty {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 20px 12px;
+}
+
+body.portal-theme .diff-chip {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 99px;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: var(--body);
+}
+
+body.portal-theme .diff-chip.active {
+  background: rgba(46, 125, 50, 0.12);
+  color: #2e7d32;
+  border-color: rgba(46, 125, 50, 0.35);
+}
+
+body.portal-theme .analytics-panel {
+  margin: 16px 20px 24px;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+}
+
+body.portal-theme .analytics-panel h3 {
+  font-size: 16px;
+  margin: 0 0 12px;
+}
+
+body.portal-theme .analytics-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+body.portal-theme .analytics-card {
+  background: var(--surface-2);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+body.portal-theme .analytics-card h4 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--text-muted);
+  margin: 0 0 8px;
+}
+
+body.portal-theme .analytics-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+body.portal-theme .analytics-weak {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  margin: 4px 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  font-size: 12px;
+  cursor: pointer;
+  font-family: var(--body);
+}
+
+body.portal-theme .analytics-empty {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+body.portal-theme .dash-study-plan {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+body.portal-theme .dash-study-plan li {
+  padding: 3px 0;
+}
+
+body.portal-theme .dash-study-plan-note {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 8px 0 0;
+  line-height: 1.45;
+}
+
+body.portal-theme #screen-mock {
+  background: var(--surface-2);
+  flex-direction: column;
+}
+
+body.portal-theme #screen-mock .quiz-topbar {
+  padding: 14px 20px 10px;
+}
+
+body.portal-theme #screen-mock .quiz-page-title {
+  font-family: var(--head, var(--body));
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+body.portal-theme .portal-util-btn,
+body.portal-theme a.portal-util-btn {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+
+body.portal-theme .quiz-session {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+body.portal-theme .quiz-bg {
+  background: transparent;
+  border-bottom: none;
+  padding: 16px 20px 0;
+}
+
+/* ── Flashcards ── */
+body.portal-theme .the-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-md);
+}
+
+body.portal-theme .the-card::after {
+  display: none;
+}
+
+body.portal-theme .card-word {
+  color: var(--text);
+}
+
+body.portal-theme .card-phon {
+  color: var(--text-muted);
+}
+
+body.portal-theme .card-def {
+  color: var(--text);
+}
+
+body.portal-theme .card-example {
+  background: var(--brand-light);
+  color: var(--text-muted);
+  border-left-color: var(--brand);
+}
+
+body.portal-theme .card-example em {
+  color: var(--brand-dark);
+}
+
+body.portal-theme .syn-box {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+
+body.portal-theme .syn-box p {
+  color: var(--text-muted);
+}
+
+body.portal-theme .ai-hint-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+
+body.portal-theme .ai-hint-btn:hover {
+  background: var(--brand-light);
+  border-color: #c5d9ce;
+}
+
+body.portal-theme .ai-hint-box {
+  background: var(--brand-light);
+  border-color: #c5d9ce;
+}
+
+body.portal-theme .ai-hint-box p {
+  color: var(--text);
+}
+
+body.portal-theme .speak-btn {
+  background: var(--brand-light);
+  border: 1px solid #c5d9ce;
+  color: var(--brand-dark);
+}
+
+/* ── Quiz & Mock ── */
+body.portal-theme .quiz-body {
+  background: var(--surface-2);
+  padding-bottom: 24px;
+}
+
+body.portal-theme .qpip {
+  background: var(--border);
+}
+
+body.portal-theme .qpip.done {
+  background: var(--brand);
+}
+
+body.portal-theme .qpip.current {
+  background: var(--brand-muted);
+}
+
+body.portal-theme .quiz-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+body.portal-theme .quiz-label {
+  color: var(--brand-muted);
+}
+
+body.portal-theme .quiz-word {
+  color: var(--text);
+}
+
+body.portal-theme .quiz-hint {
+  color: var(--text-muted);
+}
+
+body.portal-theme .quiz-question {
+  color: var(--text);
+}
+
+body.portal-theme .opt {
+  background: var(--surface);
+  border: 1.5px solid var(--border) !important;
+  color: var(--text);
+}
+
+body.portal-theme .opt:hover:not(:disabled) {
+  background: var(--brand-light);
+  border-color: #c5d9ce !important;
+}
+
+body.portal-theme .opt-letter {
+  background: var(--brand-light);
+  color: var(--brand-dark);
+}
+
+body.portal-theme .quiz-next {
+  background: var(--brand);
+  color: #fff;
+}
+
+body.portal-theme .quiz-next.portal-btn-secondary {
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border);
+}
+
+body.portal-theme .mock-timer {
+  color: var(--brand-dark);
+}
+
+/* ── Word Bank ── */
+body.portal-theme .wb-header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 20px;
+}
+
+body.portal-theme .search-bar {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+
+body.portal-theme .search-bar input {
+  color: var(--text);
+}
+
+body.portal-theme .search-bar input::placeholder {
+  color: var(--text-muted);
+}
+
+body.portal-theme .search-bar span {
+  color: var(--text-muted);
+}
+
+body.portal-theme .fchip {
+  border-color: var(--border);
+  color: var(--text-muted);
+  background: var(--surface);
+}
+
+body.portal-theme .fchip.active {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #fff;
+}
+
+body.portal-theme #wb-count {
+  background: var(--brand-light) !important;
+  color: var(--brand-dark) !important;
+}
+
+/* ── Progress ── */
+body.portal-theme .prog-header {
+  background: var(--surface);
+}
+
+body.portal-theme .prog-big {
+  background: var(--brand-light);
+  border: 1px solid #c5d9ce;
+}
+
+body.portal-theme .prog-big-num {
+  color: var(--brand-dark);
+}
+
+body.portal-theme .prog-big-lbl {
+  color: var(--brand-muted);
+}
+
+body.portal-theme .prog-sm {
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+body.portal-theme .prog-sm-num {
+  color: var(--text);
+}
+
+body.portal-theme .legal-footer a {
+  color: var(--text-muted);
+}
+
+/* ── AI Tutor ── */
+body.portal-theme .tutor-header {
+  background: var(--surface);
+}
+
+body.portal-theme .tutor-header .tutor-badge {
+  background: var(--brand-light);
+  color: var(--brand-dark);
+}
+
+body.portal-theme .tutor-messages {
+  background: var(--surface-2);
+}
+
+body.portal-theme .tutor-msg.bot .tutor-avatar {
+  background: var(--brand-light);
+}
+
+body.portal-theme .tutor-msg.bot .tutor-bubble {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+body.portal-theme .tutor-msg.user .tutor-bubble {
+  background: var(--brand);
+  color: #fff;
+}
+
+body.portal-theme .tutor-bubble.tutor-typing .dot {
+  background: var(--text-muted);
+}
+
+body.portal-theme .tutor-chip {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  font-family: var(--body);
+  font-size: 12px;
+  padding: 8px 12px;
+  border-radius: 99px;
+}
+
+body.portal-theme .tutor-chip:hover {
+  background: var(--brand-light);
+  border-color: #c5d9ce;
+}
+
+body.portal-theme .tutor-chip:active {
+  transform: scale(0.98);
+}
+
+body.portal-theme .tutor-input-row {
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+}
+
+body.portal-theme #tutor-input {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+body.portal-theme #tutor-input::placeholder {
+  color: var(--text-muted);
+}
+
+body.portal-theme #tutor-send {
+  background: var(--brand);
+  color: #fff;
+}
+
+/* ── Spelling ── */
+body.portal-theme .spell-def {
+  color: var(--text);
+}
+
+body.portal-theme .spell-hint-phon {
+  color: var(--text-muted);
+}
+
+body.portal-theme .spell-word-display {
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+body.portal-theme .spell-blank {
+  background: var(--surface);
+  border-bottom-color: var(--border);
+  color: var(--text);
+}
+
+body.portal-theme .spell-blank.filled {
+  border-bottom-color: var(--brand);
+  color: var(--brand-dark);
+}
+
+body.portal-theme .spell-key {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+body.portal-theme .spell-key:active {
+  background: var(--brand);
+  color: #fff;
+}
+
+body.portal-theme .spell-submit {
+  background: var(--brand);
+  color: #fff;
+}
+
+body.portal-theme .spell-next {
+  background: var(--brand);
+  color: #fff;
+}
+
+/* ── Settings page ── */
+body.portal-theme #screen-settings {
+  background: var(--surface-2);
+}
+
+body.portal-theme .settings-page-header {
+  margin-bottom: 0;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 24px 12px;
+  box-shadow: var(--shadow-sm);
+}
+
+body.portal-theme.web-desktop .settings-page-header {
+  padding: 16px 40px 16px;
+}
+
+body.portal-theme .settings-body {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 8px 24px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+body.portal-theme.web-desktop .settings-body {
+  padding: 8px 40px 56px;
+}
+
+body.portal-theme .settings-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+body.portal-theme .settings-card-head {
+  padding: 18px 20px 0;
+}
+
+body.portal-theme .settings-card-head h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 4px;
+}
+
+body.portal-theme .settings-card-head p {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0 0 14px;
+  line-height: 1.45;
+}
+
+body.portal-theme .settings-card-body {
+  padding: 0 20px 20px;
+}
+
+body.portal-theme .settings-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+body.portal-theme .settings-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 4px;
+}
+
+body.portal-theme .settings-stat {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 10px;
+  text-align: center;
+}
+
+body.portal-theme .settings-stat-val {
+  display: block;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--brand-dark);
+  line-height: 1.2;
+}
+
+body.portal-theme .settings-stat-lbl {
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-top: 4px;
+}
+
+body.portal-theme .settings-field-row {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+  margin-top: 4px;
+}
+
+body.portal-theme .settings-field-row .settings-input {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+body.portal-theme .settings-field-row .portal-btn {
+  width: auto;
+  margin-top: 0;
+  padding: 12px 18px;
+  white-space: nowrap;
+}
+
+body.portal-theme .settings-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 99px;
+  margin-bottom: 12px;
+}
+
+body.portal-theme .settings-badge.ok {
+  background: var(--brand-light);
+  color: var(--brand-dark);
+}
+
+body.portal-theme .settings-badge.locked {
+  background: #f5f5f5;
+  color: var(--text-muted);
+}
+
+body.portal-theme .settings-badge.dev {
+  background: #fff8e6;
+  color: #b8860b;
+}
+
+body.portal-theme .settings-row-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+body.portal-theme .settings-action-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+body.portal-theme .settings-action-stack .portal-btn {
+  margin-top: 0;
+}
+
+body.portal-theme .settings-foot {
+  text-align: center;
+  padding: 8px 0 16px;
+}
+
+body.portal-theme .settings-foot a {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--brand);
+  text-decoration: none;
+}
+
+body.portal-theme .settings-foot a:hover {
+  text-decoration: underline;
+}
+
+body.portal-theme .list-setting-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+body.portal-theme .list-setting-num {
+  width: 24px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-align: center;
+  flex-shrink: 0;
+}
+
+@media (max-width: 520px) {
+  body.portal-theme .settings-stat-grid {
+    grid-template-columns: 1fr;
+  }
+
+  body.portal-theme .settings-field-row {
+    flex-direction: column;
+  }
+
+  body.portal-theme .settings-field-row .portal-btn {
+    width: 100%;
+  }
+}
+
+body.portal-theme .screen-panel {
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+body.portal-theme .settings-text {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 8px 0;
+  line-height: 1.45;
+}
+
+body.portal-theme .settings-input {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--body);
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+body.portal-theme .portal-btn {
+  width: 100%;
+  background: var(--brand);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 14px;
+  font-family: var(--body);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 8px;
+}
+
+body.portal-theme .portal-btn-secondary {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+body.portal-theme #settings-wrap .ob-chip,
+body.portal-theme .settings-chip-row .ob-chip,
+body.portal-theme .screen-panel .ob-chip {
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  padding: 8px 16px;
+  border-radius: 99px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+body.portal-theme #settings-wrap .ob-chip.active,
+body.portal-theme .settings-chip-row .ob-chip.active,
+body.portal-theme .screen-panel .ob-chip.active {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #fff;
+}
+
+body.portal-theme .list-setting-input {
+  flex: 1;
+  border: 1px solid var(--border) !important;
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-family: var(--body);
+  font-size: 13px;
+}
+
+body.portal-theme .list-move-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: var(--brand-light);
+  color: var(--brand-dark);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+body.portal-theme .list-move-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* ── Leagues, drill, speak ── */
+body.portal-theme .league-row {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+body.portal-theme .league-row.you {
+  border-color: var(--brand);
+  background: var(--brand-light);
+}
+
+body.portal-theme .league-header-card {
+  background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+}
+
+body.portal-theme .speak-prompt {
+  color: var(--text-muted);
+}
+
+body.portal-theme .speak-def {
+  color: var(--text);
+}
+
+/* ── Mobile chrome ── */
+body.portal-theme .nav-bar {
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+}
+
+body.portal-theme .nav-item {
+  color: var(--text-muted);
+}
+
+body.portal-theme .nav-item.active {
+  color: var(--brand);
+}
+
+body.portal-theme .status-bar {
+  background: var(--surface);
+  color: var(--text);
+}
+
+body.portal-theme .phone-screen {
+  background: var(--surface-2);
+}
+
+body.portal-theme .desktop-shell {
+  background: #f0f4f2;
+}
+
+body.portal-theme.web-mobile:not(.native-app) .desktop-shell,
+body.portal-theme.native-app .desktop-shell {
+  background: var(--surface-2);
+}
+
+/* ── Daily word panel ── */
+body.portal-theme .daily-word-panel {
+  background: var(--surface);
+}
+
+body.portal-theme .dwp-word-card {
+  background: var(--surface-2);
+  border-color: var(--border);
+}
+
+body.portal-theme .dwp-word {
+  color: var(--text);
+}
+
+body.portal-theme .dwp-phon {
+  color: var(--text-muted);
+}
+
+body.portal-theme .dwp-def {
+  color: var(--text);
+}
+
+body.portal-theme .dwp-ex {
+  color: var(--text-muted);
+}
+
+body.portal-theme .dwp-notif-toggle {
+  background: var(--surface-2);
+  border-color: var(--border);
+}
+
+body.portal-theme .dwp-notif-toggle span {
+  color: var(--text-muted);
+}
+
+body.portal-theme .toggle-pill {
+  background: var(--brand);
+}
+
+body.portal-theme #wb-count,
+body.portal-theme .portal-badge {
+  background: var(--brand-light) !important;
+  color: var(--brand-dark) !important;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 99px;
+}
+
+body.portal-theme .portal-btn.show {
+  display: block;
+}
+
+body.portal-theme .portal-btn-secondary.show {
+  display: block;
+}
+
+body.portal-theme #screen-onboarding {
+  background: var(--surface-2) !important;
+}
+
+/* ── Flashcard List View Styles ── */
+body.portal-theme .fc-list-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+  padding: 0 20px 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+body.portal-theme .fc-list-tabs::-webkit-scrollbar {
+  display: none;
+}
+body.portal-theme .fc-list-tab {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-family: var(--body);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 6px 12px;
+  border-radius: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+body.portal-theme .fc-list-tab:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+body.portal-theme .fc-list-tab.active {
+  background: var(--text);
+  color: var(--surface);
+  border-color: var(--text);
+}
+body.portal-theme .fc-tab-count {
+  font-size: 10px;
+  background: rgba(0, 0, 0, 0.08);
+  color: inherit;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-weight: 700;
+}
+body.portal-theme .fc-list-tab.active .fc-tab-count {
+  background: rgba(255, 255, 255, 0.2);
+}
+body.portal-theme .fc-word-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: inline-block;
+}
+body.portal-theme .fc-word-badge.badge-miss {
+  background: rgba(231, 76, 60, 0.1);
+  color: #e74c3c;
+}
+body.portal-theme .fc-word-badge.badge-hard {
+  background: rgba(243, 156, 18, 0.15);
+  color: #d35400;
+}
+body.portal-theme .fc-word-badge.badge-good {
+  background: rgba(52, 152, 219, 0.1);
+  color: #2980b9;
+}
+body.portal-theme .fc-word-badge.badge-nailed {
+  background: rgba(46, 204, 113, 0.1);
+  color: #27ae60;
+}
+body.portal-theme .fc-word-badge.badge-unrated {
+  background: rgba(149, 165, 166, 0.1);
+  color: #7f8c8d;
+}
+
+body.portal-theme .fc-toggle-list-btn {
+  width: auto !important;
+  height: 38px !important;
+  padding: 0 14px !important;
+  font-size: 13px !important;
+  border-radius: 12px !important;
+  margin-left: 8px;
+  background: rgba(0, 0, 0, 0.06) !important;
+  color: var(--text) !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  border: none !important;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+body.portal-theme .fc-toggle-list-btn:hover {
+  background: rgba(0, 0, 0, 0.1) !important;
+}
+
+

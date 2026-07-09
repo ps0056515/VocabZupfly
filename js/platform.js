@@ -5,10 +5,8 @@ LQ.isNativeApp = function () {
   return !!(cap && cap.isNativePlatform && cap.isNativePlatform());
 };
 
-/** Browser-only: 'auto' | 'phone' | 'web' */
 LQ.getBrowserLayoutPref = function () {
-  if (LQ.S && LQ.S.browserLayout) return LQ.S.browserLayout;
-  return 'auto';
+  return 'auto'; // Always auto-detect layout based on browser width
 };
 
 LQ.isWebDesktop = function () {
@@ -62,6 +60,7 @@ LQ.applyPlatformUI = function () {
 };
 
 LQ.renderLayoutSwitcher = function () {
+  return; // Disabled layout switcher option as requested
   if (LQ.isNativeApp()) return;
 
   var pref = LQ.getBrowserLayoutPref();
@@ -141,3 +140,51 @@ if (document.readyState === 'loading') {
 }
 
 window.LQ.setBrowserLayout = LQ.setBrowserLayout;
+
+/* ── Mobile Hamburger Drawer ── */
+
+LQ.openDrawer = function () {
+  if (LQ.isWebDesktop()) return;
+  var sheet = document.getElementById('mobile-drawer');
+  if (!sheet) return;
+  sheet.classList.add('open');
+  document.body.classList.add('mobile-drawer-open');
+  sheet.setAttribute('aria-hidden', 'false');
+  LQ.updateDrawerActiveState();
+};
+
+LQ.closeDrawer = function () {
+  var sheet = document.getElementById('mobile-drawer');
+  if (sheet) {
+    sheet.classList.remove('open');
+    sheet.setAttribute('aria-hidden', 'true');
+  }
+  document.body.classList.remove('mobile-drawer-open');
+};
+
+LQ.toggleDrawer = function () {
+  var sheet = document.getElementById('mobile-drawer');
+  if (!sheet) return;
+  if (sheet.classList.contains('open')) {
+    LQ.closeDrawer();
+  } else {
+    LQ.openDrawer();
+  }
+};
+
+/** Highlights the drawer item matching the current screen */
+LQ.updateDrawerActiveState = function () {
+  var current = LQ._currentScreen || 'home';
+  document.querySelectorAll('.mobile-drawer-item').forEach(function (btn) {
+    btn.classList.remove('active');
+  });
+  var meta = LQ.SCREEN_META ? LQ.SCREEN_META[current] : null;
+  var navId = meta ? (meta.nav || current) : current;
+  var activeBtn = document.querySelector('.mobile-drawer-item[data-screen="' + current + '"]') ||
+                  document.querySelector('.mobile-drawer-item[data-nav="' + navId + '"]');
+  if (activeBtn) activeBtn.classList.add('active');
+};
+
+window.LQ.openDrawer  = LQ.openDrawer;
+window.LQ.closeDrawer = LQ.closeDrawer;
+window.LQ.toggleDrawer = LQ.toggleDrawer;

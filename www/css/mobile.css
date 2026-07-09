@@ -1,0 +1,538 @@
+/**
+ * LexiQuest — Mobile-only UI
+ * Hamburger button + slide-in left drawer navigation
+ * Only active on body.native-app and body.web-mobile
+ */
+
+/* ─────────────────────────────────────────────
+   Hide bottom nav bar on mobile/native
+   Navigation lives entirely in the hamburger drawer
+   ───────────────────────────────────────────── */
+body.native-app .nav-bar,
+body.web-mobile .nav-bar {
+  display: none !important;
+}
+
+/* ─────────────────────────────────────────────
+   Hide fake phone notch + mock status bar on native
+   ───────────────────────────────────────────── */
+body.native-app .phone-notch {
+  display: none !important;
+}
+body.native-app .status-bar {
+  display: none !important;
+}
+
+/* Also hide in real narrow-browser view */
+@media (max-width: 500px) {
+  .phone-notch { display: none !important; }
+  .status-bar  { display: none !important; }
+}
+
+/* ─────────────────────────────────────────────
+   Safe-area padding — push app content below
+   the real device notch / status bar
+   ───────────────────────────────────────────── */
+body.native-app .app-inner {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* On native, phone-screen should account for real safe areas */
+body.native-app .phone-screen {
+  padding-top: 0; /* safe area handled by app-inner */
+}
+
+/* ─────────────────────────────────────────────
+   Hamburger button — fixed top-left
+   Only shown on native-app and web-mobile
+   ───────────────────────────────────────────── */
+.mobile-hamburger {
+  display: none; /* hidden by default */
+  position: fixed;
+  top: max(14px, env(safe-area-inset-top, 14px));
+  right: 16px;
+  z-index: 4900;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: none;
+  background: #c0392b;
+  color: #fff;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.22);
+  transition: transform 0.12s, background 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-hamburger:active {
+  transform: scale(0.93);
+  background: #a93225;
+}
+
+/* Show hamburger only on mobile/native modes */
+body.native-app .mobile-hamburger,
+body.web-mobile .mobile-hamburger {
+  display: flex;
+}
+
+/* Always hidden on web-desktop */
+body.web-desktop .mobile-hamburger {
+  display: none !important;
+}
+
+/* Hamburger icon — 3 bars */
+.mobile-hamburger-icon {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 20px;
+}
+.mobile-hamburger-icon span {
+  display: block;
+  width: 100%;
+  height: 2.5px;
+  background: #fff;
+  border-radius: 2px;
+  transition: transform 0.22s, opacity 0.22s;
+}
+/* Animate to X when open */
+body.mobile-drawer-open .mobile-hamburger-icon span:nth-child(1) {
+  transform: translateY(6.5px) rotate(45deg);
+}
+body.mobile-drawer-open .mobile-hamburger-icon span:nth-child(2) {
+  opacity: 0;
+}
+body.mobile-drawer-open .mobile-hamburger-icon span:nth-child(3) {
+  transform: translateY(-6.5px) rotate(-45deg);
+}
+
+/* ─────────────────────────────────────────────
+   Portal header right padding — don't overlap hamburger
+   ───────────────────────────────────────────── */
+body.native-app .portal-header,
+body.web-mobile .portal-header {
+  padding-right: 68px;
+}
+
+/* Restore normal padding on web-desktop */
+body.web-desktop .portal-header {
+  padding-right: 40px;
+}
+
+/* ─────────────────────────────────────────────
+   Mobile drawer sheet (backdrop + panel)
+   ───────────────────────────────────────────── */
+.mobile-drawer-sheet {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
+}
+
+.mobile-drawer-sheet.open {
+  display: block;
+}
+
+/* Dim backdrop */
+.mobile-drawer-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.48);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+  animation: fadeBackdrop 0.25s ease forwards;
+}
+
+@keyframes fadeBackdrop {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* The slide-in panel — from the RIGHT */
+.mobile-drawer-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 280px;
+  max-width: 82vw;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+
+  /* Safe area padding on iOS */
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+
+  box-shadow: -4px 0 32px rgba(0, 0, 0, 0.18);
+
+  /* Slide in from right */
+  transform: translateX(100%);
+  animation: slideInDrawer 0.28s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.mobile-drawer-panel::-webkit-scrollbar {
+  display: none;
+}
+
+@keyframes slideInDrawer {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+
+/* ─────────────────────────────────────────────
+   Drawer brand header
+   ───────────────────────────────────────────── */
+.mobile-drawer-brand {
+  position: relative;
+  font-family: var(--head, 'Syne', sans-serif);
+  font-size: 22px;
+  font-weight: 700;
+  color: #0f172a;
+  padding: 22px 20px 18px;
+  border-bottom: 1px solid #f0f0f0;
+  letter-spacing: -0.4px;
+  flex-shrink: 0;
+}
+
+.mobile-drawer-brand span {
+  color: #c0392b;
+}
+
+.mobile-drawer-close {
+  position: absolute;
+  top: 50%;
+  right: 18px;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  font-size: 20px;
+  color: #64748b;
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s;
+}
+.mobile-drawer-close:hover {
+  color: #0f172a;
+}
+
+/* ─────────────────────────────────────────────
+   Drawer navigation content
+   ───────────────────────────────────────────── */
+.mobile-drawer-nav {
+  flex: 1;
+  padding: 10px 12px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  overflow-y: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.mobile-drawer-nav::-webkit-scrollbar {
+  display: none;
+}
+
+/* Section label */
+.mobile-drawer-section {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  color: #94a3b8;
+  padding: 14px 8px 5px;
+  margin-top: 4px;
+}
+
+.mobile-drawer-section:first-child {
+  margin-top: 0;
+}
+
+/* Nav item button */
+.mobile-drawer-item {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 11px 12px;
+  border: none;
+  background: transparent;
+  border-radius: 10px;
+  font-family: var(--body, 'Plus Jakarta Sans', sans-serif);
+  font-size: 14px;
+  font-weight: 500;
+  color: #334155;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.13s, color 0.13s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-drawer-item:active {
+  background: rgba(192, 57, 43, 0.08);
+  color: #c0392b;
+}
+
+.mobile-drawer-item:hover {
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+.mobile-drawer-item .drawer-icon {
+  font-size: 19px;
+  flex-shrink: 0;
+  width: 26px;
+  text-align: center;
+  line-height: 1;
+}
+
+/* Active state (current screen) */
+.mobile-drawer-item.active {
+  background: #fdecea;
+  color: #c0392b;
+  font-weight: 700;
+}
+
+.mobile-drawer-item.active .drawer-icon {
+  filter: none;
+}
+
+/* ─────────────────────────────────────────────
+   Drawer footer
+   ───────────────────────────────────────────── */
+.mobile-drawer-footer {
+  padding: 12px 20px 16px;
+  border-top: 1px solid #f0f4f2;
+  font-size: 11px;
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+/* ─────────────────────────────────────────────
+   Body scroll lock when drawer is open
+   ───────────────────────────────────────────── */
+body.mobile-drawer-open {
+  overflow: hidden;
+}
+
+/* ─────────────────────────────────────────────
+   App-inner bottom padding — no nav bar now,
+   so add some breathing room at the bottom
+   ───────────────────────────────────────────── */
+body.native-app .app-inner,
+body.web-mobile .app-inner {
+  padding-bottom: max(16px, env(safe-area-inset-bottom, 16px));
+}
+
+/* ─────────────────────────────────────────────
+   Word Lists screen — mobile / native fixes
+   ───────────────────────────────────────────── */
+
+/* Fix: header title cut off by hamburger (right side) */
+body.web-mobile #screen-lists .lists-page-header,
+body.native-app #screen-lists .lists-page-header {
+  padding-right: 68px !important;
+}
+
+/* Fix: remove old bottom padding that assumed a bottom nav bar */
+body.web-mobile .lists-page,
+body.native-app .lists-page {
+  padding-bottom: max(24px, env(safe-area-inset-bottom, 24px)) !important;
+}
+
+/* Fix: sidebar chip strip — make it a proper horizontal scroll row */
+body.web-mobile .lists-sidebar,
+body.native-app .lists-sidebar {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  gap: 8px !important;
+  padding: 10px 16px 12px !important;
+  margin: 0 !important;
+  border: none !important;
+  border-bottom: 1px solid var(--border, #e2e8f0) !important;
+  background: #fff !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 10 !important;
+  scrollbar-width: none !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+body.web-mobile .lists-sidebar::-webkit-scrollbar,
+body.native-app .lists-sidebar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Fix: each list chip — compact pill shape */
+body.web-mobile .lists-side-item,
+body.native-app .lists-side-item {
+  flex: 0 0 auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+  padding: 7px 14px !important;
+  white-space: nowrap !important;
+  border-radius: 99px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+}
+
+/* Fix: hide icon and subtext inside chips — too cramped */
+body.web-mobile .lists-side-icon,
+body.native-app .lists-side-icon,
+body.web-mobile .lists-side-sub,
+body.native-app .lists-side-sub {
+  display: none !important;
+}
+
+/* Fix: main word-groups area — full width, proper scroll */
+body.web-mobile .lists-main,
+body.native-app .lists-main {
+  flex: 1 !important;
+  min-width: 0 !important;
+  width: 100% !important;
+  padding: 12px 0 0 !important;
+  overflow: visible !important;
+}
+
+/* Fix: word group rows — proper mobile sizing */
+body.web-mobile .lists-groups,
+body.native-app .lists-groups {
+  max-height: none !important;
+  overflow: visible !important;
+  padding: 0 0 8px !important;
+}
+
+/* Fix: group action buttons — prevent overflow on narrow screens */
+body.web-mobile .lists-group-actions,
+body.native-app .lists-group-actions {
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+body.web-mobile .lists-group-action,
+body.native-app .lists-group-action {
+  font-size: 11px;
+  padding: 6px 10px;
+}
+
+/* Fix: lists-main-head inside scroll should be readable */
+body.web-mobile .lists-main-head,
+body.native-app .lists-main-head {
+  padding: 10px 16px 12px !important;
+  margin-bottom: 8px !important;
+}
+
+/* Fix: search input in lists header — full width on mobile */
+body.web-mobile #screen-lists .portal-header-actions,
+body.native-app #screen-lists .portal-header-actions {
+  flex: 1;
+  max-width: 100%;
+  flex-wrap: wrap;
+}
+
+body.web-mobile #screen-lists .portal-search,
+body.native-app #screen-lists .portal-search {
+  width: 100%;
+  min-width: 0;
+}
+
+/* Fix: hide section heading/description inside sidebar on mobile
+   (they say "GRE WORD LISTS / Synonym groups..." — too verbose for chips) */
+body.web-mobile .lists-side-section,
+body.native-app .lists-side-section {
+  display: contents; /* let children participate in parent flex row directly */
+}
+
+body.web-mobile .lists-side-heading,
+body.native-app .lists-side-heading,
+body.web-mobile .lists-side-desc,
+body.native-app .lists-side-desc {
+  display: none !important;
+}
+
+/* ── Word Bank Mobile Sticky Header & Scrolling List ── */
+body.web-mobile #screen-wordbank.active,
+body.native-app #screen-wordbank.active {
+  display: flex;
+}
+
+body.web-mobile #screen-wordbank,
+body.native-app #screen-wordbank {
+  height: 100vh;
+  height: 100dvh;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+body.web-mobile #screen-wordbank .wb-header,
+body.native-app #screen-wordbank .wb-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  flex-shrink: 0;
+  padding: 14px 16px 12px !important;
+}
+
+body.web-mobile #screen-wordbank .wb-list,
+body.native-app #screen-wordbank .wb-list {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 12px 16px 24px !important;
+}
+
+/* ── Flashcard Mobile Sticky Header & Scrolling Container ── */
+body.web-mobile #screen-flashcard.active,
+body.native-app #screen-flashcard.active {
+  display: flex;
+}
+
+body.web-mobile #screen-flashcard,
+body.native-app #screen-flashcard {
+  height: 100vh;
+  height: 100dvh;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+body.web-mobile #screen-flashcard .lesson-top,
+body.native-app #screen-flashcard .lesson-top {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  flex-shrink: 0;
+}
+
+body.web-mobile #screen-flashcard .learn-list-bar,
+body.native-app #screen-flashcard .learn-list-bar,
+body.web-mobile #screen-flashcard .fc-progress-track,
+body.native-app #screen-flashcard .fc-progress-track {
+  flex-shrink: 0;
+}
+
+body.web-mobile #screen-flashcard .fc-scroll-container,
+body.native-app #screen-flashcard .fc-scroll-container {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 16px 0 24px !important;
+}
+
+
+
+

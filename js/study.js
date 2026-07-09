@@ -596,7 +596,7 @@ LQ.renderSpell = function () {
     LQ.H +
     ' class="spell-result" id="spell-result"></' +
     LQ.H +
-    '><button type="button" class="spell-del" onclick="LQ.spellDel()">⌫</button><button type="button" class="spell-submit" onclick="LQ.spellSubmit()">Check</button>' +
+    '><div class="spell-actions"><button type="button" class="spell-del" onclick="LQ.spellDel()">↺</button><button type="button" class="spell-submit" onclick="LQ.spellSubmit()">Check</button></div>' +
     '<button type="button" class="spell-next" id="spell-next-btn" onclick="LQ.spellNext()">Next →</button>';
   const kb = document.getElementById('spell-keyboard');
   if (kb) {
