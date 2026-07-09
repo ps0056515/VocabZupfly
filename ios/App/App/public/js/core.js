@@ -131,6 +131,9 @@ LQ.goTo = function (screen, opts) {
   }
   if (opts.resetStack) LQ._navStack = [];
   LQ._currentScreen = screen;
+  try {
+    sessionStorage.setItem('currentScreen', screen);
+  } catch (e) {}
   if (LQ.closeMoreMenu) LQ.closeMoreMenu();
   if (LQ.closeDrawer) LQ.closeDrawer();
 

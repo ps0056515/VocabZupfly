@@ -5,10 +5,8 @@ LQ.isNativeApp = function () {
   return !!(cap && cap.isNativePlatform && cap.isNativePlatform());
 };
 
-/** Browser-only: 'auto' | 'phone' | 'web' */
 LQ.getBrowserLayoutPref = function () {
-  if (LQ.S && LQ.S.browserLayout) return LQ.S.browserLayout;
-  return 'auto';
+  return 'auto'; // Always auto-detect layout based on browser width
 };
 
 LQ.isWebDesktop = function () {
@@ -62,6 +60,7 @@ LQ.applyPlatformUI = function () {
 };
 
 LQ.renderLayoutSwitcher = function () {
+  return; // Disabled layout switcher option as requested
   if (LQ.isNativeApp()) return;
 
   var pref = LQ.getBrowserLayoutPref();
