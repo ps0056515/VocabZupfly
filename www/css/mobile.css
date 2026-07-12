@@ -43,14 +43,14 @@ body.native-app .phone-screen {
 }
 
 /* ─────────────────────────────────────────────
-   Hamburger button — fixed top-left
+   Hamburger button — draggable, default bottom-left
    Only shown on native-app and web-mobile
    ───────────────────────────────────────────── */
 .mobile-hamburger {
   display: none; /* hidden by default */
   position: fixed;
-  top: max(14px, env(safe-area-inset-top, 14px));
-  right: 16px;
+  bottom: max(20px, env(safe-area-inset-bottom, 20px));
+  left: max(20px, env(safe-area-inset-left, 20px));
   z-index: 4900;
   width: 44px;
   height: 44px;
@@ -67,6 +67,7 @@ body.native-app .phone-screen {
   box-shadow: 0 2px 16px rgba(0, 0, 0, 0.22);
   transition: transform 0.12s, background 0.15s;
   -webkit-tap-highlight-color: transparent;
+  touch-action: none; /* prevent native scrolling/gestures while dragging */
 }
 
 .mobile-hamburger:active {
@@ -112,11 +113,11 @@ body.mobile-drawer-open .mobile-hamburger-icon span:nth-child(3) {
 }
 
 /* ─────────────────────────────────────────────
-   Portal header right padding — don't overlap hamburger
+   Portal header padding — no longer need to avoid hamburger at top-right
    ───────────────────────────────────────────── */
 body.native-app .portal-header,
 body.web-mobile .portal-header {
-  padding-right: 68px;
+  padding-right: 24px;
 }
 
 /* Restore normal padding on web-desktop */
@@ -153,11 +154,10 @@ body.web-desktop .portal-header {
   to   { opacity: 1; }
 }
 
-/* The slide-in panel — from the RIGHT */
+/* The slide-in panel */
 .mobile-drawer-panel {
   position: absolute;
   top: 0;
-  right: 0;
   bottom: 0;
   width: 280px;
   max-width: 82vw;
@@ -172,18 +172,41 @@ body.web-desktop .portal-header {
   padding-top: env(safe-area-inset-top, 0px);
   padding-bottom: env(safe-area-inset-bottom, 0px);
 
-  box-shadow: -4px 0 32px rgba(0, 0, 0, 0.18);
+  /* Defaults, overridden by left/right classes */
+  left: 0;
+  box-shadow: 4px 0 32px rgba(0, 0, 0, 0.18);
+  transform: translateX(-100%);
+  animation: slideInDrawerLeft 0.28s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
 
-  /* Slide in from right */
+/* Drawer on the Left side */
+.mobile-drawer-sheet.drawer-left .mobile-drawer-panel {
+  left: 0;
+  right: auto;
+  box-shadow: 4px 0 32px rgba(0, 0, 0, 0.18);
+  transform: translateX(-100%);
+  animation: slideInDrawerLeft 0.28s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Drawer on the Right side */
+.mobile-drawer-sheet.drawer-right .mobile-drawer-panel {
+  right: 0;
+  left: auto;
+  box-shadow: -4px 0 32px rgba(0, 0, 0, 0.18);
   transform: translateX(100%);
-  animation: slideInDrawer 0.28s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: slideInDrawerRight 0.28s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 .mobile-drawer-panel::-webkit-scrollbar {
   display: none;
 }
 
-@keyframes slideInDrawer {
+@keyframes slideInDrawerLeft {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(0); }
+}
+
+@keyframes slideInDrawerRight {
   from { transform: translateX(100%); }
   to   { transform: translateX(0); }
 }
@@ -343,7 +366,7 @@ body.web-mobile .app-inner {
 /* Fix: header title cut off by hamburger (right side) */
 body.web-mobile #screen-lists .lists-page-header,
 body.native-app #screen-lists .lists-page-header {
-  padding-right: 68px !important;
+  padding-right: 24px !important;
 }
 
 /* Fix: remove old bottom padding that assumed a bottom nav bar */

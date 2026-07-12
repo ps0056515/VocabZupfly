@@ -131,6 +131,9 @@ LQ.initPlatformUI = function () {
     clearTimeout(t);
     t = setTimeout(LQ.applyPlatformUI, 120);
   });
+  if (LQ.initDraggableHamburger) {
+    LQ.initDraggableHamburger();
+  }
 };
 
 if (document.readyState === 'loading') {
@@ -188,3 +191,179 @@ LQ.updateDrawerActiveState = function () {
 window.LQ.openDrawer  = LQ.openDrawer;
 window.LQ.closeDrawer = LQ.closeDrawer;
 window.LQ.toggleDrawer = LQ.toggleDrawer;
+
+/* ── Draggable Hamburger Menu & Snapping/Persistence ── */
+
+LQ.initDraggableHamburger = function () {
+  var btn = document.getElementById('mobile-hamburger-btn');
+  var drawer = document.getElementById('mobile-drawer');
+  if (!btn) return;
+
+  var margin = 16;
+  var buttonSize = 44; // width and height in px
+  
+  // Load saved position or default to bottom-left with margin
+  var saved = localStorage.getItem('lq-hamburger-pos');
+  var pos = { side: 'left', top: window.innerHeight - buttonSize - margin - 20 };
+  if (saved) {
+    try {
+      pos = JSON.parse(saved);
+    } catch (e) {}
+  }
+
+  function applyPos() {
+    var screenW = window.innerWidth;
+    var screenH = window.innerHeight;
+    
+    // Boundaries
+    var safeAreaTop = 14;
+    var minTop = Math.max(margin, safeAreaTop);
+    var maxTop = screenH - buttonSize - margin;
+    if (pos.top < minTop) pos.top = minTop;
+    if (pos.top > maxTop) pos.top = maxTop;
+
+    btn.style.top = pos.top + 'px';
+    btn.style.bottom = 'auto'; // override stylesheet default bottom positioning
+
+    if (pos.side === 'right') {
+      btn.style.right = margin + 'px';
+      btn.style.left = 'auto';
+      if (drawer) {
+        drawer.classList.remove('drawer-left');
+        drawer.classList.add('drawer-right');
+      }
+    } else {
+      btn.style.left = margin + 'px';
+      btn.style.right = 'auto';
+      if (drawer) {
+        drawer.classList.remove('drawer-right');
+        drawer.classList.add('drawer-left');
+      }
+    }
+  }
+
+  // Initial call
+  applyPos();
+
+  window.addEventListener('resize', applyPos);
+
+  var isPointerDown = false;
+  var startX, startY;
+  var initialTop, initialLeft;
+  var hasMoved = false;
+
+  function onStart(clientX, clientY) {
+    isPointerDown = true;
+    startX = clientX;
+    startY = clientY;
+    
+    var rect = btn.getBoundingClientRect();
+    initialTop = rect.top;
+    initialLeft = rect.left;
+    hasMoved = false;
+    
+    btn.style.transition = 'none';
+  }
+
+  function onMove(clientX, clientY) {
+    if (!isPointerDown) return;
+    var dx = clientX - startX;
+    var dy = clientY - startY;
+
+    if (!hasMoved && Math.sqrt(dx * dx + dy * dy) > 6) {
+      hasMoved = true;
+    }
+
+    if (hasMoved) {
+      var screenW = window.innerWidth;
+      var screenH = window.innerHeight;
+
+      var newTop = initialTop + dy;
+      var newLeft = initialLeft + dx;
+
+      // Bound top/left
+      var safeAreaTop = 14;
+      var minTop = Math.max(margin, safeAreaTop);
+      var maxTop = screenH - buttonSize - margin;
+      if (newTop < minTop) newTop = minTop;
+      if (newTop > maxTop) newTop = maxTop;
+
+      if (newLeft < 0) newLeft = 0;
+      if (newLeft > screenW - buttonSize) newLeft = screenW - buttonSize;
+
+      btn.style.top = newTop + 'px';
+      btn.style.left = newLeft + 'px';
+      btn.style.right = 'auto';
+    }
+  }
+
+  function onEnd() {
+    if (!isPointerDown) return;
+    isPointerDown = false;
+    btn.style.transition = '';
+
+    if (hasMoved) {
+      var screenW = window.innerWidth;
+      var rect = btn.getBoundingClientRect();
+      var center = rect.left + buttonSize / 2;
+
+      if (center < screenW / 2) {
+        pos.side = 'left';
+      } else {
+        pos.side = 'right';
+      }
+      pos.top = rect.top;
+
+      try {
+        localStorage.setItem('lq-hamburger-pos', JSON.stringify(pos));
+      } catch (e) {}
+
+      applyPos();
+    }
+  }
+
+  // Mouse handlers
+  btn.addEventListener('mousedown', function (e) {
+    if (e.button !== 0) return;
+    onStart(e.clientX, e.clientY);
+    
+    function onMouseMove(e) {
+      onMove(e.clientX, e.clientY);
+    }
+    function onMouseUp() {
+      onEnd();
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    }
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  });
+
+  // Touch handlers
+  btn.addEventListener('touchstart', function (e) {
+    if (e.touches.length > 0) {
+      var touch = e.touches[0];
+      onStart(touch.clientX, touch.clientY);
+    }
+  }, { passive: true });
+
+  btn.addEventListener('touchmove', function (e) {
+    if (e.touches.length > 0) {
+      var touch = e.touches[0];
+      onMove(touch.clientX, touch.clientY);
+    }
+  }, { passive: true });
+
+  btn.addEventListener('touchend', function (e) {
+    onEnd();
+  });
+
+  // Capture click events if dragged
+  btn.addEventListener('click', function (e) {
+    if (hasMoved) {
+      e.preventDefault();
+      e.stopPropagation();
+      hasMoved = false;
+    }
+  }, true);
+};
