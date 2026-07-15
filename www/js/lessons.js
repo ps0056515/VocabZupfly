@@ -248,6 +248,7 @@ LQ.renderWordListsPage = function () {
       '<p style="color:var(--muted);font-size:14px;padding:12px 0">Loading word lists…</p>';
     return;
   }
+  if (!LQ.S) return;
   LQ.S.lessonProgress = LQ.S.lessonProgress || {};
   var chapters = LQ.getOrderedChapters ? LQ.getOrderedChapters() : LQ.CHAPTERS;
   if (!chapters.length) return;

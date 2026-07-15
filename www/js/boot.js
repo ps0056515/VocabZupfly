@@ -54,15 +54,25 @@ LQ.boot = async function () {
       if (ob) ob.classList.add('active');
       LQ.renderOnboarding();
     } else {
-      LQ.goTo('home', { resetStack: true });
-      if (LQ.renderStudentDashboard) LQ.renderStudentDashboard();
+      var lastScreen = 'home';
+      try {
+        lastScreen = sessionStorage.getItem('currentScreen') || 'home';
+      } catch (e) {}
+      if (lastScreen === 'onboarding') lastScreen = 'home';
+      LQ.goTo(lastScreen, { resetStack: true });
+      if (LQ.renderStudentDashboard && lastScreen === 'home') LQ.renderStudentDashboard();
       LQ.updateGreeting();
     }
   } catch (err) {
     console.error('LexiQuest boot failed', err);
     try {
       LQ.S = LQ.S || LQ.loadState();
-      LQ.goTo('home', { resetStack: true });
+      var lastScreen = 'home';
+      try {
+        lastScreen = sessionStorage.getItem('currentScreen') || 'home';
+      } catch (e) {}
+      if (lastScreen === 'onboarding') lastScreen = 'home';
+      LQ.goTo(lastScreen, { resetStack: true });
     } catch (e2) {}
     LQ.toast('Something failed to load — try a hard refresh (Ctrl+Shift+R)');
   } finally {

@@ -380,3 +380,8 @@ body.flow-more-open {
     display: none;
   }
 }
+
+body.web-mobile .flow-back-btn,
+body.native-app .flow-back-btn {
+  display: none !important;
+}

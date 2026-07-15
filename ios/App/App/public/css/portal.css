@@ -1,0 +1,1626 @@
+/**
+ * LexiQuest — Portal theme (ZupFly-inspired)
+ * Navy + gold + primary red — aligned with https://zupfly.com
+ */
+
+body.portal-theme {
+  --brand: #c0392b;
+  --brand-dark: #a93225;
+  --brand-light: #fdecea;
+  --brand-muted: #f5a623;
+  --surface: #ffffff;
+  --surface-2: #f8fafc;
+  --border: #e2e8f0;
+  --text: #0f172a;
+  --text-muted: #64748b;
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 4px 20px rgba(15, 23, 42, 0.08);
+  color-scheme: light;
+}
+
+body.portal-theme .desktop-shell {
+  background: #f0f4f2;
+}
+
+body.portal-theme .phone-screen {
+  background: #f8fafc;
+}
+
+body.portal-theme .app-inner {
+  background: #f8fafc;
+}
+
+/* ── Light sidebar (replaces dark rail) ── */
+body.portal-theme.web-desktop .desktop-rail {
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  padding: 20px 12px;
+  box-shadow: var(--shadow-sm);
+  overflow-y: auto;
+  max-height: 100vh;
+}
+
+body.portal-theme .desktop-rail-brand {
+  font-family: var(--body);
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--text);
+  padding: 8px 14px 24px;
+  letter-spacing: -0.3px;
+}
+
+body.portal-theme .desktop-rail-brand span {
+  color: var(--brand);
+}
+
+body.portal-theme .desktop-rail-item {
+  color: var(--text-muted);
+  font-weight: 500;
+  border-radius: 8px;
+  margin-bottom: 2px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+body.portal-theme .desktop-rail-item:hover {
+  background: var(--brand-light);
+  color: var(--brand-dark);
+}
+
+body.portal-theme .desktop-rail-item.active {
+  background: var(--brand);
+  color: #fff;
+  font-weight: 600;
+}
+
+body.portal-theme .desktop-rail-sep {
+  height: 1px;
+  background: var(--border);
+  margin: 12px 8px;
+}
+
+body.portal-theme.web-desktop .app-main,
+body.portal-theme.web-desktop .phone-screen {
+  background: var(--surface-2);
+}
+
+/* ── Portal header (Vocab home) ── */
+body.portal-theme #screen-home.active,
+body.portal-theme #screen-vocab.active {
+  background: var(--surface-2);
+}
+
+body.portal-theme #screen-vocab .home-bg.air-home,
+body.portal-theme .portal-header,
+body.portal-theme #screen-home .portal-header.student-dash-header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  padding: 12px 24px 12px;
+  box-shadow: var(--shadow-sm);
+}
+
+body.portal-theme.web-desktop #screen-vocab .home-bg.air-home,
+body.portal-theme.web-desktop .portal-header,
+body.portal-theme.web-desktop #screen-home .portal-header.student-dash-header {
+  padding: 16px 40px 16px;
+}
+
+body.portal-theme.web-desktop .portal-header > .portal-breadcrumb,
+body.portal-theme.web-desktop .portal-header > .portal-header-row {
+  max-width: 1120px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+body.portal-theme.web-desktop .tenses-page-body {
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 8px 40px 48px;
+  box-sizing: border-box;
+}
+
+body.portal-theme .portal-breadcrumb {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+body.portal-theme .portal-breadcrumb a,
+body.portal-theme .portal-breadcrumb span {
+  color: inherit;
+}
+
+body.portal-theme .portal-breadcrumb strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+body.portal-theme .portal-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+body.portal-theme .portal-title {
+  font-family: var(--body);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.5px;
+  line-height: 1.2;
+}
+
+body.portal-theme.web-desktop .portal-title {
+  font-size: 32px;
+}
+
+body.portal-theme .portal-tagline {
+  font-size: 14px;
+  color: var(--brand-muted);
+  font-style: italic;
+  font-weight: 500;
+  margin-top: 4px;
+}
+
+body.portal-theme .portal-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  max-width: 420px;
+  justify-content: flex-end;
+}
+
+body.portal-theme .portal-search {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  min-width: 180px;
+}
+
+body.portal-theme .portal-search input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-family: var(--body);
+  font-size: 14px;
+  outline: none;
+  color: var(--text);
+}
+
+body.portal-theme .portal-search input::placeholder {
+  color: #9aab9f;
+}
+
+body.portal-theme .portal-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--brand-light);
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+/* Hide gamification chrome on portal home */
+body.portal-theme #screen-vocab .streak-banner,
+body.portal-theme #screen-vocab .xp-section,
+body.portal-theme #screen-vocab .greeting,
+body.portal-theme #screen-vocab .home-topbar .avatar {
+  display: none !important;
+}
+
+body.portal-theme #screen-vocab .home-topbar {
+  display: none;
+}
+
+body.portal-theme #screen-vocab .home-body.air-body {
+  background: transparent;
+  padding: 8px 24px 24px;
+}
+
+body.portal-theme.web-desktop #screen-vocab .home-body.air-body {
+  padding: 8px 40px 48px;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+body.portal-theme #screen-vocab .dash-search {
+  display: none;
+}
+
+body.portal-theme .mobile-only-ui .portal-header-actions .portal-search {
+  display: none;
+}
+
+/* ── Hero cards (Jamboree 3-column) ── */
+body.portal-theme .vocab-heroes {
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+body.portal-theme .vocab-hero {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px 22px;
+  box-shadow: var(--shadow-sm);
+  border-top: none;
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+
+body.portal-theme .vocab-hero:hover {
+  box-shadow: var(--shadow-md);
+  border-color: #c5d9ce;
+}
+
+body.portal-theme .vocab-hero h3 {
+  font-family: var(--body);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 10px;
+}
+
+body.portal-theme .vocab-hero p {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.55;
+  min-height: 60px;
+}
+
+body.portal-theme .vocab-hero-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  padding: 10px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--brand);
+  border-top: 1px solid var(--border);
+  width: 100%;
+}
+
+body.portal-theme .vocab-hero-cta::after {
+  content: '›';
+  font-size: 18px;
+  line-height: 1;
+}
+
+/* ── Analytics row ── */
+body.portal-theme .dash-analytics {
+  gap: 16px;
+}
+
+body.portal-theme .dash-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+}
+
+body.portal-theme .dash-panel h3 {
+  font-family: var(--body);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+body.portal-theme .dash-list-bar {
+  background: var(--brand-light);
+  height: 8px;
+}
+
+body.portal-theme .dash-list-bar-touched {
+  background: rgba(26, 122, 82, 0.35);
+}
+
+body.portal-theme .dash-list-bar-known {
+  background: var(--brand);
+}
+
+body.portal-theme .dash-status-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+body.portal-theme .dash-status-num {
+  color: var(--brand-dark);
+  font-family: var(--body);
+}
+
+body.portal-theme .dash-quiz-ring-inner {
+  color: var(--brand-dark);
+}
+
+/* ring fill set inline by renderDashboard — uses --brand via JS */
+
+/* ── More tools ── */
+body.portal-theme .more-tools-toggle {
+  border-color: var(--border);
+  color: var(--text-muted);
+  background: var(--surface);
+  border-style: solid;
+}
+
+body.portal-theme .section-hd.light h2 {
+  font-family: var(--body);
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--text);
+}
+
+body.portal-theme .commit-banner {
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ── Learn / Revise screens ── */
+body.portal-theme #screen-learn,
+body.portal-theme #screen-revise {
+  background: var(--surface-2);
+}
+
+body.portal-theme #screen-learn .learn-card,
+body.portal-theme #screen-revise .revise-front {
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+body.portal-theme #screen-learn .learn-card {
+  position: relative;
+}
+
+body.portal-theme .learn-relation-badge {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  margin-left: 0 !important;
+}
+
+body.portal-theme .learn-act.known {
+  background: var(--brand-light);
+  color: var(--brand-dark);
+}
+
+body.portal-theme .lesson-cta {
+  background: var(--brand) !important;
+  color: #fff !important;
+}
+
+body.portal-theme .learn-act.prev,
+body.portal-theme .learn-act.skip {
+  background: var(--surface);
+  color: var(--brand);
+  border: 1.5px solid var(--brand);
+  font-weight: 700;
+}
+
+body.portal-theme .learn-act:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ── Activity strip (compact gamification) ── */
+body.portal-theme .portal-activity {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+body.portal-theme .portal-activity strong {
+  color: var(--brand-dark);
+  font-weight: 600;
+}
+
+body.portal-theme .portal-activity-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ── Student Dashboard (Jamboree-style) ── */
+body.portal-theme .student-dash-header {
+  margin-bottom: 0;
+  padding: 14px 20px 14px !important;
+}
+
+body.portal-theme.web-desktop .student-dash-header {
+  padding: 16px 32px 14px !important;
+}
+
+body.portal-theme .student-dash-header .portal-header-row {
+  align-items: center;
+  gap: 12px;
+}
+
+body.portal-theme .student-dash-header .portal-title {
+  font-size: 22px;
+  letter-spacing: -0.35px;
+}
+
+body.portal-theme.web-desktop .student-dash-header .portal-title {
+  font-size: 24px;
+}
+
+body.portal-theme .student-dash-header .portal-tagline {
+  font-size: 12px;
+  margin-top: 2px;
+  line-height: 1.35;
+}
+
+body.portal-theme .student-dash-header .portal-header-utils {
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 8px;
+  max-width: none;
+  flex-shrink: 0;
+}
+
+body.portal-theme .student-dash-header .portal-util-btn {
+  font-size: 11px;
+  padding: 5px 9px;
+  border-radius: 6px;
+}
+
+body.portal-theme .student-dash-header .portal-avatar {
+  width: 32px;
+  height: 32px;
+  font-size: 15px;
+  border-width: 1px;
+}
+
+body.portal-theme .student-dash-header .layout-switcher {
+  padding: 2px;
+  border-radius: 8px;
+}
+
+body.portal-theme .student-dash-header .layout-btn {
+  padding: 4px 7px;
+  font-size: 9px;
+  border-radius: 6px;
+}
+
+body.portal-theme .student-dash-body {
+  padding: 8px 24px 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+body.portal-theme.web-desktop .student-dash-body {
+  padding: 8px 40px 48px;
+}
+
+body.portal-theme .portal-header-utils {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+body.portal-theme .portal-util-btn {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--body);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+body.portal-theme .portal-util-btn:hover {
+  background: var(--brand-light);
+  border-color: #c5d9ce;
+}
+
+body.portal-theme .dash-widget-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 900px) {
+  body.portal-theme .dash-widget-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+body.portal-theme .dash-widget {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+}
+
+body.portal-theme .dash-widget-wide {
+  grid-column: span 1;
+}
+
+@media (min-width: 901px) {
+  body.portal-theme .dash-widget-wide {
+    grid-column: span 1;
+  }
+}
+
+body.portal-theme .dash-widget-title {
+  font-family: var(--body);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 16px;
+}
+
+body.portal-theme .dash-widget-foot {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 12px;
+}
+
+body.portal-theme .dash-ring-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0;
+}
+
+body.portal-theme .dash-ring {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+body.portal-theme .dash-ring-inner {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+body.portal-theme .dash-ring-pct {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--brand-dark);
+  line-height: 1;
+}
+
+body.portal-theme .dash-ring-lbl {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+body.portal-theme .dash-active-card {
+  background: var(--surface-2);
+  border-radius: 10px;
+  padding: 16px;
+  border: 1px solid var(--border);
+}
+
+body.portal-theme .dash-active-top {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+body.portal-theme .dash-active-icon {
+  font-size: 28px;
+  line-height: 1;
+}
+
+body.portal-theme .dash-active-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+body.portal-theme .dash-active-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+body.portal-theme .dash-active-bar {
+  height: 8px;
+  background: var(--brand-light);
+  border-radius: 99px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+body.portal-theme .dash-active-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #f59e0b, #ea580c);
+  border-radius: 99px;
+}
+
+body.portal-theme .dash-continue-btn {
+  width: 100%;
+  border: none;
+  background: var(--brand);
+  color: #fff;
+  font-family: var(--body);
+  font-size: 14px;
+  font-weight: 700;
+  padding: 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+body.portal-theme .dash-continue-btn:hover {
+  background: var(--brand-dark);
+}
+
+body.portal-theme .dash-task-list {
+  list-style: none;
+  margin-top: 14px;
+  padding: 0;
+}
+
+body.portal-theme .dash-task-list li {
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+}
+
+body.portal-theme .dash-task-tag {
+  display: inline-block;
+  background: var(--brand-light);
+  color: var(--brand-dark);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 99px;
+  margin-right: 6px;
+}
+
+body.portal-theme .dash-widget-exam {
+  background: linear-gradient(160deg, #1e6b8a 0%, #155e75 100%);
+  color: #fff;
+  border: none;
+}
+
+body.portal-theme .dash-widget-exam .dash-widget-title {
+  color: #fff;
+}
+
+body.portal-theme .dash-widget-exam-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+body.portal-theme .dash-widget-exam-head .dash-widget-title {
+  margin-bottom: 0;
+}
+
+body.portal-theme .dash-link-btn {
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+body.portal-theme .dash-exam-body {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+body.portal-theme .dash-exam-cal {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  padding: 12px 16px;
+  text-align: center;
+  min-width: 72px;
+}
+
+body.portal-theme .dash-exam-day {
+  display: block;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+body.portal-theme .dash-exam-mon {
+  display: block;
+  font-size: 11px;
+  opacity: 0.85;
+}
+
+body.portal-theme .dash-exam-countdown {
+  font-size: 13px;
+  opacity: 0.9;
+}
+
+body.portal-theme .dash-streak-num {
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--brand-dark);
+  line-height: 1;
+}
+
+body.portal-theme .dash-streak-num span {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-left: 4px;
+}
+
+body.portal-theme .dash-streak-week {
+  display: flex;
+  gap: 6px;
+  margin: 14px 0 4px;
+}
+
+body.portal-theme .dash-streak-day {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+body.portal-theme .dash-streak-day.done {
+  background: var(--brand);
+  color: #fff;
+  border-color: var(--brand);
+}
+
+body.portal-theme .dash-widget-link {
+  cursor: pointer;
+  transition: box-shadow 0.2s;
+}
+
+body.portal-theme .dash-widget-link:hover {
+  box-shadow: var(--shadow-md);
+}
+
+body.portal-theme .dash-vocab-blurb {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+body.portal-theme .dash-vocab-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+body.portal-theme .dash-vocab-stats strong {
+  color: var(--brand-dark);
+}
+
+body.portal-theme .dash-widget-cta {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--brand);
+}
+
+body.portal-theme .dash-daily-pct {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--brand-dark);
+  margin-bottom: 8px;
+}
+
+/* ── Word Lists page (split layout) ── */
+body.portal-theme #screen-lists {
+  background: #f8fafc;
+  min-height: 100%;
+}
+
+body.portal-theme .lists-page-header {
+  margin-bottom: 0;
+  padding-bottom: 20px;
+}
+
+/* Shared Word Lists components */
+body.portal-theme .lists-side-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--body);
+  transition: background 0.15s, border-color 0.15s;
+}
+
+body.portal-theme .lists-side-item:hover {
+  background: var(--brand-light);
+}
+
+body.portal-theme .lists-side-item.active {
+  background: #fff;
+  border-color: var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+body.portal-theme .lists-side-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+body.portal-theme .lists-side-text {
+  flex: 1;
+  min-width: 0;
+}
+
+body.portal-theme .lists-side-name {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+body.portal-theme .lists-side-sub {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+body.portal-theme .lists-main-head {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px 18px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-sm);
+}
+
+body.portal-theme .lists-head-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+body.portal-theme .lists-head-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+
+body.portal-theme .lists-head-icon {
+  font-size: 28px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+body.portal-theme .lists-head-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 4px;
+}
+
+body.portal-theme .lists-head-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+body.portal-theme .lists-head-count {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--brand-dark);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+body.portal-theme .lists-head-bar {
+  height: 6px;
+  background: #fdecea;
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+body.portal-theme .lists-head-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #c0392b, #f5a623);
+  border-radius: 99px;
+  transition: width 0.35s ease;
+}
+
+body.portal-theme .lists-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+body.portal-theme .lists-group-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+body.portal-theme .lists-group-block.expanded .lists-group-row {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  border-bottom-color: transparent;
+}
+
+body.portal-theme .lists-group-row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  width: 100%;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+  text-align: left;
+  font-family: var(--body);
+  transition: border-color 0.15s, box-shadow 0.15s;
+  overflow: hidden;
+}
+
+body.portal-theme .lists-group-toggle {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  padding: 14px 12px 14px 16px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+}
+
+body.portal-theme .lists-group-toggle:hover {
+  background: rgba(26, 122, 82, 0.04);
+}
+
+body.portal-theme .lists-group-row:hover:not(.locked) {
+  border-color: #c5d9ce;
+  box-shadow: 0 2px 12px rgba(26, 122, 82, 0.08);
+}
+
+body.portal-theme .lists-group-row.ready {
+  border-left: 3px solid var(--brand);
+}
+
+body.portal-theme .lists-group-row.done {
+  background: #f4fbf7;
+  border-color: #c5e8d4;
+}
+
+body.portal-theme .lists-group-row.locked {
+  opacity: 0.55;
+}
+
+body.portal-theme .lists-group-row.locked .lists-group-toggle {
+  cursor: default;
+}
+
+body.portal-theme .lists-group-row.locked .lists-group-toggle:hover {
+  background: transparent;
+}
+
+body.portal-theme .lists-group-num {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--text);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+body.portal-theme .lists-group-row.done .lists-group-num {
+  background: var(--brand);
+}
+
+body.portal-theme .lists-group-row.locked .lists-group-num {
+  background: #ccc;
+}
+
+body.portal-theme .lists-group-body {
+  flex: 1;
+  min-width: 0;
+}
+
+body.portal-theme .lists-group-name {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+body.portal-theme .lists-group-meta {
+  display: block;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+body.portal-theme .lists-group-action {
+  align-self: center;
+  margin-right: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 6px 12px;
+  border-radius: 99px;
+  flex-shrink: 0;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+body.portal-theme .lists-group-action:disabled {
+  cursor: not-allowed;
+}
+
+body.portal-theme .lists-group-quiz {
+  align-self: center;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 6px 12px;
+  border-radius: 99px;
+  flex-shrink: 0;
+  border: 1px solid rgba(192, 57, 43, 0.35);
+  background: rgba(192, 57, 43, 0.08);
+  color: #c0392b;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+body.portal-theme .lists-group-quiz:hover {
+  background: rgba(192, 57, 43, 0.14);
+}
+
+body.portal-theme .lists-group-chevron {
+  font-size: 10px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  width: 16px;
+  text-align: center;
+}
+
+body.portal-theme .lists-group-words {
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 12px 12px;
+  background: #fafbfc;
+  padding: 8px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+body.portal-theme .lists-word-row {
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+body.portal-theme .lists-word-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+body.portal-theme .lists-word-name {
+  font-family: var(--head, var(--body));
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+body.portal-theme .lists-word-phon,
+body.portal-theme .lists-word-pos {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+body.portal-theme .lists-word-def {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.5;
+  margin: 0 0 6px;
+}
+
+body.portal-theme .lists-word-ex {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-style: italic;
+  line-height: 1.55;
+  margin: 0;
+  padding-left: 12px;
+  border-left: 3px solid #f5a623;
+}
+
+body.portal-theme .lists-word-ex em {
+  font-style: normal;
+  font-weight: 600;
+  color: var(--text);
+}
+
+body.portal-theme .lists-word-syn {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin: 6px 0 0;
+}
+
+body.portal-theme .lists-word-syn span {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+body.portal-theme .lists-word-empty {
+  font-size: 13px;
+  color: var(--text-muted);
+  padding: 8px 4px;
+  margin: 0;
+}
+
+body.portal-theme .lists-group-row.ready .lists-group-action {
+  background: rgba(26, 122, 82, 0.12);
+  color: var(--brand-dark);
+}
+
+body.portal-theme .lists-group-row.done .lists-group-action {
+  background: rgba(26, 122, 82, 0.15);
+  color: var(--brand);
+}
+
+body.portal-theme .lists-group-row.locked .lists-group-action {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--text-muted);
+}
+
+body.portal-theme .lists-toggle-words-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px dashed var(--border);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s ease;
+  margin: 6px 0 2px;
+}
+
+body.portal-theme .lists-toggle-words-btn:hover {
+  background: var(--brand-light);
+  border-color: #c5d9ce;
+  color: var(--brand-dark);
+}
+
+body.portal-theme .word-role-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  margin-left: 8px;
+  vertical-align: middle;
+  letter-spacing: 0.3px;
+}
+
+body.portal-theme .word-role-badge.opposite {
+  background: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+}
+
+body.portal-theme .word-role-badge.similar {
+  background: rgba(34, 197, 94, 0.12);
+  color: #16a34a;
+}
+
+/* General Dictionary styling */
+body.portal-theme .general-dict-results-container {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 250px;
+  width: 100%;
+  box-sizing: border-box;
+}
+body.portal-theme .general-dict-placeholder,
+body.portal-theme .general-dict-loading,
+body.portal-theme .general-dict-error {
+  padding: 30px 20px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-muted);
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  font-family: var(--body);
+  width: 100%;
+  box-sizing: border-box;
+}
+body.portal-theme .general-dict-error {
+  color: #dc2626;
+  background: #fef2f2;
+  border-color: #fca5a5;
+}
+body.portal-theme .general-dict-result-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+  text-align: left;
+  width: 100%;
+  box-sizing: border-box;
+}
+body.portal-theme .general-dict-result-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+}
+body.portal-theme .general-dict-result-word {
+  font-size: 20px;
+  font-weight: 800;
+  margin: 0;
+  color: var(--text);
+}
+body.portal-theme .general-dict-result-phon {
+  font-size: 14px;
+  color: var(--text-muted);
+  font-family: monospace;
+}
+body.portal-theme .general-dict-audio-btn {
+  margin-left: auto;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+body.portal-theme .general-dict-audio-btn:hover {
+  background: var(--brand-light);
+  border-color: #c5d9ce;
+  color: var(--brand-dark);
+}
+body.portal-theme .general-dict-meaning-section {
+  margin-bottom: 20px;
+}
+body.portal-theme .general-dict-meaning-section:last-child {
+  margin-bottom: 0;
+}
+body.portal-theme .general-dict-pos {
+  font-size: 11px;
+  text-transform: uppercase;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  color: var(--brand);
+  margin: 0 0 10px;
+  background: var(--brand-light);
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+body.portal-theme .general-dict-definitions-list {
+  margin: 0 0 12px;
+  padding-left: 20px;
+}
+body.portal-theme .general-dict-definitions-list li {
+  margin-bottom: 10px;
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.5;
+}
+body.portal-theme .general-dict-definitions-list li:last-child {
+  margin-bottom: 0;
+}
+body.portal-theme .general-dict-def-text {
+  margin: 0 0 4px;
+}
+body.portal-theme .general-dict-def-ex {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-style: italic;
+  margin: 0;
+}
+body.portal-theme .general-dict-synonyms,
+body.portal-theme .general-dict-antonyms {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 6px 0 0;
+  line-height: 1.4;
+}
+body.portal-theme .general-dict-synonyms strong,
+body.portal-theme .general-dict-antonyms strong {
+  color: var(--text);
+  font-weight: 700;
+}
+
+/* ── Word Lists: desktop (split panel) ── */
+body.portal-theme.web-desktop #screen-lists {
+  background: #f8fafc;
+  min-height: 100%;
+}
+
+body.portal-theme.web-desktop .lists-page {
+  display: flex;
+  flex-direction: row;
+  gap: 0;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 8px 40px 48px;
+  min-height: calc(100vh - 160px);
+  box-sizing: border-box;
+}
+
+body.portal-theme.web-desktop .lists-sidebar {
+  flex: 0 0 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px 8px 0;
+  border-right: 1px solid var(--border);
+  max-height: calc(100vh - 180px);
+  overflow-y: auto;
+}
+
+body.portal-theme.web-desktop .lists-side-item {
+  width: 100%;
+  padding: 10px 12px;
+}
+
+body.portal-theme.web-desktop .lists-main {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 0 0 24px;
+}
+
+body.portal-theme.web-desktop .lists-groups {
+  max-height: calc(100vh - 280px);
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+/* ── Word Lists: phone / native (stacked) ── */
+body.portal-theme.web-mobile #screen-lists,
+body.portal-theme.native-app #screen-lists {
+  background: #f8fafc;
+  min-height: 100%;
+}
+
+body.portal-theme.web-mobile #screen-lists .lists-page-header,
+body.portal-theme.native-app #screen-lists .lists-page-header {
+  padding: 14px 16px 10px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+body.portal-theme.web-mobile #screen-lists .portal-breadcrumb,
+body.portal-theme.native-app #screen-lists .portal-breadcrumb {
+  display: none;
+}
+
+body.portal-theme.web-mobile #screen-lists .portal-title,
+body.portal-theme.native-app #screen-lists .portal-title {
+  font-size: 22px;
+}
+
+body.portal-theme.web-mobile #screen-lists .portal-tagline,
+body.portal-theme.native-app #screen-lists .portal-tagline {
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+body.portal-theme.web-mobile .lists-page,
+body.portal-theme.native-app .lists-page {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  max-width: none;
+  margin: 0;
+  padding: 8px 16px calc(84px + env(safe-area-inset-bottom, 0));
+  min-height: auto;
+}
+
+body.portal-theme.web-mobile .lists-sidebar,
+body.portal-theme.native-app .lists-sidebar {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  padding: 10px 0 12px;
+  margin: 0 -4px;
+  max-height: none;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #f8fafc;
+}
+
+body.portal-theme.web-mobile .lists-sidebar::-webkit-scrollbar,
+body.portal-theme.native-app .lists-sidebar::-webkit-scrollbar {
+  display: none;
+}
+
+body.portal-theme.web-mobile .lists-side-item,
+body.portal-theme.native-app .lists-side-item {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 0;
+  padding: 8px 14px;
+  white-space: nowrap;
+}
+
+body.portal-theme.web-mobile .lists-side-icon,
+body.portal-theme.native-app .lists-side-icon {
+  display: none;
+}
+
+body.portal-theme.web-mobile .lists-side-sub,
+body.portal-theme.native-app .lists-side-sub {
+  display: none;
+}
+
+body.portal-theme.web-mobile .lists-side-item.active,
+body.portal-theme.native-app .lists-side-item.active {
+  background: var(--brand);
+  border-color: var(--brand);
+  box-shadow: none;
+}
+
+body.portal-theme.web-mobile .lists-side-item.active .lists-side-name,
+body.portal-theme.native-app .lists-side-item.active .lists-side-name {
+  color: #fff;
+}
+
+body.portal-theme.web-mobile .lists-main,
+body.portal-theme.native-app .lists-main {
+  flex: 1;
+  min-width: 0;
+  padding: 14px 0 0;
+}
+
+body.portal-theme.web-mobile .lists-main-head,
+body.portal-theme.native-app .lists-main-head {
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+
+body.portal-theme.web-mobile .lists-head-icon,
+body.portal-theme.native-app .lists-head-icon {
+  font-size: 22px;
+}
+
+body.portal-theme.web-mobile .lists-head-title,
+body.portal-theme.native-app .lists-head-title {
+  font-size: 16px;
+}
+
+body.portal-theme.web-mobile .lists-head-sub,
+body.portal-theme.native-app .lists-head-sub {
+  font-size: 11px;
+}
+
+body.portal-theme.web-mobile .lists-groups,
+body.portal-theme.native-app .lists-groups {
+  max-height: none;
+  overflow: visible;
+  padding-right: 0;
+  padding-bottom: 8px;
+}
+
+body.portal-theme.web-mobile .lists-group-row,
+body.portal-theme.native-app .lists-group-row {
+  padding: 12px 14px;
+  gap: 10px;
+}
+
+body.portal-theme.web-mobile .lists-group-num,
+body.portal-theme.native-app .lists-group-num {
+  width: 32px;
+  height: 32px;
+  font-size: 11px;
+}
+
+body.portal-theme.web-mobile .lists-group-name,
+body.portal-theme.native-app .lists-group-name {
+  font-size: 13px;
+}

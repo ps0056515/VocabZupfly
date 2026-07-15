@@ -131,7 +131,12 @@ LQ.goTo = function (screen, opts) {
   }
   if (opts.resetStack) LQ._navStack = [];
   LQ._currentScreen = screen;
+  try {
+    sessionStorage.setItem('currentScreen', screen);
+  } catch (e) {}
   if (LQ.closeMoreMenu) LQ.closeMoreMenu();
+  if (LQ.closeDrawer) LQ.closeDrawer();
+
 
   document.querySelectorAll('.screen').forEach((s) => s.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach((n) => n.classList.remove('active'));
@@ -203,6 +208,7 @@ LQ.initDOMListeners = function () {
   document.addEventListener('keydown', function (e) {
     if (e.key !== 'Escape') return;
     if (LQ.closeMoreMenu) LQ.closeMoreMenu();
+    if (LQ.closeDrawer) LQ.closeDrawer();
     if (LQ.closeDailyPanel) LQ.closeDailyPanel();
   });
   window.addEventListener('error', function (e) {
