@@ -151,6 +151,34 @@ async function handleCmsApi(req, res, pathname, method, url) {
       json(res, 200, { ok: true, files: Object.keys(written) });
       return true;
     }
+    if (route === '/tenses' && method === 'GET') {
+      json(res, 200, { ok: true, tenses: cms.loadTensesContent() });
+      return true;
+    }
+    if (route === '/tenses' && method === 'PUT') {
+      var tensesData = JSON.parse(await readBody(req));
+      cms.saveTensesContent(tensesData);
+      json(res, 200, { ok: true, tenses: tensesData });
+      return true;
+    }
+    if (route === '/tenses/question' && method === 'POST') {
+      var qBody = JSON.parse(await readBody(req));
+      var updated = cms.addTensesQuestion(qBody.group, qBody.title || qBody.text, qBody.category);
+      json(res, 200, { ok: true, tenses: updated });
+      return true;
+    }
+    if (route === '/tenses/question' && method === 'DELETE') {
+      var qDel = JSON.parse(await readBody(req));
+      var updatedDel = cms.deleteTensesQuestion(qDel.group, qDel.index);
+      json(res, 200, { ok: true, tenses: updatedDel });
+      return true;
+    }
+    if (route === '/tenses/import' && method === 'POST') {
+      var importRows = JSON.parse(await readBody(req));
+      var impRes = cms.importTensesQuestions(Array.isArray(importRows) ? importRows : (importRows.rows || []));
+      json(res, 200, { ok: true, count: impRes.count, tenses: impRes.data });
+      return true;
+    }
     if (route === '/publish' && method === 'POST') {
       var pubBody = {};
       try {

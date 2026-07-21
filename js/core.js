@@ -190,6 +190,9 @@ LQ.goTo = function (screen, opts) {
     tutor: () => LQ.initTutor && LQ.initTutor(),
     tenses: () => LQ.renderTensesPage && LQ.renderTensesPage(),
     'tenses-practice': () => LQ.initTensesPractice && LQ.initTensesPractice(),
+    assessment: () => LQ.switchAssessmentTab && LQ.switchAssessmentTab('practice'),
+    'assessment-session': () => LQ.renderAssessmentSessionScreen && LQ.renderAssessmentSessionScreen(),
+    'assessment-result': () => LQ.renderAssessmentResultScreen && LQ.renderAssessmentResultScreen(),
   };
   if (handlers[screen]) {
     try {

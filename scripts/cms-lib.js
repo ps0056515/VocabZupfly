@@ -10,8 +10,9 @@ const DATA = path.join(ROOT, 'data');
 const WORDS_FILE = path.join(DATA, 'words-merged.json');
 const LISTS_FILE = path.join(DATA, 'word-lists.json');
 const MANIFEST_FILE = path.join(DATA, 'content-manifest.json');
+const TENSES_FILE = path.join(DATA, 'tenses-content.json');
 
-const CSV_NAMES = ['Words.csv', 'WordLists.csv', 'Groups.csv', 'GroupWords.csv', 'DictionaryWords.csv'];
+const CSV_NAMES = ['Words.csv', 'WordLists.csv', 'Groups.csv', 'GroupWords.csv', 'DictionaryWords.csv', 'TensesQuestions.csv'];
 
 function parseCsv(text) {
   var rows = [];
@@ -407,6 +408,68 @@ function addDictionaryWord(listId, wordName) {
   return lst;
 }
 
+function loadTensesContent() {
+  if (!fs.existsSync(TENSES_FILE)) return {};
+  try {
+    return JSON.parse(fs.readFileSync(TENSES_FILE, 'utf8'));
+  } catch (e) {
+    return {};
+  }
+}
+
+function saveTensesContent(content) {
+  fs.writeFileSync(TENSES_FILE, JSON.stringify(content, null, 2), 'utf8');
+  const wwwTenses = path.join(ROOT, 'www', 'data', 'tenses-content.json');
+  if (fs.existsSync(path.dirname(wwwTenses))) {
+    try {
+      fs.writeFileSync(wwwTenses, JSON.stringify(content, null, 2), 'utf8');
+    } catch (e) {}
+  }
+  return content;
+}
+
+function addTensesQuestion(group, title, category) {
+  const data = loadTensesContent();
+  const grp = (group || 'sentence-repeating').trim();
+  if (!data[grp]) data[grp] = [];
+  const qTitle = (title || '').trim();
+  const qCat = (category || 'reading').trim().toLowerCase();
+  
+  if (!qTitle) throw new Error('Question title is required');
+
+  const newObj = { text: qTitle, category: qCat };
+  data[grp].push(newObj);
+  saveTensesContent(data);
+  return data;
+}
+
+function deleteTensesQuestion(group, index) {
+  const data = loadTensesContent();
+  if (data[group] && data[group][index] !== undefined) {
+    data[group].splice(index, 1);
+    saveTensesContent(data);
+  }
+  return data;
+}
+
+function importTensesQuestions(rows) {
+  const data = loadTensesContent();
+  let count = 0;
+  (rows || []).forEach(function (row) {
+    const grp = (row.Group || row.group || row['Group Name'] || 'sentence-repeating').trim();
+    const title = (row['Question Title'] || row.title || row.text || row.Question || row.Title || '').trim();
+    const cat = (row.Category || row.category || 'reading').trim().toLowerCase();
+
+    if (title) {
+      if (!data[grp]) data[grp] = [];
+      data[grp].push({ text: title, category: cat });
+      count++;
+    }
+  });
+  saveTensesContent(data);
+  return { count: count, data: data };
+}
+
 module.exports = {
   ROOT,
   CSV_NAMES,
@@ -427,4 +490,9 @@ module.exports = {
   upsertWord,
   deleteWord,
   addDictionaryWord,
+  loadTensesContent,
+  saveTensesContent,
+  addTensesQuestion,
+  deleteTensesQuestion,
+  importTensesQuestions,
 };

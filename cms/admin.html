@@ -34,6 +34,7 @@
     <nav class="cms-nav">
       <button type="button" class="nav-btn active" data-tab="overview">Overview</button>
       <button type="button" class="nav-btn" data-tab="words">Words</button>
+      <button type="button" class="nav-btn" data-tab="tenses">Tenses Questions</button>
       <button type="button" class="nav-btn" data-tab="lists">Lists</button>
       <button type="button" class="nav-btn" data-tab="dictionary">Dictionary</button>
       <button type="button" class="nav-btn" data-tab="import">Import CSV</button>
@@ -113,6 +114,44 @@
           <button type="button" class="btn" id="btn-export-disk">Write to cms/export/ folder</button>
         </div>
       </section>
+
+      <section id="tab-tenses" class="tab-panel">
+        <div class="toolbar tenses-toolbar">
+          <label>Filter Group:</label>
+          <select id="tenses-group-select" class="inp">
+            <option value="all">All Groups</option>
+            <option value="sentence-repeating">Sentence Repeating</option>
+            <option value="short-stories">Short Stories</option>
+            <option value="just-a-minute">Just a Minute</option>
+            <option value="sentence-reading">Sentence Reading</option>
+            <option value="passage-comprehension">Passage Comprehension</option>
+            <option value="grammar">Grammar</option>
+            <option value="essay-writing">Essay Writing</option>
+            <option value="jumbled-sentences">Jumbled Sentences</option>
+            <option value="story-retelling">Story Retelling</option>
+          </select>
+          <button type="button" class="btn primary" id="btn-add-tenses-q">+ Add Question (Manual)</button>
+          <button type="button" class="btn" id="btn-download-tenses-template">📥 Download Template (.csv)</button>
+          <label class="btn file-btn">
+            📤 Upload Sheet (.csv / .xlsx)
+            <input type="file" id="inp-tenses-sheet" accept=".csv, .xlsx, .xls" style="display:none">
+          </label>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table" id="tenses-table">
+            <thead>
+              <tr>
+                <th>Group</th>
+                <th>Question Title / Prompt</th>
+                <th>Category</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="tenses-tbody"></tbody>
+          </table>
+        </div>
+        <p id="tenses-count" class="muted"></p>
+      </section>
     </main>
   </div>
 
@@ -141,6 +180,42 @@
         <div class="modal-actions">
           <button type="button" class="btn" id="word-modal-cancel">Cancel</button>
           <button type="submit" class="btn primary">Save word</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="tenses-modal" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-card">
+      <h2 id="tenses-modal-title">Add Tenses Question</h2>
+      <form id="tenses-form">
+        <label>Group (Module)</label>
+        <select name="group" id="tenses-form-group" required class="inp">
+          <option value="sentence-repeating">Sentence Repeating</option>
+          <option value="short-stories">Short Stories</option>
+          <option value="just-a-minute">Just a Minute</option>
+          <option value="sentence-reading">Sentence Reading</option>
+          <option value="passage-comprehension">Passage Comprehension</option>
+          <option value="grammar">Grammar</option>
+          <option value="essay-writing">Essay Writing</option>
+          <option value="jumbled-sentences">Jumbled Sentences</option>
+          <option value="story-retelling">Story Retelling</option>
+        </select>
+
+        <label>Question Title / Sentence Prompt</label>
+        <textarea name="title" id="tenses-form-title" rows="3" required class="inp" placeholder="Enter question text or sentence prompt..."></textarea>
+
+        <label>Category</label>
+        <select name="category" id="tenses-form-category" required class="inp">
+          <option value="listening">Listening</option>
+          <option value="reading" selected>Reading</option>
+          <option value="writing">Writing</option>
+        </select>
+
+        <div class="modal-actions">
+          <button type="button" class="btn" id="tenses-modal-cancel">Cancel</button>
+          <button type="submit" class="btn primary">Save Question</button>
         </div>
       </form>
     </div>

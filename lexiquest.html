@@ -1246,6 +1246,9 @@ body.native-app .desktop-only-ui{display:none!important}
           <button type="button" class="desktop-rail-item" id="desktop-nav-tenses" onclick="goTo('tenses')">
             <span class="rail-icon">🕐</span> Tenses
           </button>
+          <button type="button" class="desktop-rail-item" id="desktop-nav-assessment" onclick="goTo('assessment')">
+            <span class="rail-icon">🎯</span> Assessment
+          </button>
           <button type="button" class="desktop-rail-item" id="desktop-nav-lists" onclick="LQ.goToWordListsCategory('gre')">
             <span class="rail-icon">📋</span> Word Lists (GRE)
           </button>
@@ -1332,6 +1335,112 @@ body.native-app .desktop-only-ui{display:none!important}
             <button type="button" class="back-btn" style="margin-left:auto;font-size:13px" onclick="LQ.tensesSkip()">Skip</button>
           </div>
           <div class="tenses-practice-panel" id="tenses-practice-wrap"></div>
+        </div>
+
+        <!-- ══ ASSESSMENT MAIN ══ -->
+        <div class="screen" id="screen-assessment">
+          <div class="portal-header">
+            <div class="portal-breadcrumb">Dashboard › <strong>Assessment</strong></div>
+            <div class="portal-header-row">
+              <div>
+                <h1 class="portal-title">Assessment</h1>
+                <p class="portal-tagline">Custom practice evaluations &amp; official tests</p>
+              </div>
+              <div class="portal-header-actions">
+                <button type="button" class="btn primary" onclick="LQ.openCreateAssessmentModal()">+ Create Practice Assessment</button>
+              </div>
+            </div>
+            <div class="asm-tab-row">
+              <div class="asm-tabs-group">
+                <button type="button" id="tab-btn-practice" class="asm-tab-btn active" onclick="LQ.switchAssessmentTab('practice')">Practice</button>
+                <button type="button" id="tab-btn-test" class="asm-tab-btn" onclick="LQ.switchAssessmentTab('test')">Test</button>
+              </div>
+
+              <!-- Desktop Pill Filter -->
+              <div class="asm-filter-pills-desktop">
+                <div class="asm-segmented-pill-container">
+                  <button type="button" id="filter-btn-all" class="asm-seg-btn" onclick="LQ.setAssessmentFilter('all')">All</button>
+                  <button type="button" id="filter-btn-new" class="asm-seg-btn active" onclick="LQ.setAssessmentFilter('new')">New</button>
+                  <button type="button" id="filter-btn-completed" class="asm-seg-btn" onclick="LQ.setAssessmentFilter('completed')">Completed</button>
+                </div>
+              </div>
+
+              <!-- Mobile Custom Dropdown -->
+              <div class="asm-filter-select-mobile">
+                <div class="asm-select-box">
+                  <select id="asm-status-filter" class="asm-custom-select" onchange="LQ.setAssessmentFilter(this.value)">
+                    <option value="all">Filter: All</option>
+                    <option value="new" selected>Filter: New</option>
+                    <option value="completed">Filter: Completed</option>
+                  </select>
+                  <span class="asm-select-arrow">▼</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="asm-body">
+            <!-- PRACTICE TAB -->
+            <div id="assessment-practice-view" class="asm-tab-panel">
+              <div id="assessment-list-grid" class="asm-grid"></div>
+              <div id="assessment-empty-state" class="asm-empty-card hidden">
+                <div class="asm-empty-icon">📝</div>
+                <h3>No Practice Assessments Yet</h3>
+                <p>Create a custom practice assessment to evaluate your knowledge across selected tenses groups.</p>
+                <button type="button" class="btn primary" onclick="LQ.openCreateAssessmentModal()">+ Create Practice Assessment</button>
+              </div>
+            </div>
+
+            <!-- TEST TAB -->
+            <div id="assessment-test-view" class="asm-tab-panel hidden">
+              <div class="asm-empty-card">
+                <div class="asm-empty-icon">🔒</div>
+                <h3>No Tests Available</h3>
+                <p>No official tests available at the moment. Check back soon!</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══ ASSESSMENT SESSION (SESSION RUNNER) ══ -->
+        <div class="screen" id="screen-assessment-session">
+          <div class="fc-header">
+            <button class="back-btn" onclick="LQ.goBack()">←</button>
+            <h2 id="asm-session-title">Assessment Practice</h2>
+            <div id="asm-session-timer" class="asm-timer-badge"></div>
+          </div>
+          <div class="asm-session-nav-bar">
+            <span id="asm-session-counter" class="muted">Question 1 of 10</span>
+          </div>
+          <div class="asm-session-wrapper">
+            <div id="asm-session-body" class="asm-session-body"></div>
+          </div>
+          <div class="asm-session-actions-bar">
+            <button type="button" id="asm-btn-prev" class="btn" onclick="LQ.prevSessionQuestion()">← Previous</button>
+            <button type="button" id="asm-btn-next" class="btn primary" onclick="LQ.nextSessionQuestion()">Next →</button>
+            <button type="button" id="asm-btn-submit" class="btn primary hidden" onclick="LQ.submitAssessmentSession()">✓ Submit Assessment</button>
+          </div>
+        </div>
+
+        <!-- ══ ASSESSMENT RESULT (EVALUATION REPORT) ══ -->
+        <div class="screen" id="screen-assessment-result">
+          <div class="fc-header">
+            <button class="back-btn" onclick="goTo('assessment')">←</button>
+            <h2 id="asm-res-title">Assessment Results</h2>
+          </div>
+          <div class="asm-result-body">
+            <div class="asm-result-top-grid">
+              <div class="asm-res-summary-card">
+                <div class="asm-res-pct-circle" id="asm-res-pct">0%</div>
+                <div class="asm-res-summary-info">
+                  <h3>Assessment Summary</h3>
+                  <div id="asm-res-counts" class="asm-res-counts-row"></div>
+                </div>
+              </div>
+              <div id="asm-res-group-stats" class="asm-res-group-card"></div>
+            </div>
+            <div id="asm-res-q-list" class="asm-res-q-card"></div>
+          </div>
         </div>
 
         <!-- ══ WORD LISTS (groups) ══ -->
@@ -1757,6 +1866,10 @@ body.native-app .desktop-only-ui{display:none!important}
               onclick="LQ.closeDrawer();goTo('tenses')">
         <span class="drawer-icon">🕐</span> Tenses
       </button>
+      <button type="button" class="mobile-drawer-item" data-screen="assessment" data-nav="tenses"
+              onclick="LQ.closeDrawer();goTo('assessment')">
+        <span class="drawer-icon">🎯</span> Assessment
+      </button>
       <button type="button" class="mobile-drawer-item" data-screen="lists" data-nav="lists"
               onclick="LQ.closeDrawer();LQ.goToWordListsCategory('gre')">
         <span class="drawer-icon">📋</span> Word Lists (GRE)
@@ -1819,6 +1932,32 @@ body.native-app .desktop-only-ui{display:none!important}
   </nav>
 </div>
 
+<!-- ══ CREATE PRACTICE ASSESSMENT MODAL ══ -->
+<div id="modal-create-assessment" class="modal hidden">
+  <div class="modal-backdrop" onclick="LQ.closeCreateAssessmentModal()"></div>
+  <div class="modal-card">
+    <h2>Create Practice Assessment</h2>
+    <form id="form-create-assessment" onsubmit="LQ.createPracticeAssessment(event)">
+      <label>Assessment Title</label>
+      <input type="text" id="asm-title" class="inp" placeholder="e.g. Tenses Weekly Practice" value="Custom Practice Assessment" required>
+
+      <label>Select Groups to Include</label>
+      <div id="asm-modal-groups-list" class="asm-modal-groups-grid"></div>
+
+      <label>Number of Questions</label>
+      <input type="number" id="asm-q-count" class="inp" min="1" max="50" value="10" required>
+
+      <label>Duration Limit (Minutes - Optional)</label>
+      <input type="number" id="asm-duration" class="inp" min="1" max="120" placeholder="e.g. 10 (Leave blank for no limit)">
+
+      <div class="modal-actions">
+        <button type="button" class="btn" onclick="LQ.closeCreateAssessmentModal()">Cancel</button>
+        <button type="submit" class="btn primary">Create Assessment</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 
 <script src="js/config.js?v=20260603a"></script>
 <script src="js/platform.js?v=20260709a"></script>
@@ -1842,6 +1981,8 @@ body.native-app .desktop-only-ui{display:none!important}
 <script src="js/practice.js?v=20260602b"></script>
 <script src="js/study.js?v=20260602c"></script>
 <script src="js/tenses.js?v=20260529b"></script>
+<script src="js/assessment-db.js?v=20260721a"></script>
+<script src="js/assessment.js?v=20260721a"></script>
 <script src="js/flow.js?v=20260530a"></script>
 <script src="js/boot.js?v=20260529a"></script>
 <script src="js/native-bridge.js?v=20260529a"></script>

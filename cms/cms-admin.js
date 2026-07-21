@@ -1,9 +1,11 @@
 (function () {
   var API_BASE = '/api/cms';
   var STORAGE_KEY = 'lexiquest_cms_key';
-  var state = { words: [], wordLists: { lists: [] }, manifest: {} };
+  var state = { words: [], wordLists: { lists: [] }, manifest: {}, tenses: {} };
   var importFiles = {};
   var editingWord = null;
+  var editingTenseGroup = null;
+  var editingTenseIndex = -1;
 
   function $(id) {
     return document.getElementById(id);
@@ -82,16 +84,28 @@
   }
 
   function loadContent() {
-    return api('/content').then(function (data) {
-      state.words = data.words || [];
-      state.wordLists = data.wordLists || { lists: [] };
-      state.manifest = data.manifest || {};
-      renderStats();
-      renderWords();
-      renderLists();
-      renderDictionary();
-      renderImportGrid();
-      renderExport();
+    return Promise.all([
+      api('/content').then(function (data) {
+        state.words = data.words || [];
+        state.wordLists = data.wordLists || { lists: [] };
+        state.manifest = data.manifest || {};
+        renderStats();
+        renderWords();
+        renderLists();
+        renderDictionary();
+        renderImportGrid();
+        renderExport();
+      }),
+      loadTenses()
+    ]);
+  }
+
+  function loadTenses() {
+    return api('/tenses').then(function (data) {
+      state.tenses = data.tenses || {};
+      renderTenses();
+    }).catch(function (err) {
+      console.warn('Failed to load tenses', err);
     });
   }
 
@@ -397,6 +411,227 @@
       });
   }
 
+  function renderTenses() {
+    var selGroup = ($('tenses-group-select').value || 'all').trim();
+    var tbody = $('tenses-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    var totalCount = 0;
+    var groups = Object.keys(state.tenses || {});
+
+    groups.forEach(function (grp) {
+      if (selGroup !== 'all' && grp !== selGroup) return;
+      var items = state.tenses[grp] || [];
+      items.forEach(function (item, idx) {
+        totalCount++;
+        var tr = document.createElement('tr');
+
+        var titleText = item.text || item.title || item.story || item.passage || (item.questions ? item.questions[0] && item.questions[0].q : '');
+        var cat = (item.category || 'reading').toLowerCase();
+
+        tr.innerHTML =
+          '<td><span class="badge-group">' + escapeHtml(grp) + '</span></td>' +
+          '<td>' + escapeHtml(titleText || '(No text)') + '</td>' +
+          '<td><span class="badge-cat badge-' + escapeHtml(cat) + '">' + escapeHtml(cat) + '</span></td>' +
+          '<td>' +
+          '<button type="button" class="btn btn-edit-tenses" data-grp="' + escapeHtml(grp) + '" data-idx="' + idx + '">Edit</button> ' +
+          '<button type="button" class="btn danger-outline btn-del-tenses" data-grp="' + escapeHtml(grp) + '" data-idx="' + idx + '">Delete</button>' +
+          '</td>';
+        tbody.appendChild(tr);
+      });
+    });
+
+    $('tenses-count').textContent = 'Showing ' + totalCount + ' question(s)';
+
+    tbody.querySelectorAll('.btn-edit-tenses').forEach(function (b) {
+      b.onclick = function () {
+        var g = b.getAttribute('data-grp');
+        var i = parseInt(b.getAttribute('data-idx'), 10);
+        openTensesModal(g, i);
+      };
+    });
+
+    tbody.querySelectorAll('.btn-del-tenses').forEach(function (b) {
+      b.onclick = function () {
+        var g = b.getAttribute('data-grp');
+        var i = parseInt(b.getAttribute('data-idx'), 10);
+        if (confirm('Delete this question from group "' + g + '"?')) {
+          deleteTensesQuestion(g, i);
+        }
+      };
+    });
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function openTensesModal(grp, idx) {
+    editingTenseGroup = grp || null;
+    editingTenseIndex = (idx !== undefined && idx !== null) ? idx : -1;
+    var modal = $('tenses-modal');
+
+    if (editingTenseGroup && editingTenseIndex >= 0 && state.tenses[editingTenseGroup]) {
+      var item = state.tenses[editingTenseGroup][editingTenseIndex];
+      $('tenses-modal-title').textContent = 'Edit Tenses Question';
+      $('tenses-form-group').value = editingTenseGroup;
+      $('tenses-form-title').value = item.text || item.title || '';
+      $('tenses-form-category').value = (item.category || 'reading').toLowerCase();
+    } else {
+      $('tenses-modal-title').textContent = 'Add Tenses Question';
+      $('tenses-form-group').value = $('tenses-group-select').value === 'all' ? 'sentence-repeating' : $('tenses-group-select').value;
+      $('tenses-form-title').value = '';
+      $('tenses-form-category').value = 'reading';
+    }
+
+    modal.classList.remove('hidden');
+  }
+
+  function closeTensesModal() {
+    $('tenses-modal').classList.add('hidden');
+    editingTenseGroup = null;
+    editingTenseIndex = -1;
+  }
+
+  function saveTensesFromForm(e) {
+    e.preventDefault();
+    var grp = $('tenses-form-group').value;
+    var title = $('tenses-form-title').value.trim();
+    var cat = $('tenses-form-category').value;
+
+    if (!title) {
+      toast('Please enter a question title or prompt');
+      return;
+    }
+
+    if (editingTenseGroup && editingTenseIndex >= 0 && state.tenses[editingTenseGroup]) {
+      state.tenses[editingTenseGroup].splice(editingTenseIndex, 1);
+    }
+
+    if (!state.tenses[grp]) state.tenses[grp] = [];
+    state.tenses[grp].push({ text: title, category: cat });
+
+    api('/tenses', { method: 'PUT', body: state.tenses })
+      .then(function (data) {
+        state.tenses = data.tenses;
+        toast('Tenses question saved!', true);
+        closeTensesModal();
+        renderTenses();
+      })
+      .catch(function (err) {
+        toast(err.message || 'Failed to save question');
+      });
+  }
+
+  function deleteTensesQuestion(grp, idx) {
+    api('/tenses/question', { method: 'DELETE', body: { group: grp, index: idx } })
+      .then(function (data) {
+        state.tenses = data.tenses;
+        toast('Question deleted', true);
+        renderTenses();
+      })
+      .catch(function (err) {
+        toast(err.message || 'Failed to delete question');
+      });
+  }
+
+  function downloadTensesTemplate() {
+    var csvHeader = 'Group,Question Title,Category\n';
+    var sampleRows = [
+      'sentence-repeating,"She has been studying English for three years.",listening',
+      'sentence-reading,"They will have finished the project by next Friday.",reading',
+      'grammar,"Past perfect: He had forgotten his keys before he reached the door.",reading',
+      'essay-writing,"Write a short essay on your daily routine.",writing',
+      'short-stories,"Maya woke up to the sound of rain tapping on her window.",reading'
+    ].join('\n');
+
+    var blob = new Blob([csvHeader + sampleRows], { type: 'text/csv;charset=utf-8;' });
+    var link = document.createElement('a');
+    var url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'TensesQuestions_Template.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast('Template downloaded!', true);
+  }
+
+  function handleTensesSheetUpload(e) {
+    var file = e.target.files && e.target.files[0];
+    if (!file) return;
+
+    var reader = new FileReader();
+    reader.onload = function (evt) {
+      var content = evt.target.result;
+      var rows = parseCsvText(content);
+
+      if (!rows || !rows.length) {
+        toast('No rows found in uploaded sheet');
+        return;
+      }
+
+      api('/tenses/import', { method: 'POST', body: rows })
+        .then(function (res) {
+          state.tenses = res.tenses;
+          toast('Successfully imported ' + res.count + ' questions!', true);
+          renderTenses();
+        })
+        .catch(function (err) {
+          toast(err.message || 'Failed to import sheet');
+        });
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  }
+
+  function parseCsvText(text) {
+    var lines = text.split(/\r?\n/).filter(function (l) { return l.trim(); });
+    if (!lines.length) return [];
+    var headers = parseCsvLine(lines[0]);
+    var result = [];
+
+    for (var i = 1; i < lines.length; i++) {
+      var vals = parseCsvLine(lines[i]);
+      if (!vals.length) continue;
+      var row = {};
+      headers.forEach(function (h, idx) {
+        row[h.trim()] = (vals[idx] || '').trim();
+      });
+      result.push(row);
+    }
+    return result;
+  }
+
+  function parseCsvLine(line) {
+    var row = [];
+    var cell = '';
+    var inQuotes = false;
+    for (var i = 0; i < line.length; i++) {
+      var c = line[i];
+      if (inQuotes) {
+        if (c === '"') {
+          if (line[i + 1] === '"') {
+            cell += '"';
+            i++;
+          } else inQuotes = false;
+        } else cell += c;
+      } else if (c === '"') {
+        inQuotes = true;
+      } else if (c === ',') {
+        row.push(cell);
+        cell = '';
+      } else cell += c;
+    }
+    row.push(cell);
+    return row;
+  }
+
   $('cms-login-btn').onclick = login;
   $('cms-key-inp').onkeydown = function (e) {
     if (e.key === 'Enter') login();
@@ -405,6 +640,14 @@
   $('btn-reload').onclick = loadContent;
   $('btn-publish').onclick = publish;
   $('word-search').oninput = renderWords;
+  $('tenses-group-select').onchange = renderWords;
+  if ($('tenses-group-select')) $('tenses-group-select').onchange = renderTenses;
+  if ($('btn-add-tenses-q')) $('btn-add-tenses-q').onclick = function () { openTensesModal(null); };
+  if ($('tenses-modal-cancel')) $('tenses-modal-cancel').onclick = closeTensesModal;
+  if ($('tenses-form')) $('tenses-form').onsubmit = saveTensesFromForm;
+  if ($('btn-download-tenses-template')) $('btn-download-tenses-template').onclick = downloadTensesTemplate;
+  if ($('inp-tenses-sheet')) $('inp-tenses-sheet').onchange = handleTensesSheetUpload;
+
   $('btn-add-word').onclick = function () {
     openWordModal(null);
   };

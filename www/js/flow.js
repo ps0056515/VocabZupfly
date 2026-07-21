@@ -20,6 +20,9 @@ LQ.SCREEN_META = {
   leagues: { title: 'Rookie League', parent: 'home', nav: 'more', hint: 'See how you rank this week.' },
   speak: { title: 'Speak', parent: 'vocab', nav: 'vocab', hint: 'Say the word aloud for pronunciation practice.' },
   settings: { title: 'Settings', parent: 'home', nav: 'more', hint: 'Exam focus, daily goals, and preferences.' },
+  assessment: { title: 'Assessment', parent: 'home', nav: 'assessment', hint: 'Custom practice evaluations and tests.' },
+  'assessment-session': { title: 'Assessment Practice', parent: 'assessment', nav: 'assessment', hint: '' },
+  'assessment-result': { title: 'Assessment Results', parent: 'assessment', nav: 'assessment', hint: '' },
   progress: { title: 'Progress', parent: 'home', nav: 'home', hint: '' },
   onboarding: { title: 'Welcome', parent: null, nav: 'home', hint: '' },
 };
@@ -135,7 +138,7 @@ LQ.renderFlowSubnav = function (screen, meta) {
   });
   if (!meta.parent) return;
   /* Quiz, mock, learn, revise & flashcard have their own header — avoid duplicate back bar */
-  if (screen === 'quiz' || screen === 'mock' || screen === 'learn' || screen === 'revise' || screen === 'flashcard') return;
+  if (screen === 'quiz' || screen === 'mock' || screen === 'learn' || screen === 'revise' || screen === 'flashcard' || screen === 'assessment-session' || screen === 'assessment-result') return;
 
   const sc = document.getElementById('screen-' + screen);
   if (!sc) return;
@@ -144,10 +147,11 @@ LQ.renderFlowSubnav = function (screen, meta) {
   if (sc.querySelector('.portal-breadcrumb')) return;
 
   const backLabel = LQ.canSessionBack && LQ.canSessionBack() ? '← Previous word' : '← Back';
+  const showBackBtn = (screen !== 'tenses-practice');
   const bar = document.createElement('div');
   bar.className = 'flow-subnav';
   bar.innerHTML =
-    '<button type="button" class="flow-back-btn" onclick="LQ.goBack()">' + backLabel + '</button>' +
+    (showBackBtn ? '<button type="button" class="flow-back-btn" onclick="LQ.goBack()">' + backLabel + '</button>' : '') +
     '<nav class="flow-subnav-crumb" aria-label="Breadcrumb">' +
     LQ.buildBreadcrumbTrail(screen) +
     '</nav>' +
