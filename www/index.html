@@ -1393,7 +1393,8 @@ body.native-app .desktop-only-ui{display:none!important}
 
             <!-- TEST TAB -->
             <div id="assessment-test-view" class="asm-tab-panel hidden">
-              <div class="asm-empty-card">
+              <div id="official-test-list-grid" class="asm-grid"></div>
+              <div id="official-test-empty-state" class="asm-empty-card hidden">
                 <div class="asm-empty-icon">🔒</div>
                 <h3>No Tests Available</h3>
                 <p>No official tests available at the moment. Check back soon!</p>
@@ -1770,7 +1771,45 @@ body.native-app .desktop-only-ui{display:none!important}
               <span>🔊</span><span>Hear the word</span>
             </button>
           </div>
-          <div class="spell-screen-wrap" id="spell-wrap"></div>
+        <!-- ══ ASSESSMENT SCREEN ══ -->
+        <div class="screen" id="screen-assessment">
+          <div class="portal-header">
+            <div class="portal-breadcrumb">Dashboard › <strong>Assessment</strong></div>
+            <div class="portal-header-row" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+              <div>
+                <h1 class="portal-title">Skill Assessment & Official Tests</h1>
+                <p class="portal-tagline">Practice custom evaluations or attend scheduled server assessments</p>
+              </div>
+              <button type="button" class="btn primary" onclick="LQ.openCreateAssessmentModal()" style="background:#2563eb;color:#fff;padding:8px 16px;border-radius:8px;font-weight:600;">+ Create Practice Assessment</button>
+            </div>
+            
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;border-bottom:1px solid #e2e8f0;padding-bottom:8px;flex-wrap:wrap;gap:10px;">
+              <div style="display:flex;gap:8px;">
+                <button type="button" class="tab-btn active" id="tab-btn-practice" onclick="LQ.switchAssessmentTab('practice')">📝 Practice Assessments</button>
+                <button type="button" class="tab-btn" id="tab-btn-test" onclick="LQ.switchAssessmentTab('test')">🎯 Official Server Tests</button>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <span style="font-size:12px;font-weight:600;color:var(--text-muted, #64748b);">Filter:</span>
+                <button type="button" class="btn filter-btn active" id="filter-btn-new" onclick="LQ.setAssessmentFilter('new')" style="padding:4px 10px;font-size:12px;">New</button>
+                <button type="button" class="btn filter-btn" id="filter-btn-completed" onclick="LQ.setAssessmentFilter('completed')" style="padding:4px 10px;font-size:12px;">Completed</button>
+                <button type="button" class="btn filter-btn" id="filter-btn-all" onclick="LQ.setAssessmentFilter('all')" style="padding:4px 10px;font-size:12px;">All</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="screen-panel">
+            <!-- PRACTICE VIEW -->
+            <div id="assessment-practice-view">
+              <div id="assessment-list-grid" class="asm-grid" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(300px, 1fr));gap:16px;"></div>
+              <div id="assessment-empty-state" class="muted hidden" style="text-align:center;padding:40px;">No practice assessments found.</div>
+            </div>
+
+            <!-- OFFICIAL TEST VIEW -->
+            <div id="assessment-test-view" class="hidden">
+              <div id="official-test-list-grid" class="asm-grid" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(300px, 1fr));gap:16px;"></div>
+              <div id="official-test-empty-state" class="muted hidden" style="text-align:center;padding:40px;">No official tests available right now.</div>
+            </div>
+          </div>
         </div>
 
       </div><!-- app-inner -->
@@ -1958,6 +1997,51 @@ body.native-app .desktop-only-ui{display:none!important}
   </div>
 </div>
 
+<!-- ══ OFFICIAL TEST INSTRUCTIONS MODAL ══ -->
+<div id="modal-test-instruction" class="modal hidden" style="position:fixed;inset:0;z-index:99999;background:rgba(15,23,42,0.75);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:16px;">
+  <div class="modal-card" style="max-width:560px;width:92%;background:#fff;border-radius:16px;padding:24px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);color:#0f172a;">
+    <h2 id="inst-test-title" style="margin:0 0 12px;font-size:18px;font-weight:700;color:#0f172a;">Official Test Instructions</h2>
+    <div style="font-size:13px;color:#64748b;margin:0 0 16px;">
+      <div id="inst-test-window" style="font-weight:600;color:#0f172a;margin-bottom:4px;"></div>
+      <div id="inst-test-duration" style="font-weight:600;color:#0f172a;"></div>
+    </div>
+    
+    <div class="card" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;margin-bottom:20px;font-size:13px;line-height:1.6;">
+      <h4 style="margin:0 0 8px;color:#0f172a;">Terms &amp; Conditions / Test Rules</h4>
+      <div id="inst-test-terms" style="color:#334155;white-space:pre-wrap;max-height:240px;overflow-y:auto;">Please read all questions carefully before submitting. Ensure a stable internet connection. Timer will run continuously once started.</div>
+    </div>
+
+    <div class="modal-actions" style="display:flex;justify-content:flex-end;gap:10px;">
+      <button type="button" class="btn" onclick="LQ.closeTestInstructionModal()">Close</button>
+      <button type="button" id="btn-proceed-registration" class="btn primary" onclick="LQ.openStudentRegistrationModal()" style="background:#2563eb;color:#fff;font-weight:600;padding:8px 16px;border-radius:8px;">Continue Candidate Registration →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ STUDENT MANDATORY REGISTRATION MODAL ══ -->
+<div id="modal-student-registration" class="modal hidden" style="position:fixed;inset:0;z-index:99999;background:rgba(15,23,42,0.75);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:16px;">
+  <div class="modal-card" style="max-width:460px;width:92%;background:#fff;border-radius:16px;padding:24px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);color:#0f172a;">
+    <h2 style="margin:0 0 8px;font-size:18px;font-weight:700;color:#0f172a;">Candidate Identification</h2>
+    <p class="muted" style="margin-bottom:16px;font-size:13px;color:#64748b;">Please enter your name and email to proceed with the official test. Results will be registered under your candidate profile.</p>
+    
+    <form onsubmit="LQ.submitStudentRegistration(event)">
+      <div style="margin-bottom:14px;">
+        <label style="display:block;font-size:12px;font-weight:700;margin-bottom:4px;color:#334155;">Full Name <span style="color:#ef4444">*</span></label>
+        <input type="text" id="reg-student-name" class="inp" required placeholder="e.g., Jane Smith" style="width:100%;box-sizing:border-box;padding:8px 12px;border-radius:8px;border:1px solid #cbd5e1;">
+      </div>
+
+      <div style="margin-bottom:20px;">
+        <label style="display:block;font-size:12px;font-weight:700;margin-bottom:4px;color:#334155;">Email Address <span style="color:#ef4444">*</span></label>
+        <input type="email" id="reg-student-email" class="inp" required placeholder="e.g., jane.smith@example.com" style="width:100%;box-sizing:border-box;padding:8px 12px;border-radius:8px;border:1px solid #cbd5e1;">
+      </div>
+
+      <div class="modal-actions" style="display:flex;justify-content:flex-end;gap:10px;">
+        <button type="button" class="btn" onclick="LQ.closeStudentRegistrationModal()">Cancel</button>
+        <button type="submit" class="btn primary" style="background:#2563eb;color:#fff;font-weight:600;padding:8px 16px;border-radius:8px;">Start Official Test ▶️</button>
+      </div>
+    </form>
+  </div>
+</div>
 
 <script src="js/config.js?v=20260603a"></script>
 <script src="js/platform.js?v=20260709a"></script>

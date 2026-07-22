@@ -81,12 +81,22 @@ async function handleCmsApi(req, res, pathname, method, url) {
 
   if (!pathname.startsWith(API_PREFIX)) return false;
 
-  if (!checkAuth(req, url)) {
+  var route = pathname.slice(API_PREFIX.length) || '/';
+  if (route.length > 1 && route.endsWith('/')) {
+    route = route.slice(0, -1);
+  }
+
+  // Public student routes that bypass CMS API key check
+  var isPublicStudentRoute =
+    (route === '/tests' && method === 'GET') ||
+    (route === '/tests/submit' && method === 'POST') ||
+    (route === '/tests/progress' && method === 'POST') ||
+    (route === '/tests/results' && method === 'GET');
+
+  if (!isPublicStudentRoute && !checkAuth(req, url)) {
     json(res, 401, { error: 'Invalid CMS API key' });
     return true;
   }
-
-  var route = pathname.slice(API_PREFIX.length) || '/';
 
   try {
     if (route === '/status' && method === 'GET') {
@@ -186,6 +196,146 @@ async function handleCmsApi(req, res, pathname, method, url) {
       } catch (e) {}
       var pub = cms.publish(!!pubBody.syncWeb);
       json(res, pub.ok ? 200 : 500, pub);
+      return true;
+    }
+    /* ══ OFFICIAL TEST ASSESSMENTS ENDPOINTS ══ */
+    if (route === '/tests' && method === 'GET') {
+      json(res, 200, { ok: true, tests: cms.loadOfficialTests() });
+      return true;
+    }
+    if (route === '/tests/check-title' && method === 'GET') {
+      var titleQuery = (url.searchParams.get('title') || '').trim();
+      var testIdQuery = (url.searchParams.get('testId') || '').trim();
+      var allTests = cms.loadOfficialTests();
+      var exists = allTests.some((t) => t.title.toLowerCase() === titleQuery.toLowerCase() && t.id !== testIdQuery);
+      json(res, 200, { ok: true, exists: exists });
+      return true;
+    }
+    if (route === '/tests' && method === 'POST') {
+      var newTest = JSON.parse(await readBody(req));
+      var testsList = cms.loadOfficialTests();
+      if (testsList.some((t) => t.title.toLowerCase() === (newTest.title || '').trim().toLowerCase())) {
+        json(res, 400, { error: 'A test with this title already exists.' });
+        return true;
+      }
+      newTest.id = newTest.id || 'test_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+      newTest.createdAt = Date.now();
+      testsList.unshift(newTest);
+      cms.saveOfficialTests(testsList);
+      json(res, 200, { ok: true, test: newTest });
+      return true;
+    }
+    if (route === '/tests' && method === 'PUT') {
+      var updateTest = JSON.parse(await readBody(req));
+      var testsList2 = cms.loadOfficialTests();
+      var uIdx = testsList2.findIndex((t) => t.id === updateTest.id);
+      if (uIdx === -1) {
+        json(res, 404, { error: 'Test not found' });
+        return true;
+      }
+      var existingTest = testsList2[uIdx];
+      var startTimeMs = new Date(existingTest.startTime).getTime();
+      if (Date.now() >= startTimeMs) {
+        json(res, 400, { error: 'Cannot edit test after its start time has reached.' });
+        return true;
+      }
+      testsList2[uIdx] = Object.assign({}, existingTest, updateTest);
+      cms.saveOfficialTests(testsList2);
+      json(res, 200, { ok: true, test: testsList2[uIdx] });
+      return true;
+    }
+    if (route === '/tests' && method === 'DELETE') {
+      var delBody = JSON.parse(await readBody(req));
+      var testsList3 = cms.loadOfficialTests();
+      var dIdx = testsList3.findIndex((t) => t.id === delBody.id);
+      if (dIdx === -1) {
+        json(res, 404, { error: 'Test not found' });
+        return true;
+      }
+      var exTest = testsList3[dIdx];
+      var startMs = new Date(exTest.startTime).getTime();
+      if (Date.now() >= startMs) {
+        json(res, 400, { error: 'Cannot delete test after its start time has reached.' });
+        return true;
+      }
+      testsList3.splice(dIdx, 1);
+      cms.saveOfficialTests(testsList3);
+      json(res, 200, { ok: true });
+      return true;
+    }
+    if (route === '/tests/progress' && method === 'POST') {
+      var prog = JSON.parse(await readBody(req));
+      var allResults = cms.loadOfficialTestResults();
+      var progKey = prog.testId + '_' + (prog.userEmail || '').toLowerCase();
+      var prIdx = allResults.findIndex((r) => r.key === progKey && r.status === 'in_progress');
+      var entry = prIdx !== -1 ? allResults[prIdx] : {
+        id: 'res_' + Date.now(),
+        key: progKey,
+        testId: prog.testId,
+        testTitle: prog.testTitle,
+        userName: prog.userName,
+        userEmail: prog.userEmail,
+        status: 'in_progress',
+        startedAt: Date.now()
+      };
+      entry.userAnswers = prog.userAnswers || {};
+      entry.currentIndex = prog.currentIndex || 0;
+      entry.lastUpdated = Date.now();
+      if (prIdx !== -1) {
+        allResults[prIdx] = entry;
+      } else {
+        allResults.unshift(entry);
+      }
+      cms.saveOfficialTestResults(allResults);
+      json(res, 200, { ok: true });
+      return true;
+    }
+    if (route === '/tests/submit' && method === 'POST') {
+      var subData = JSON.parse(await readBody(req));
+      var allResList = cms.loadOfficialTestResults();
+      var subKey = subData.testId + '_' + (subData.userEmail || '').toLowerCase();
+      var findIdx = allResList.findIndex((r) => r.key === subKey && r.status === 'in_progress');
+      var submission = {
+        id: 'res_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+        key: subKey,
+        testId: subData.testId,
+        testTitle: subData.testTitle,
+        userName: subData.userName,
+        userEmail: subData.userEmail,
+        status: 'completed',
+        totalQuestions: subData.totalQuestions,
+        correctCount: subData.correctCount,
+        wrongCount: subData.wrongCount,
+        percentage: subData.percentage,
+        questions: subData.questions,
+        userAnswers: subData.userAnswers,
+        completedAt: Date.now()
+      };
+      if (findIdx !== -1) {
+        allResList[findIdx] = submission;
+      } else {
+        allResList.unshift(submission);
+      }
+      cms.saveOfficialTestResults(allResList);
+      json(res, 200, { ok: true, result: submission });
+      return true;
+    }
+    if (route === '/tests/results' && method === 'GET') {
+      var resList = cms.loadOfficialTestResults();
+      var filterEmail = (url.searchParams.get('email') || '').trim().toLowerCase();
+      var filterName = (url.searchParams.get('name') || '').trim().toLowerCase();
+      var filterTestId = (url.searchParams.get('testId') || '').trim();
+
+      if (filterEmail) {
+        resList = resList.filter((r) => (r.userEmail || '').toLowerCase() === filterEmail);
+      }
+      if (filterName) {
+        resList = resList.filter((r) => (r.userName || '').toLowerCase().includes(filterName));
+      }
+      if (filterTestId) {
+        resList = resList.filter((r) => r.testId === filterTestId);
+      }
+      json(res, 200, { ok: true, results: resList });
       return true;
     }
     json(res, 404, { error: 'Unknown CMS API route' });

@@ -470,6 +470,37 @@ function importTensesQuestions(rows) {
   return { count: count, data: data };
 }
 
+const OFFICIAL_TESTS_FILE = path.join(DATA, 'official-tests.json');
+const OFFICIAL_RESULTS_FILE = path.join(DATA, 'official-test-results.json');
+
+function loadOfficialTests() {
+  if (!fs.existsSync(OFFICIAL_TESTS_FILE)) return [];
+  try {
+    return JSON.parse(fs.readFileSync(OFFICIAL_TESTS_FILE, 'utf8')) || [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveOfficialTests(tests) {
+  fs.writeFileSync(OFFICIAL_TESTS_FILE, JSON.stringify(tests, null, 2), 'utf8');
+  return tests.length;
+}
+
+function loadOfficialTestResults() {
+  if (!fs.existsSync(OFFICIAL_RESULTS_FILE)) return [];
+  try {
+    return JSON.parse(fs.readFileSync(OFFICIAL_RESULTS_FILE, 'utf8')) || [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveOfficialTestResults(results) {
+  fs.writeFileSync(OFFICIAL_RESULTS_FILE, JSON.stringify(results, null, 2), 'utf8');
+  return results.length;
+}
+
 module.exports = {
   ROOT,
   CSV_NAMES,
@@ -495,4 +526,8 @@ module.exports = {
   addTensesQuestion,
   deleteTensesQuestion,
   importTensesQuestions,
+  loadOfficialTests,
+  saveOfficialTests,
+  loadOfficialTestResults,
+  saveOfficialTestResults,
 };

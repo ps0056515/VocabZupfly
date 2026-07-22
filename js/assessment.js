@@ -1,8 +1,8 @@
 window.LQ = window.LQ || {};
 
 (function () {
-  let activeTab = 'practice';
-  let activeFilter = 'new';
+  let activeTab = "practice";
+  let activeFilter = "new";
   let activeSession = null;
   let timerInterval = null;
 
@@ -12,28 +12,39 @@ window.LQ = window.LQ || {};
   }
 
   LQ.initAssessmentPage = async function () {
-    LQ.switchAssessmentTab('practice');
+    await LQ.loadOfficialTestCards();
+    await LQ.loadPracticeAssessmentCards();
+
+    const defaultTab =
+      fetchedOfficialTests && fetchedOfficialTests.length > 0
+        ? "test"
+        : activeTab || "test";
+    LQ.switchAssessmentTab(defaultTab);
   };
 
   LQ.switchAssessmentTab = function (tab) {
-    activeTab = tab || 'practice';
-    const btnPractice = document.getElementById('tab-btn-practice');
-    const btnTest = document.getElementById('tab-btn-test');
-    const viewPractice = document.getElementById('assessment-practice-view');
-    const viewTest = document.getElementById('assessment-test-view');
+    activeTab = tab || "practice";
+    const btnPractice = document.getElementById("tab-btn-practice");
+    const btnTest = document.getElementById("tab-btn-test");
+    const viewPractice = document.getElementById("assessment-practice-view");
+    const viewTest = document.getElementById("assessment-test-view");
 
-    if (btnPractice) btnPractice.classList.toggle('active', activeTab === 'practice');
-    if (btnTest) btnTest.classList.toggle('active', activeTab === 'test');
-    if (viewPractice) viewPractice.classList.toggle('hidden', activeTab !== 'practice');
-    if (viewTest) viewTest.classList.toggle('hidden', activeTab !== 'test');
+    if (btnPractice)
+      btnPractice.classList.toggle("active", activeTab === "practice");
+    if (btnTest) btnTest.classList.toggle("active", activeTab === "test");
+    if (viewPractice)
+      viewPractice.classList.toggle("hidden", activeTab !== "practice");
+    if (viewTest) viewTest.classList.toggle("hidden", activeTab !== "test");
 
-    if (activeTab === 'practice') {
+    if (activeTab === "practice") {
       LQ.loadPracticeAssessmentCards();
+    } else if (activeTab === "test") {
+      LQ.loadOfficialTestCards();
     }
   };
 
   LQ.loadPracticeAssessmentCards = async function () {
-    const listWrap = document.getElementById('assessment-list-grid');
+    const listWrap = document.getElementById("assessment-list-grid");
     if (!listWrap) return;
 
     const items = await LQ.AssessmentDB.getAllAssessments();
@@ -41,141 +52,675 @@ window.LQ = window.LQ || {};
   };
 
   LQ.setAssessmentFilter = function (val) {
-    activeFilter = val || 'new';
-    const sel = document.getElementById('asm-status-filter');
+    activeFilter = val || "new";
+    const sel = document.getElementById("asm-status-filter");
     if (sel) sel.value = activeFilter;
 
-    const btnNew = document.getElementById('filter-btn-new');
-    const btnCompleted = document.getElementById('filter-btn-completed');
-    const btnAll = document.getElementById('filter-btn-all');
+    const btnNew = document.getElementById("filter-btn-new");
+    const btnCompleted = document.getElementById("filter-btn-completed");
+    const btnAll = document.getElementById("filter-btn-all");
 
-    if (btnNew) btnNew.classList.toggle('active', activeFilter === 'new');
-    if (btnCompleted) btnCompleted.classList.toggle('active', activeFilter === 'completed');
-    if (btnAll) btnAll.classList.toggle('active', activeFilter === 'all');
+    if (btnNew) btnNew.classList.toggle("active", activeFilter === "new");
+    if (btnCompleted)
+      btnCompleted.classList.toggle("active", activeFilter === "completed");
+    if (btnAll) btnAll.classList.toggle("active", activeFilter === "all");
 
-    LQ.loadPracticeAssessmentCards();
+    if (activeTab === "practice") {
+      LQ.loadPracticeAssessmentCards();
+    } else if (activeTab === "test") {
+      LQ.loadOfficialTestCards();
+    }
   };
 
   LQ.renderAssessmentCards = function (list) {
-    const wrap = document.getElementById('assessment-list-grid');
-    const emptyState = document.getElementById('assessment-empty-state');
+    const wrap = document.getElementById("assessment-list-grid");
+    const emptyState = document.getElementById("assessment-empty-state");
     if (!wrap) return;
 
-    let practiceItems = (list || []).filter((a) => a.type !== 'test');
+    let practiceItems = (list || []).filter((a) => a.type !== "test");
 
-    if (activeFilter === 'new') {
-      practiceItems = practiceItems.filter((a) => a.status !== 'completed');
-    } else if (activeFilter === 'completed') {
-      practiceItems = practiceItems.filter((a) => a.status === 'completed');
+    if (activeFilter === "new") {
+      practiceItems = practiceItems.filter((a) => a.status !== "completed");
+    } else if (activeFilter === "completed") {
+      practiceItems = practiceItems.filter((a) => a.status === "completed");
     }
 
     if (!practiceItems.length) {
-      wrap.innerHTML = '';
-      if (emptyState) emptyState.classList.remove('hidden');
+      wrap.innerHTML = "";
+      if (emptyState) emptyState.classList.remove("hidden");
       return;
     }
 
-    if (emptyState) emptyState.classList.add('hidden');
+    if (emptyState) emptyState.classList.add("hidden");
 
     wrap.innerHTML = practiceItems
       .map((item) => {
-        const isDone = item.status === 'completed';
-        const dateStr = item.createdAt ? new Date(item.createdAt).toLocaleDateString() : '';
-        const durTag = item.durationMinutes ? '<span>⏱️ ' + item.durationMinutes + ' mins</span>' : '';
+        const isDone = item.status === "completed";
+        const dateStr = item.createdAt
+          ? new Date(item.createdAt).toLocaleDateString()
+          : "";
+        const durTag = item.durationMinutes
+          ? "<span>⏱️ " + item.durationMinutes + " mins</span>"
+          : "";
         const pctNum = formatScoreNum(item.percentage);
-        const themeClass = pctNum > 60 ? 'green' : pctNum > 30 ? 'amber' : 'coral';
+        const themeClass =
+          pctNum > 60 ? "green" : pctNum > 30 ? "amber" : "coral";
         const scoreBadge = isDone
-          ? '<div class="asm-score-badge ' + themeClass + '">' +
-            'Score: <strong>' + pctNum + '%</strong> (' + item.correctCount + '/' + item.totalQuestions + ' Correct)' +
-            '</div>'
-          : '';
+          ? '<div class="asm-score-badge ' +
+            themeClass +
+            '">' +
+            "Score: <strong>" +
+            pctNum +
+            "%</strong> (" +
+            item.correctCount +
+            "/" +
+            item.totalQuestions +
+            " Correct)" +
+            "</div>"
+          : "";
 
         const groupBadges = (item.groupNames || [])
           .slice(0, 3)
-          .map((g) => '<span class="asm-group-tag">' + LQ.esc(g) + '</span>')
-          .join('');
+          .map((g) => '<span class="asm-group-tag">' + LQ.esc(g) + "</span>")
+          .join("");
 
-        const moreGroups = (item.groupNames || []).length > 3 ? '<span class="asm-group-tag">+' + (item.groupNames.length - 3) + ' more</span>' : '';
+        const moreGroups =
+          (item.groupNames || []).length > 3
+            ? '<span class="asm-group-tag">+' +
+              (item.groupNames.length - 3) +
+              " more</span>"
+            : "";
 
         return (
-          '<article class="asm-card ' + (isDone ? 'done' : '') + '">' +
+          '<article class="asm-card ' +
+          (isDone ? "done" : "") +
+          '">' +
           '<div class="asm-card-head">' +
-          '<span class="asm-type-badge">' + (isDone ? '✓ Completed' : '⚡ Practice') + '</span>' +
-          '<span class="asm-date">' + dateStr + '</span>' +
-          '</div>' +
-          '<h3 class="asm-card-title">' + LQ.esc(item.title) + '</h3>' +
+          '<span class="asm-type-badge">' +
+          (isDone ? "✓ Completed" : "⚡ Practice") +
+          "</span>" +
+          '<span class="asm-date">' +
+          dateStr +
+          "</span>" +
+          "</div>" +
+          '<h3 class="asm-card-title">' +
+          LQ.esc(item.title) +
+          "</h3>" +
           '<div class="asm-card-meta">' +
-          '<span>📋 ' + item.totalQuestions + ' Questions</span>' +
+          "<span>📋 " +
+          item.totalQuestions +
+          " Questions</span>" +
           durTag +
-          '</div>' +
-          '<div class="asm-groups-row">' + groupBadges + moreGroups + '</div>' +
+          "</div>" +
+          '<div class="asm-groups-row">' +
+          groupBadges +
+          moreGroups +
+          "</div>" +
           scoreBadge +
           '<div class="asm-card-actions">' +
           (isDone
-            ? '<button type="button" class="btn btn-view-results" onclick="LQ.showAssessmentResult(\'' + item.id + '\')">📊 View Results</button>'
-            : '<button type="button" class="btn primary" onclick="LQ.startAssessmentSession(\'' + item.id + '\')">▶️ Attend Practice</button>') +
-          '</div>' +
-          '</article>'
+            ? '<button type="button" class="btn btn-view-results" onclick="LQ.showAssessmentResult(\'' +
+              item.id +
+              "')\">📊 View Results</button>"
+            : '<button type="button" class="btn primary" onclick="LQ.startAssessmentSession(\'' +
+              item.id +
+              "')\">▶️ Attend Practice</button>") +
+          "</div>" +
+          "</article>"
         );
       })
-      .join('');
+      .join("");
   };
+
+  /* ══ OFFICIAL TEST MANAGEMENT ══ */
+  let fetchedOfficialTests = [];
+  let pendingOfficialTestId = null;
+
+  function parseLocalDatetimeMs(str) {
+    if (!str) return 0;
+    if (typeof str === "number") return str;
+
+    const s = String(str).trim();
+    const isPm = /pm/i.test(s);
+    const isAm = /am/i.test(s);
+
+    if (s.endsWith("Z") || s.includes("+")) {
+      const dIso = new Date(s);
+      if (!isNaN(dIso.getTime())) return dIso.getTime();
+    }
+
+    const clean = s.replace(/am|pm/gi, "").trim();
+    const parts = clean.split(/[-T:\s\/]+/);
+
+    if (parts.length >= 5) {
+      let year = parseInt(parts[0], 10);
+      let month = parseInt(parts[1], 10) - 1;
+      let day = parseInt(parts[2], 10);
+      let hour = parseInt(parts[3], 10);
+      let min = parseInt(parts[4], 10);
+
+      if (isPm && hour < 12) hour += 12;
+      if (isAm && hour === 12) hour = 0;
+
+      return new Date(year, month, day, hour, min).getTime();
+    }
+
+    const dDirect = new Date(s);
+    return isNaN(dDirect.getTime()) ? 0 : dDirect.getTime();
+  }
+
+  LQ.loadOfficialTestCards = async function () {
+    const listWrap = document.getElementById("official-test-list-grid");
+    const emptyState = document.getElementById("official-test-empty-state");
+    if (!listWrap) return;
+
+    let officialTests = [];
+    try {
+      const res = await fetch("/api/cms/tests?t=" + Date.now(), {
+        cache: "no-store",
+      });
+      if (res.ok) {
+        const data = await res.json();
+        officialTests = data.tests || [];
+      }
+    } catch (e) {
+      console.warn("Could not fetch server official tests", e);
+    }
+    fetchedOfficialTests = officialTests;
+
+    let profile = null;
+    try {
+      profile = JSON.parse(localStorage.getItem("lq_user_profile") || "null");
+    } catch (e) {}
+
+    let userResults = [];
+    if (profile && profile.email) {
+      try {
+        const resRes = await fetch(
+          "/api/cms/tests/results?email=" +
+            encodeURIComponent(profile.email) +
+            "&t=" +
+            Date.now(),
+          { cache: "no-store" },
+        );
+        if (resRes.ok) {
+          const rData = await resRes.json();
+          userResults = rData.results || [];
+        }
+      } catch (e) {}
+    }
+
+    const localCompleted = await LQ.AssessmentDB.getAllAssessments();
+    const now = Date.now();
+
+    let displayTests = officialTests.filter((item) => {
+      const startMs = parseLocalDatetimeMs(item.startTime);
+      const endMs = parseLocalDatetimeMs(item.endTime);
+      const isDone =
+        userResults.some(
+          (r) =>
+            String(r.testId) === String(item.id) && r.status === "completed",
+        ) ||
+        localCompleted.some(
+          (c) => String(c.id) === String(item.id) && c.status === "completed",
+        );
+
+      if (activeFilter === "new") {
+        // Show all non-completed official tests
+        return !isDone;
+      } else if (activeFilter === "completed") {
+        // Show all completed official tests
+        return isDone;
+      }
+      return true;
+    });
+
+    if (!displayTests.length) {
+      listWrap.innerHTML = "";
+      if (emptyState) emptyState.classList.remove("hidden");
+      return;
+    }
+    if (emptyState) emptyState.classList.add("hidden");
+
+    listWrap.innerHTML = displayTests
+      .map((item) => {
+        const startMs = parseLocalDatetimeMs(item.startTime);
+        const endMs = parseLocalDatetimeMs(item.endTime);
+        const isUpcoming = now < startMs;
+        const isExpired = now > endMs;
+
+        const isDone =
+          userResults.some(
+            (r) => r.testId === item.id && r.status === "completed",
+          ) ||
+          localCompleted.some(
+            (c) => c.id === item.id && c.status === "completed",
+          );
+
+        const completedResult =
+          userResults.find(
+            (r) => r.testId === item.id && r.status === "completed",
+          ) ||
+          localCompleted.find(
+            (c) => c.id === item.id && c.status === "completed",
+          );
+
+        const startStr = item.startTime
+          ? new Date(item.startTime).toLocaleString(undefined, {
+              dateStyle: "medium",
+              timeStyle: "short",
+            })
+          : "—";
+        const endStr = item.endTime
+          ? new Date(item.endTime).toLocaleString(undefined, {
+              dateStyle: "medium",
+              timeStyle: "short",
+            })
+          : "—";
+        const durTag = item.durationMinutes
+          ? "<span>⏱️ " + item.durationMinutes + " mins</span>"
+          : "";
+        const qCount = (item.questions || []).length;
+
+        let statusText = "⚡ Active Test";
+        if (isDone) {
+          statusText = "✓ Completed";
+        } else if (isUpcoming) {
+          statusText = "🔒 Upcoming Test";
+        } else if (isExpired) {
+          statusText = "⌛ Test Expired";
+        }
+
+        let scoreBadge = "";
+        if (isDone && completedResult) {
+          const pctNum = formatScoreNum(completedResult.percentage);
+          const themeClass =
+            pctNum > 60 ? "green" : pctNum > 30 ? "amber" : "coral";
+          scoreBadge =
+            '<div class="asm-score-badge ' +
+            themeClass +
+            '">' +
+            "Score: <strong>" +
+            pctNum +
+            "%</strong> (" +
+            (completedResult.correctCount || 0) +
+            "/" +
+            (completedResult.totalQuestions || qCount) +
+            " Correct)" +
+            "</div>";
+        }
+
+        let actionButton = "";
+        if (isDone) {
+          actionButton =
+            '<button type="button" class="btn btn-view-results" onclick="LQ.showAssessmentResult(\'' +
+            item.id +
+            "')\">📊 View Results</button>";
+        } else if (isExpired) {
+          actionButton =
+            '<button type="button" class="btn" disabled style="opacity:0.65;cursor:not-allowed;">⌛ Test Expired</button>';
+        } else if (isUpcoming) {
+          actionButton =
+            '<button type="button" class="btn" disabled style="opacity:0.65;cursor:not-allowed;">🔒 Starts at ' +
+            startStr +
+            "</button>";
+        } else {
+          actionButton =
+            '<button type="button" class="btn primary" onclick="LQ.openTestInstructionModal(\'' +
+            item.id +
+            "')\">▶️ Attend Test</button>";
+        }
+
+        return (
+          '<article class="asm-card ' +
+          (isDone ? "done" : "") +
+          '">' +
+          '<div class="asm-card-head">' +
+          '<span class="asm-type-badge">' +
+          statusText +
+          "</span>" +
+          "</div>" +
+          '<h3 class="asm-card-title" style="margin-top:6px;">' +
+          LQ.esc(item.title) +
+          "</h3>" +
+          '<div class="asm-dates-box" style="display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--text-muted, #64748b);margin:8px 0;background:#f8fafc;padding:8px 10px;border-radius:8px;border:1px solid #e2e8f0;">' +
+          "<div>📅 <strong>Start Date:</strong> " +
+          startStr +
+          "</div>" +
+          "<div>🏁 <strong>End Date:</strong> " +
+          endStr +
+          "</div>" +
+          "</div>" +
+          '<div class="asm-card-meta">' +
+          "<span>📋 " +
+          qCount +
+          " Questions</span>" +
+          durTag +
+          "</div>" +
+          scoreBadge +
+          '<div class="asm-card-actions">' +
+          actionButton +
+          "</div>" +
+          "</article>"
+        );
+      })
+      .join("");
+  };
+
+  LQ.openTestInstructionModal = async function (testId) {
+    pendingOfficialTestId = testId;
+    let test = (fetchedOfficialTests || []).find(
+      (t) => String(t.id) === String(testId),
+    );
+    if (!test) {
+      try {
+        const res = await fetch("/api/cms/tests?t=" + Date.now(), {
+          cache: "no-store",
+        });
+        if (res.ok) {
+          const data = await res.json();
+          fetchedOfficialTests = data.tests || [];
+          test = fetchedOfficialTests.find(
+            (t) => String(t.id) === String(testId),
+          );
+        }
+      } catch (e) {}
+    }
+
+    if (!test) {
+      test = {
+        id: testId,
+        title: "Official Test Evaluation",
+        instructions: "",
+        durationMinutes: 20,
+        questions: [],
+      };
+    }
+
+    const modal = document.getElementById("modal-test-instruction");
+    const titleEl = document.getElementById("inst-test-title");
+    const windowEl = document.getElementById("inst-test-window");
+    const durEl = document.getElementById("inst-test-duration");
+    const termsEl = document.getElementById("inst-test-terms");
+
+    const startStr = test.startTime
+      ? new Date(test.startTime).toLocaleString(undefined, {
+          dateStyle: "medium",
+          timeStyle: "short",
+        })
+      : "Immediate";
+    const endStr = test.endTime
+      ? new Date(test.endTime).toLocaleString(undefined, {
+          dateStyle: "medium",
+          timeStyle: "short",
+        })
+      : "No Expiry";
+
+    if (titleEl) titleEl.textContent = test.title;
+    if (windowEl)
+      windowEl.textContent =
+        "📅 Availability Window: " + startStr + " to " + endStr;
+    if (durEl)
+      durEl.textContent = test.durationMinutes
+        ? "⏱️ Duration: " + test.durationMinutes + " minutes"
+        : "⏱️ Duration: Untimed";
+
+    let formattedInstructions = (test.instructions || "").trim();
+    if (!formattedInstructions) {
+      const totalQs = (test.questions || []).length;
+      const durationStr = test.durationMinutes
+        ? test.durationMinutes + " minutes"
+        : "Untimed (No time limit)";
+      formattedInstructions =
+        "📌 Official Test Guidelines & Examination Rules:\n\n" +
+        "• Total Questions: " +
+        totalQs +
+        " Questions\n" +
+        "• Duration: " +
+        durationStr +
+        "\n" +
+        "• Stable Internet: Ensure a steady internet connection before starting.\n" +
+        "• Continuous Timer: Once started, the timer runs continuously. Do not close or refresh the tab.\n" +
+        "• Real-Time Syncing: Your answers sync automatically as you move between questions.\n" +
+        "• Auto-Submission: When the timer expires, your test will submit automatically.\n" +
+        "• Mandatory Credentials: Your Name & Email will be permanently attached to this attempt record.";
+    }
+    if (termsEl) termsEl.textContent = formattedInstructions;
+
+    if (modal) {
+      modal.classList.remove("hidden");
+      modal.style.display = "flex";
+    }
+  };
+
+  LQ.closeTestInstructionModal = function () {
+    const modal = document.getElementById("modal-test-instruction");
+    if (modal) {
+      modal.classList.add("hidden");
+      modal.style.display = "none";
+    }
+  };
+
+  LQ.openStudentRegistrationModal = function () {
+    LQ.closeTestInstructionModal();
+    const modal = document.getElementById("modal-student-registration");
+    const nameInp = document.getElementById("reg-student-name");
+    const emailInp = document.getElementById("reg-student-email");
+
+    let profile = null;
+    try {
+      profile = JSON.parse(localStorage.getItem("lq_user_profile") || "null");
+    } catch (e) {}
+
+    if (profile) {
+      if (nameInp && profile.name) nameInp.value = profile.name;
+      if (emailInp && profile.email) emailInp.value = profile.email;
+    }
+
+    if (modal) {
+      modal.classList.remove("hidden");
+      modal.style.display = "flex";
+    }
+  };
+
+  LQ.closeStudentRegistrationModal = function () {
+    const modal = document.getElementById("modal-student-registration");
+    if (modal) {
+      modal.classList.add("hidden");
+      modal.style.display = "none";
+    }
+  };
+
+  LQ.submitStudentRegistration = function (e) {
+    if (e) e.preventDefault();
+    const nameInp = document.getElementById("reg-student-name");
+    const emailInp = document.getElementById("reg-student-email");
+
+    const name = nameInp ? nameInp.value.trim() : "";
+    const email = emailInp ? emailInp.value.trim() : "";
+
+    if (!name || !email) {
+      LQ.toast("Name and Email are required.");
+      return;
+    }
+
+    const profile = { name: name, email: email };
+    try {
+      localStorage.setItem("lq_user_profile", JSON.stringify(profile));
+    } catch (err) {}
+
+    LQ.closeStudentRegistrationModal();
+
+    if (pendingOfficialTestId) {
+      LQ.startOfficialTestSession(pendingOfficialTestId, profile);
+    }
+  };
+
+  LQ.startOfficialTestSession = async function (testId, candidate) {
+    const test = (fetchedOfficialTests || []).find(
+      (t) => String(t.id) === String(testId),
+    );
+    if (!test) {
+      LQ.toast("Test not found");
+      return;
+    }
+
+    let calcSeconds = null;
+    if (test.durationMinutes) {
+      calcSeconds = parseInt(test.durationMinutes, 10) * 60;
+    } else if (test.endTime) {
+      const endMs = parseLocalDatetimeMs(test.endTime);
+      if (endMs) {
+        const windowSec = Math.floor((endMs - Date.now()) / 1000);
+        if (windowSec > 0) calcSeconds = windowSec;
+      }
+    }
+    if (!calcSeconds || isNaN(calcSeconds) || calcSeconds <= 0) {
+      calcSeconds = 15 * 60; // 15-minute default timer if un-timed
+    }
+
+    let timerRecord = null;
+    try {
+      if (LQ.AssessmentDB && LQ.AssessmentDB.getAttempt) {
+        timerRecord = await LQ.AssessmentDB.getAttempt(test.id);
+      }
+    } catch (e) {}
+
+    if (!timerRecord || timerRecord.status !== 'in_progress') {
+      timerRecord = {
+        id: test.id,
+        testId: test.id,
+        startTimeMs: Date.now(),
+        durationSeconds: calcSeconds,
+        status: 'in_progress'
+      };
+      try {
+        if (LQ.AssessmentDB && LQ.AssessmentDB.saveAttempt) {
+          await LQ.AssessmentDB.saveAttempt(timerRecord);
+        }
+      } catch (e) {}
+    }
+
+    activeSession = {
+      isOfficial: true,
+      candidate: candidate,
+      assessment: {
+        id: test.id,
+        title: test.title,
+        type: "test",
+        totalQuestions: (test.questions || []).length,
+        durationMinutes: test.durationMinutes || 15,
+        questions: (test.questions || []).map((q) => ({
+          id: q.id,
+          text: q.text,
+          type: q.type || "mcq",
+          groupTitle: test.title,
+          options:
+            q.options || (q.type === "true_false" ? ["True", "False"] : []),
+          correctAnswerIndex:
+            q.correctAnswerIndex !== undefined ? q.correctAnswerIndex : null,
+          correctAnswerText: q.correctAnswerText || "",
+        })),
+        userAnswers: {},
+      },
+      currentIndex: 0,
+      userAnswers: {},
+      startTimeMs: timerRecord.startTimeMs,
+      durationSeconds: timerRecord.durationSeconds,
+    };
+
+    try {
+      sessionStorage.setItem("currentAssessmentId", test.id);
+    } catch (e) {}
+
+    (window.goTo || LQ.goTo)("assessment-session");
+    LQ.renderAssessmentSessionScreen();
+  };
+
+  function syncLiveProgress() {
+    if (!activeSession || !activeSession.isOfficial) return;
+    try {
+      fetch("/api/cms/tests/progress", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          testId: activeSession.assessment.id,
+          testTitle: activeSession.assessment.title,
+          userName: activeSession.candidate.name,
+          userEmail: activeSession.candidate.email,
+          userAnswers: activeSession.userAnswers,
+          currentIndex: activeSession.currentIndex,
+        }),
+      });
+    } catch (e) {}
+  }
 
   LQ.openCreateAssessmentModal = async function () {
     await LQ.tensesReady;
-    const modal = document.getElementById('modal-create-assessment');
-    const container = document.getElementById('asm-modal-groups-list');
+    const modal = document.getElementById("modal-create-assessment");
+    const container = document.getElementById("asm-modal-groups-list");
     if (!modal || !container) return;
 
     const modules = LQ.TENSES_MODULES || [
-      { id: 'sentence-repeating', title: 'Sentence Repeating' },
-      { id: 'short-stories', title: 'Short Stories' },
-      { id: 'grammar', title: 'Grammar' },
-      { id: 'sentence-reading', title: 'Sentence Reading' },
-      { id: 'passage-comprehension', title: 'Passage Comprehension' },
-      { id: 'essay-writing', title: 'Essay Writing' },
-      { id: 'jumbled-sentences', title: 'Jumbled Sentences' },
-      { id: 'story-retelling', title: 'Story Retelling' },
-      { id: 'just-a-minute', title: 'Just a Minute' }
+      { id: "sentence-repeating", title: "Sentence Repeating" },
+      { id: "short-stories", title: "Short Stories" },
+      { id: "grammar", title: "Grammar" },
+      { id: "sentence-reading", title: "Sentence Reading" },
+      { id: "passage-comprehension", title: "Passage Comprehension" },
+      { id: "essay-writing", title: "Essay Writing" },
+      { id: "jumbled-sentences", title: "Jumbled Sentences" },
+      { id: "story-retelling", title: "Story Retelling" },
+      { id: "just-a-minute", title: "Just a Minute" },
     ];
 
     container.innerHTML = modules
       .map(
         (m) =>
           '<label class="asm-chk-item">' +
-          '<input type="checkbox" name="asm_groups" value="' + m.id + '" checked>' +
-          '<span>' + LQ.esc(m.title) + '</span>' +
-          '</label>'
+          '<input type="checkbox" name="asm_groups" value="' +
+          m.id +
+          '" checked>' +
+          "<span>" +
+          LQ.esc(m.title) +
+          "</span>" +
+          "</label>",
       )
-      .join('');
+      .join("");
 
-    modal.classList.remove('hidden');
+    modal.classList.remove("hidden");
   };
 
   LQ.closeCreateAssessmentModal = function () {
-    const modal = document.getElementById('modal-create-assessment');
-    if (modal) modal.classList.add('hidden');
+    const modal = document.getElementById("modal-create-assessment");
+    if (modal) modal.classList.add("hidden");
   };
 
   LQ.createPracticeAssessment = async function (e) {
     if (e) e.preventDefault();
     await LQ.tensesReady;
 
-    const checkedInputs = document.querySelectorAll('input[name="asm_groups"]:checked');
+    const checkedInputs = document.querySelectorAll(
+      'input[name="asm_groups"]:checked',
+    );
     const selectedGroupIds = Array.from(checkedInputs).map((el) => el.value);
 
     if (!selectedGroupIds.length) {
-      LQ.toast('Please select at least one question group');
+      LQ.toast("Please select at least one question group");
       return;
     }
 
-    const qCountInp = document.getElementById('asm-q-count');
-    const durInp = document.getElementById('asm-duration');
-    const titleInp = document.getElementById('asm-title');
+    const qCountInp = document.getElementById("asm-q-count");
+    const durInp = document.getElementById("asm-duration");
+    const titleInp = document.getElementById("asm-title");
 
-    const questionCount = Math.max(1, parseInt((qCountInp && qCountInp.value) || '10', 10));
-    const durationMinutes = durInp && durInp.value ? parseInt(durInp.value, 10) : null;
-    const title = (titleInp && titleInp.value.trim()) || 'Custom Practice Assessment';
+    const questionCount = Math.max(
+      1,
+      parseInt((qCountInp && qCountInp.value) || "10", 10),
+    );
+    const durationMinutes =
+      durInp && durInp.value ? parseInt(durInp.value, 10) : null;
+    const title =
+      (titleInp && titleInp.value.trim()) || "Custom Practice Assessment";
 
     // Gather questions from selected groups
     const pool = [];
@@ -188,45 +733,48 @@ window.LQ = window.LQ || {};
         pool.push({
           groupId: grpId,
           groupTitle: groupTitle,
-          rawItem: item
+          rawItem: item,
         });
       });
     });
 
     if (!pool.length) {
-      LQ.toast('No questions available in the selected groups');
+      LQ.toast("No questions available in the selected groups");
       return;
     }
 
     // Shuffle and pick questionCount questions
     const shuffled = pool.sort(() => 0.5 - Math.random());
-    const selectedQuestions = shuffled.slice(0, Math.min(questionCount, shuffled.length)).map((q, idx) => {
-      const raw = q.rawItem;
-      let text = raw.text || raw.title || raw.story || raw.passage || '';
-      let options = raw.options || null;
-      let answerIndex = raw.answer !== undefined ? raw.answer : null;
+    const selectedQuestions = shuffled
+      .slice(0, Math.min(questionCount, shuffled.length))
+      .map((q, idx) => {
+        const raw = q.rawItem;
+        let text = raw.text || raw.title || raw.story || raw.passage || "";
+        let options = raw.options || null;
+        let answerIndex = raw.answer !== undefined ? raw.answer : null;
 
-      // Handle nested questions in story/passage if available
-      if (raw.questions && raw.questions.length) {
-        const nestedQ = raw.questions[0];
-        text = (raw.title ? raw.title + ': ' : '') + (nestedQ.q || text);
-        options = nestedQ.options || options;
-        answerIndex = nestedQ.answer !== undefined ? nestedQ.answer : answerIndex;
-      }
+        // Handle nested questions in story/passage if available
+        if (raw.questions && raw.questions.length) {
+          const nestedQ = raw.questions[0];
+          text = (raw.title ? raw.title + ": " : "") + (nestedQ.q || text);
+          options = nestedQ.options || options;
+          answerIndex =
+            nestedQ.answer !== undefined ? nestedQ.answer : answerIndex;
+        }
 
-      return {
-        id: 'q_' + idx,
-        groupId: q.groupId,
-        groupTitle: q.groupTitle,
-        text: text,
-        options: options,
-        correctAnswerIndex: answerIndex,
-        userAnswerIndex: null,
-        userTextAnswer: ''
-      };
-    });
+        return {
+          id: "q_" + idx,
+          groupId: q.groupId,
+          groupTitle: q.groupTitle,
+          text: text,
+          options: options,
+          correctAnswerIndex: answerIndex,
+          userAnswerIndex: null,
+          userTextAnswer: "",
+        };
+      });
 
-    const asmId = 'asm_' + Date.now();
+    const asmId = "asm_" + Date.now();
     const groupNames = selectedGroupIds.map((id) => {
       const m = (LQ.TENSES_MODULES || []).find((x) => x.id === id);
       return m ? m.title : id;
@@ -234,117 +782,179 @@ window.LQ = window.LQ || {};
 
     const newAssessment = {
       id: asmId,
-      type: 'practice',
+      type: "practice",
       title: title,
       groupIds: selectedGroupIds,
       groupNames: groupNames,
       totalQuestions: selectedQuestions.length,
       durationMinutes: durationMinutes,
       createdAt: Date.now(),
-      status: 'not_started',
+      status: "not_started",
       questions: selectedQuestions,
-      userAnswers: {}
+      userAnswers: {},
     };
 
     await LQ.AssessmentDB.saveAssessment(newAssessment);
     LQ.closeCreateAssessmentModal();
-    LQ.toast('Practice Assessment created!', true);
+    LQ.toast("Practice Assessment created!", true);
 
     // Land on main assessment page
-    goTo('assessment');
-    LQ.switchAssessmentTab('practice');
+    goTo("assessment");
+    LQ.switchAssessmentTab("practice");
   };
 
   LQ.deleteAssessmentCard = async function (id) {
-    if (confirm('Delete this practice assessment?')) {
+    if (confirm("Delete this practice assessment?")) {
       await LQ.AssessmentDB.deleteAssessment(id);
-      LQ.toast('Assessment deleted');
+      LQ.toast("Assessment deleted");
       LQ.initAssessmentPage();
     }
   };
 
   LQ.startAssessmentSession = async function (id) {
     try {
-      sessionStorage.setItem('currentAssessmentId', id);
+      sessionStorage.setItem("currentAssessmentId", id);
     } catch (e) {}
     LQ.restoreAssessmentSession(id);
   };
 
   LQ.restoreAssessmentSession = async function (id) {
     if (!id) {
-      goTo('assessment');
+      (window.goTo || LQ.goTo)("assessment");
       return;
     }
     try {
-      sessionStorage.setItem('currentAssessmentId', id);
+      sessionStorage.setItem("currentAssessmentId", id);
     } catch (e) {}
 
-    if (activeSession && activeSession.assessment && activeSession.assessment.id === id) {
-      goTo('assessment-session');
+    if (
+      activeSession &&
+      activeSession.assessment &&
+      activeSession.assessment.id === id
+    ) {
+      (window.goTo || LQ.goTo)("assessment-session");
+      LQ.renderAssessmentSessionScreen();
       return;
     }
 
-    const item = await LQ.AssessmentDB.getAssessment(id);
+    let item = await LQ.AssessmentDB.getAssessment(id);
     if (!item) {
-      goTo('assessment');
+      if (!fetchedOfficialTests || !fetchedOfficialTests.length) {
+        try {
+          const res = await fetch("/api/cms/tests?t=" + Date.now(), { cache: "no-store" });
+          if (res.ok) {
+            const data = await res.json();
+            fetchedOfficialTests = data.tests || [];
+          }
+        } catch (e) {}
+      }
+      const offTest = (fetchedOfficialTests || []).find((t) => String(t.id) === String(id));
+      if (offTest) {
+        let profile = null;
+        try { profile = JSON.parse(localStorage.getItem("lq_user_profile") || "null"); } catch (e) {}
+        LQ.startOfficialTestSession(id, profile);
+        return;
+      }
+      (window.goTo || LQ.goTo)("assessment");
       return;
     }
 
-    if (item.status === 'completed') {
+    if (item.status === "completed") {
       LQ.showAssessmentResult(id);
       return;
+    }
+
+    let timerRecord = null;
+    try {
+      if (LQ.AssessmentDB && LQ.AssessmentDB.getAttempt) {
+        timerRecord = await LQ.AssessmentDB.getAttempt(id);
+      }
+    } catch (e) {}
+
+    if (!timerRecord || timerRecord.status !== 'in_progress') {
+      timerRecord = {
+        id: id,
+        testId: id,
+        startTimeMs: Date.now(),
+        durationSeconds: item.durationMinutes ? item.durationMinutes * 60 : 15 * 60,
+        status: 'in_progress'
+      };
+      try {
+        if (LQ.AssessmentDB && LQ.AssessmentDB.saveAttempt) {
+          await LQ.AssessmentDB.saveAttempt(timerRecord);
+        }
+      } catch (e) {}
     }
 
     activeSession = {
       assessment: item,
       currentIndex: 0,
       userAnswers: item.userAnswers || {},
-      secondsRemaining: item.durationMinutes ? item.durationMinutes * 60 : null
+      startTimeMs: timerRecord.startTimeMs,
+      durationSeconds: timerRecord.durationSeconds,
     };
 
-    goTo('assessment-session');
+    (window.goTo || LQ.goTo)("assessment-session");
+    LQ.renderAssessmentSessionScreen();
   };
 
   LQ.renderAssessmentSessionScreen = function () {
-    const id = sessionStorage.getItem('currentAssessmentId');
+    const id = sessionStorage.getItem("currentAssessmentId");
     if (activeSession && activeSession.assessment) {
       LQ.renderSessionQuestion();
-      const timerEl = document.getElementById('asm-session-timer');
-      if (activeSession.secondsRemaining !== null) {
-        if (timerEl) timerEl.style.display = '';
-        startSessionTimer();
-      } else {
-        if (timerEl) timerEl.style.display = 'none';
-        clearInterval(timerInterval);
-      }
+      LQ.startSessionTimer();
     } else if (id) {
       LQ.restoreAssessmentSession(id);
     }
   };
 
-  function startSessionTimer() {
-    clearInterval(timerInterval);
-    const timerEl = document.getElementById('asm-session-timer');
+  LQ.startSessionTimer = function () {
+    if (LQ._asmTimerId) {
+      clearInterval(LQ._asmTimerId);
+      LQ._asmTimerId = null;
+    }
 
     function updateDisplay() {
-      if (!activeSession || activeSession.secondsRemaining === null) return;
-      if (activeSession.secondsRemaining <= 0) {
-        clearInterval(timerInterval);
-        LQ.toast('Time is up! Submitting assessment...', true);
+      if (!activeSession) return;
+
+      const timerEl = document.getElementById("asm-session-timer");
+      if (!timerEl) return;
+
+      if (!activeSession.startTimeMs) activeSession.startTimeMs = Date.now();
+      if (!activeSession.durationSeconds) activeSession.durationSeconds = 15 * 60;
+
+      const elapsedSec = Math.floor((Date.now() - activeSession.startTimeMs) / 1000);
+      const rem = Math.max(0, activeSession.durationSeconds - elapsedSec);
+
+      if (rem <= 0) {
+        if (LQ._asmTimerId) {
+          clearInterval(LQ._asmTimerId);
+          LQ._asmTimerId = null;
+        }
+        timerEl.style.display = "inline-flex";
+        timerEl.style.background = "#fee2e2";
+        timerEl.style.color = "#dc2626";
+        timerEl.style.borderColor = "#fecdd3";
+        timerEl.innerHTML = "⏱️ 0:00";
+        LQ.toast("⏱️ Time is up! Auto-submitting test...", true);
         LQ.submitAssessmentSession();
         return;
       }
-      const m = Math.floor(activeSession.secondsRemaining / 60);
-      const s = activeSession.secondsRemaining % 60;
-      if (timerEl) {
-        timerEl.textContent = '⏱️ ' + m + ':' + (s < 10 ? '0' : '') + s;
-      }
-      activeSession.secondsRemaining--;
+
+      const m = Math.floor(rem / 60);
+      const s = rem % 60;
+      const isUrgent = rem <= 60;
+
+      timerEl.style.display = "inline-flex";
+      timerEl.style.background = isUrgent ? "#fee2e2" : "#fef3c7";
+      timerEl.style.color = isUrgent ? "#dc2626" : "#b45309";
+      timerEl.style.borderColor = isUrgent ? "#fecdd3" : "#fde68a";
+      timerEl.innerHTML = "⏱️ " + m + ":" + (s < 10 ? "0" : "") + s;
     }
 
     updateDisplay();
-    timerInterval = setInterval(updateDisplay, 1000);
-  }
+    LQ._asmTimerId = setInterval(updateDisplay, 1000);
+  };
 
   LQ.renderSessionQuestion = function () {
     if (!activeSession) return;
@@ -352,26 +962,72 @@ window.LQ = window.LQ || {};
     const idx = activeSession.currentIndex;
     const q = asm.questions[idx];
 
-    const titleEl = document.getElementById('asm-session-title');
-    const counterEl = document.getElementById('asm-session-counter');
-    const bodyEl = document.getElementById('asm-session-body');
-    const btnPrev = document.getElementById('asm-btn-prev');
-    const btnNext = document.getElementById('asm-btn-next');
-    const btnSubmit = document.getElementById('asm-btn-submit');
+    const titleEl = document.getElementById("asm-session-title");
+    const counterEl = document.getElementById("asm-session-counter");
+    const bodyEl = document.getElementById("asm-session-body");
+    const btnPrev = document.getElementById("asm-btn-prev");
+    const btnNext = document.getElementById("asm-btn-next");
+    const btnSubmit = document.getElementById("asm-btn-submit");
+    const timerEl = document.getElementById("asm-session-timer");
 
     if (titleEl) titleEl.textContent = asm.title;
-    if (counterEl) counterEl.textContent = 'Question ' + (idx + 1) + ' of ' + asm.totalQuestions;
+    if (counterEl)
+      counterEl.textContent =
+        "Question " + (idx + 1) + " of " + asm.totalQuestions;
 
-    if (btnPrev) btnPrev.style.display = idx === 0 ? 'none' : 'inline-flex';
-    if (btnNext) btnNext.classList.toggle('hidden', idx === asm.totalQuestions - 1);
-    if (btnSubmit) btnSubmit.classList.toggle('hidden', idx !== asm.totalQuestions - 1);
+    if (timerEl) {
+      if (!activeSession.startTimeMs) activeSession.startTimeMs = Date.now();
+      if (!activeSession.durationSeconds) activeSession.durationSeconds = 15 * 60;
+      const elapsedSec = Math.floor((Date.now() - activeSession.startTimeMs) / 1000);
+      const rem = Math.max(0, activeSession.durationSeconds - elapsedSec);
+      const m = Math.floor(rem / 60);
+      const s = rem % 60;
+      const isUrgent = rem <= 60;
+      timerEl.style.display = "inline-flex";
+      timerEl.style.background = isUrgent ? "#fee2e2" : "#fef3c7";
+      timerEl.style.color = isUrgent ? "#dc2626" : "#b45309";
+      timerEl.style.borderColor = isUrgent ? "#fecdd3" : "#fde68a";
+      timerEl.innerHTML = "⏱️ " + m + ":" + (s < 10 ? "0" : "") + s;
+    }
+
+    if (btnPrev) btnPrev.style.display = idx === 0 ? "none" : "inline-flex";
+    if (btnNext)
+      btnNext.classList.toggle("hidden", idx === asm.totalQuestions - 1);
+    if (btnSubmit)
+      btnSubmit.classList.toggle("hidden", idx !== asm.totalQuestions - 1);
 
     if (!bodyEl || !q) return;
 
-    let optionsHtml = '';
+    let optionsHtml = "";
     const currentAnswer = activeSession.userAnswers[idx];
 
-    if (q.options && q.options.length) {
+    if (q.type === "mcq_multi") {
+      const selectedArr = Array.isArray(currentAnswer) ? currentAnswer : [];
+      optionsHtml =
+        '<div style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--text-muted, #64748b);">Select all correct options that apply:</div>' +
+        '<div class="asm-options-list">' +
+        (q.options || [])
+          .map((opt, oIdx) => {
+            const isSelected = selectedArr.includes(oIdx);
+            const prefix = String.fromCharCode(65 + oIdx);
+            return (
+              '<button type="button" class="asm-opt-btn ' +
+              (isSelected ? "selected" : "") +
+              '" onclick="LQ.toggleMultiSessionAnswer(' +
+              oIdx +
+              ')">' +
+              '<span class="asm-opt-prefix">' +
+              prefix +
+              "</span>" +
+              "<span>" +
+              LQ.esc(opt) +
+              "</span>" +
+              "</button>"
+            );
+          })
+          .join("") +
+        "</div>";
+    } else if (q.options && q.options.length) {
       optionsHtml =
         '<div class="asm-options-list">' +
         q.options
@@ -380,63 +1036,129 @@ window.LQ = window.LQ || {};
             const prefix = String.fromCharCode(65 + oIdx);
             return (
               '<button type="button" class="asm-opt-btn ' +
-              (isSelected ? 'selected' : '') +
+              (isSelected ? "selected" : "") +
               '" onclick="LQ.selectSessionAnswer(' +
               oIdx +
               ')">' +
               '<span class="asm-opt-prefix">' +
               prefix +
-              '</span>' +
-              '<span>' +
+              "</span>" +
+              "<span>" +
               LQ.esc(opt) +
-              '</span>' +
-              '</button>'
+              "</span>" +
+              "</button>"
             );
           })
-          .join('') +
-        '</div>';
+          .join("") +
+        "</div>";
+    } else if (
+      q.type === "fill_blank" &&
+      q.correctAnswers &&
+      q.correctAnswers.length > 1
+    ) {
+      const ansArr = Array.isArray(currentAnswer) ? currentAnswer : [];
+      optionsHtml =
+        '<div class="asm-text-wrap" style="display:flex;flex-direction:column;gap:12px;">' +
+        '<div style="font-size:13px;font-weight:600;color:var(--text-muted, #64748b);">✏️ Fill in the missing answers for each blank:</div>' +
+        q.correctAnswers
+          .map((_, bIdx) => {
+            const val = ansArr[bIdx] || "";
+            return (
+              '<div style="display:flex;align-items:center;gap:10px;">' +
+              '<label style="font-size:13px;font-weight:700;min-width:65px;">Blank ' +
+              (bIdx + 1) +
+              ":</label>" +
+              '<input type="text" class="inp" value="' +
+              LQ.esc(val) +
+              '" placeholder="Type answer for blank ' +
+              (bIdx + 1) +
+              '..." oninput="LQ.saveMultiBlankAnswer(' +
+              bIdx +
+              ', this.value)" style="flex:1;">' +
+              "</div>"
+            );
+          })
+          .join("") +
+        "</div>";
     } else {
       optionsHtml =
         '<div class="asm-text-wrap">' +
-        '<textarea id="asm-text-ans" class="inp" rows="3" placeholder="Type your answer or response here..." oninput="LQ.saveSessionTextAnswer(this.value)">' +
-        LQ.esc(currentAnswer || '') +
-        '</textarea>' +
-        '<p class="muted" style="margin-top:8px;font-size:12px;">Speak or type your practice answer above to evaluate.</p>' +
-        '</div>';
+        '<textarea id="asm-text-ans" class="inp" rows="3" placeholder="Type your response here..." oninput="LQ.saveSessionTextAnswer(this.value)">' +
+        LQ.esc(typeof currentAnswer === "string" ? currentAnswer : "") +
+        "</textarea>" +
+        "</div>";
     }
 
     bodyEl.innerHTML =
       '<div class="asm-q-card">' +
       '<div class="asm-q-head">' +
-      '<span class="asm-q-group-badge">' + LQ.esc(q.groupTitle) + '</span>' +
-      '</div>' +
-      '<p class="asm-q-text">' + LQ.esc(q.text) + '</p>' +
+      '<span class="asm-q-group-badge">' +
+      LQ.esc(q.groupTitle) +
+      "</span>" +
+      "</div>" +
+      '<p class="asm-q-text">' +
+      LQ.esc(q.text) +
+      "</p>" +
       optionsHtml +
-      '</div>';
+      "</div>";
   };
 
   LQ.selectSessionAnswer = function (optIdx) {
     if (!activeSession) return;
     activeSession.userAnswers[activeSession.currentIndex] = optIdx;
     LQ.renderSessionQuestion();
+    syncLiveProgress();
+  };
+
+  LQ.toggleMultiSessionAnswer = function (optIdx) {
+    if (!activeSession) return;
+    const qIdx = activeSession.currentIndex;
+    let list = Array.isArray(activeSession.userAnswers[qIdx])
+      ? activeSession.userAnswers[qIdx]
+      : [];
+    if (list.includes(optIdx)) {
+      list = list.filter((x) => x !== optIdx);
+    } else {
+      list.push(optIdx);
+    }
+    activeSession.userAnswers[qIdx] = list;
+    LQ.renderSessionQuestion();
+    syncLiveProgress();
+  };
+
+  LQ.saveMultiBlankAnswer = function (blankIdx, val) {
+    if (!activeSession) return;
+    const qIdx = activeSession.currentIndex;
+    let list = Array.isArray(activeSession.userAnswers[qIdx])
+      ? activeSession.userAnswers[qIdx]
+      : [];
+    list[blankIdx] = val;
+    activeSession.userAnswers[qIdx] = list;
+    syncLiveProgress();
   };
 
   LQ.saveSessionTextAnswer = function (val) {
     if (!activeSession) return;
     activeSession.userAnswers[activeSession.currentIndex] = val;
+    syncLiveProgress();
   };
 
   LQ.prevSessionQuestion = function () {
     if (activeSession && activeSession.currentIndex > 0) {
       activeSession.currentIndex--;
       LQ.renderSessionQuestion();
+      syncLiveProgress();
     }
   };
 
   LQ.nextSessionQuestion = function () {
-    if (activeSession && activeSession.currentIndex < activeSession.assessment.totalQuestions - 1) {
+    if (
+      activeSession &&
+      activeSession.currentIndex < activeSession.assessment.totalQuestions - 1
+    ) {
       activeSession.currentIndex++;
       LQ.renderSessionQuestion();
+      syncLiveProgress();
     }
   };
 
@@ -453,23 +1175,56 @@ window.LQ = window.LQ || {};
       const userAns = activeSession.userAnswers[idx];
       let isCorrect = false;
 
-      if (!groupStats[q.groupId]) {
-        groupStats[q.groupId] = {
-          groupId: q.groupId,
-          groupTitle: q.groupTitle,
+      const grpId = q.groupId || "official";
+      const grpTitle = q.groupTitle || asm.title;
+
+      if (!groupStats[grpId]) {
+        groupStats[grpId] = {
+          groupId: grpId,
+          groupTitle: grpTitle,
           total: 0,
           correct: 0,
-          wrong: 0
+          wrong: 0,
         };
       }
 
-      groupStats[q.groupId].total++;
+      groupStats[grpId].total++;
 
-      if (q.options && q.options.length && q.correctAnswerIndex !== null) {
+      if (q.type === "mcq_multi") {
+        const expectedIndices = (q.correctAnswerIndices || []).slice().sort();
+        const userIndices = Array.isArray(userAns)
+          ? userAns.slice().sort()
+          : [];
+        isCorrect =
+          expectedIndices.length > 0 &&
+          expectedIndices.length === userIndices.length &&
+          expectedIndices.every((v, i) => v === userIndices[i]);
+      } else if (
+        q.type === "mcq" ||
+        q.type === "true_false" ||
+        (q.options && q.options.length && q.correctAnswerIndex !== null)
+      ) {
         isCorrect = userAns === q.correctAnswerIndex;
+      } else if (q.type === "fill_blank") {
+        if (q.correctAnswers && q.correctAnswers.length > 1) {
+          const userBlankArr = Array.isArray(userAns) ? userAns : [];
+          isCorrect = q.correctAnswers.every((expected, bIdx) => {
+            const expStr = (expected || "").trim().toLowerCase();
+            const actStr = (userBlankArr[bIdx] || "").trim().toLowerCase();
+            return expStr.length > 0 && expStr === actStr;
+          });
+        } else {
+          const expected = (
+            q.correctAnswers ? q.correctAnswers[0] : q.correctAnswerText || ""
+          )
+            .trim()
+            .toLowerCase();
+          const actual =
+            typeof userAns === "string" ? userAns.trim().toLowerCase() : "";
+          isCorrect = expected.length > 0 && expected === actual;
+        }
       } else {
-        // Text answer is correct if non-empty
-        isCorrect = typeof userAns === 'string' && userAns.trim().length >= 3;
+        isCorrect = typeof userAns === "string" && userAns.trim().length >= 3;
       }
 
       q.userAnswer = userAns;
@@ -477,22 +1232,26 @@ window.LQ = window.LQ || {};
 
       if (isCorrect) {
         correctCount++;
-        groupStats[q.groupId].correct++;
+        groupStats[grpId].correct++;
       } else {
         wrongCount++;
-        groupStats[q.groupId].wrong++;
+        groupStats[grpId].wrong++;
       }
     });
 
     // Compute accuracy percentages for groups
     Object.keys(groupStats).forEach((gId) => {
       const g = groupStats[gId];
-      g.percentage = g.total > 0 ? formatScoreNum((g.correct / g.total) * 100) : 0;
+      g.percentage =
+        g.total > 0 ? formatScoreNum((g.correct / g.total) * 100) : 0;
     });
 
-    const percentage = asm.totalQuestions > 0 ? formatScoreNum((correctCount / asm.totalQuestions) * 100) : 0;
+    const percentage =
+      asm.totalQuestions > 0
+        ? formatScoreNum((correctCount / asm.totalQuestions) * 100)
+        : 0;
 
-    asm.status = 'completed';
+    asm.status = "completed";
     asm.userAnswers = activeSession.userAnswers;
     asm.correctCount = correctCount;
     asm.wrongCount = wrongCount;
@@ -500,10 +1259,48 @@ window.LQ = window.LQ || {};
     asm.groupStats = groupStats;
     asm.completedAt = Date.now();
 
+    if (activeSession.isOfficial && activeSession.candidate) {
+      try {
+        await fetch("/api/cms/tests/submit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            testId: asm.id,
+            testTitle: asm.title,
+            userName: activeSession.candidate.name,
+            userEmail: activeSession.candidate.email,
+            totalQuestions: asm.totalQuestions,
+            correctCount: correctCount,
+            wrongCount: wrongCount,
+            percentage: percentage,
+            questions: asm.questions,
+            userAnswers: activeSession.userAnswers,
+          }),
+        });
+      } catch (e) {}
+    }
+
+    if (activeSession && activeSession.assessment) {
+      try {
+        if (LQ.AssessmentDB && LQ.AssessmentDB.saveAttempt) {
+          await LQ.AssessmentDB.saveAttempt({
+            id: activeSession.assessment.id,
+            testId: activeSession.assessment.id,
+            status: "completed",
+            completedAt: Date.now(),
+          });
+        }
+      } catch (e) {}
+    }
+
     await LQ.AssessmentDB.saveAssessment(asm);
-    LQ.toast('Assessment submitted & evaluated!', true);
+    LQ.toast("Assessment submitted & evaluated!", true);
 
     const asmId = asm.id;
+    if (LQ._asmTimerId) {
+      clearInterval(LQ._asmTimerId);
+      LQ._asmTimerId = null;
+    }
     activeSession = null;
     LQ.showAssessmentResult(asmId);
   };
@@ -511,117 +1308,190 @@ window.LQ = window.LQ || {};
   LQ.showAssessmentResult = function (id) {
     if (!id) return;
     try {
-      sessionStorage.setItem('currentAssessmentId', id);
+      sessionStorage.setItem("currentAssessmentId", id);
     } catch (e) {}
-    goTo('assessment-result');
+    (window.goTo || LQ.goTo)("assessment-result");
   };
 
+
+
   LQ.renderAssessmentResultScreen = async function () {
-    const id = sessionStorage.getItem('currentAssessmentId');
+    const id = sessionStorage.getItem("currentAssessmentId");
     if (!id) return;
 
     const asm = await LQ.AssessmentDB.getAssessment(id);
     if (!asm) {
-      LQ.toast('Assessment results not found');
+      LQ.toast("Assessment results not found");
       return;
     }
 
-    const titleEl = document.getElementById('asm-res-title');
-    const scorePctEl = document.getElementById('asm-res-pct');
-    const scoreCountsEl = document.getElementById('asm-res-counts');
-    const groupStatsEl = document.getElementById('asm-res-group-stats');
-    const questionsListEl = document.getElementById('asm-res-q-list');
+    const titleEl = document.getElementById("asm-res-title");
+    const scorePctEl = document.getElementById("asm-res-pct");
+    const scoreCountsEl = document.getElementById("asm-res-counts");
+    const groupStatsEl = document.getElementById("asm-res-group-stats");
+    const questionsListEl = document.getElementById("asm-res-q-list");
 
     const pctNum = formatScoreNum(asm.percentage);
-    if (titleEl) titleEl.textContent = asm.title + ' — Results';
+    if (titleEl) titleEl.textContent = asm.title + " — Results";
     if (scorePctEl) {
-      scorePctEl.textContent = pctNum + '%';
-      scorePctEl.className = 'asm-res-pct-circle ' + (pctNum > 60 ? 'circle-green' : pctNum > 30 ? 'circle-amber' : 'circle-coral');
+      scorePctEl.textContent = pctNum + "%";
+      scorePctEl.className =
+        "asm-res-pct-circle " +
+        (pctNum > 60
+          ? "circle-green"
+          : pctNum > 30
+          ? "circle-amber"
+          : "circle-coral");
     }
     if (scoreCountsEl) {
-      const createdDateStr = asm.createdAt ? new Date(asm.createdAt).toLocaleDateString() : '';
-      const submittedDateStr = asm.completedAt ? new Date(asm.completedAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : 'Completed';
+      const createdTs = asm.createdAt || asm.completedAt;
+      const createdDateStr = createdTs
+        ? new Date(createdTs).toLocaleString(undefined, {
+            dateStyle: "medium",
+            timeStyle: "short",
+          })
+        : "";
+      const submittedDateStr = asm.completedAt
+        ? new Date(asm.completedAt).toLocaleString(undefined, {
+            dateStyle: "medium",
+            timeStyle: "short",
+          })
+        : "Completed";
       scoreCountsEl.innerHTML =
         '<div class="asm-res-stats-wrap">' +
         '<div class="asm-res-stat-chips">' +
-        '<span class="asm-stat-chip chip-correct">✓ ' + asm.correctCount + ' Correct</span>' +
-        '<span class="asm-stat-chip chip-wrong">✕ ' + asm.wrongCount + ' Wrong</span>' +
-        '<span class="asm-stat-chip chip-total">❓ ' + asm.totalQuestions + ' Total</span>' +
-        '</div>' +
+        '<span class="asm-stat-chip chip-correct">✓ ' +
+        asm.correctCount +
+        " Correct</span>" +
+        '<span class="asm-stat-chip chip-wrong">✕ ' +
+        asm.wrongCount +
+        " Wrong</span>" +
+        '<span class="asm-stat-chip chip-total">❓ ' +
+        asm.totalQuestions +
+        " Total</span>" +
+        "</div>" +
         '<div class="asm-res-timestamps">' +
-        '<span>📅 Created: ' + createdDateStr + '</span>' +
-        (asm.completedAt ? '<span>🕒 Submitted: ' + submittedDateStr + '</span>' : '') +
-        '</div>' +
-        '</div>';
+        (createdDateStr
+          ? "<span>📅 Created: " + createdDateStr + "</span>"
+          : "") +
+        (asm.completedAt
+          ? "<span>🕒 Submitted: " + submittedDateStr + "</span>"
+          : "") +
+        "</div>" +
+        "</div>";
     }
 
     // Render Group Performance Breakdown
     if (groupStatsEl && asm.groupStats) {
       const groups = Object.values(asm.groupStats);
       groupStatsEl.innerHTML =
-        '<h3>📊 Performance by Tenses Group</h3>' +
+        "<h3>📊 Performance by Tenses Group</h3>" +
         groups
           .map((g) => {
-            const color = g.percentage > 60 ? '#22c55e' : g.percentage > 30 ? '#f59e0b' : '#ef4444';
+            const color =
+              g.percentage > 60
+                ? "#22c55e"
+                : g.percentage > 30
+                ? "#f59e0b"
+                : "#ef4444";
             return (
               '<div class="asm-grp-stat-item">' +
               '<div class="asm-grp-stat-head">' +
-              '<strong>' + LQ.esc(g.groupTitle) + '</strong>' +
-              '<span>' + g.correct + '/' + g.total + ' (' + g.percentage + '%)</span>' +
-              '</div>' +
-              '<div class="asm-grp-stat-bar"><div class="asm-grp-stat-fill" style="width:' + g.percentage + '%;background:' + color + '"></div></div>' +
-              '</div>'
+              "<strong>" +
+              LQ.esc(g.groupTitle) +
+              "</strong>" +
+              "<span>" +
+              g.correct +
+              "/" +
+              g.total +
+              " (" +
+              g.percentage +
+              "%)</span>" +
+              "</div>" +
+              '<div class="asm-grp-stat-bar"><div class="asm-grp-stat-fill" style="width:' +
+              g.percentage +
+              "%;background:" +
+              color +
+              '"></div></div>' +
+              "</div>"
             );
           })
-          .join('');
+          .join("");
     }
 
     // Render Question-by-Question Review
     if (questionsListEl && asm.questions) {
       questionsListEl.innerHTML =
-        '<h3>📝 Detailed Question Evaluation</h3>' +
+        "<h3>📝 Detailed Question Evaluation</h3>" +
         asm.questions
           .map((q, i) => {
             const isOk = q.isCorrect;
-            let ansStr = '';
+            let ansStr = "";
             if (q.options && q.options.length) {
-              const userOpt = q.userAnswer !== undefined && q.userAnswer !== null ? q.options[q.userAnswer] : 'Not answered';
-              const correctOpt = q.correctAnswerIndex !== null ? q.options[q.correctAnswerIndex] : '—';
+              const userOpt =
+                q.userAnswer !== undefined && q.userAnswer !== null
+                  ? q.options[q.userAnswer]
+                  : "Not answered";
+              const correctOpt =
+                q.correctAnswerIndex !== null
+                  ? q.options[q.correctAnswerIndex]
+                  : "—";
               ansStr =
-                '<p class="asm-res-ans"><strong>Your choice:</strong> ' + LQ.esc(userOpt) + '</p>' +
-                (!isOk ? '<p class="asm-res-ans correct"><strong>Correct choice:</strong> ' + LQ.esc(correctOpt) + '</p>' : '');
+                '<p class="asm-res-ans"><strong>Your choice:</strong> ' +
+                LQ.esc(userOpt) +
+                "</p>" +
+                (!isOk
+                  ? '<p class="asm-res-ans correct"><strong>Correct choice:</strong> ' +
+                    LQ.esc(correctOpt) +
+                    "</p>"
+                  : "");
             } else {
-              ansStr = '<p class="asm-res-ans"><strong>Your answer:</strong> ' + LQ.esc(q.userAnswer || '(Empty)') + '</p>';
+              ansStr =
+                '<p class="asm-res-ans"><strong>Your answer:</strong> ' +
+                LQ.esc(q.userAnswer || "(Empty)") +
+                "</p>";
             }
 
             return (
-              '<div class="asm-res-q-item ' + (isOk ? 'ok' : 'wrong') + '">' +
+              '<div class="asm-res-q-item ' +
+              (isOk ? "ok" : "wrong") +
+              '">' +
               '<div class="asm-res-q-head">' +
-              '<span class="asm-res-q-num">Q' + (i + 1) + ' · ' + LQ.esc(q.groupTitle) + '</span>' +
-              '<span class="asm-res-q-badge ' + (isOk ? 'ok' : 'wrong') + '">' + (isOk ? '✓ Correct' : '✕ Incorrect') + '</span>' +
-              '</div>' +
-              '<p class="asm-res-q-text">' + LQ.esc(q.text) + '</p>' +
+              '<span class="asm-res-q-num">Q' +
+              (i + 1) +
+              " · " +
+              LQ.esc(q.groupTitle) +
+              "</span>" +
+              '<span class="asm-res-q-badge ' +
+              (isOk ? "ok" : "wrong") +
+              '">' +
+              (isOk ? "✓ Correct" : "✕ Incorrect") +
+              "</span>" +
+              "</div>" +
+              '<p class="asm-res-q-text">' +
+              LQ.esc(q.text) +
+              "</p>" +
               ansStr +
-              '</div>'
+              "</div>"
             );
           })
-          .join('');
+          .join("");
     }
   };
 
-  document.addEventListener('DOMContentLoaded', function () {
+  document.addEventListener("DOMContentLoaded", function () {
     setTimeout(function () {
-      const currentScreen = sessionStorage.getItem('currentScreen');
-      const currentId = sessionStorage.getItem('currentAssessmentId');
+      const currentScreen = sessionStorage.getItem("currentScreen");
+      const currentId = sessionStorage.getItem("currentAssessmentId");
 
-      if (currentScreen === 'assessment-session' && currentId) {
+      if (currentScreen === "assessment-session" && currentId) {
         LQ.restoreAssessmentSession(currentId);
-      } else if (currentScreen === 'assessment-result' && currentId) {
+      } else if (currentScreen === "assessment-result" && currentId) {
         LQ.showAssessmentResult(currentId);
       } else {
-        const sc = document.getElementById('screen-assessment');
-        if (sc && sc.classList.contains('active')) {
-          LQ.switchAssessmentTab('practice');
+        const sc = document.getElementById("screen-assessment");
+        if (sc && sc.classList.contains("active")) {
+          LQ.switchAssessmentTab("practice");
         }
       }
     }, 150);
