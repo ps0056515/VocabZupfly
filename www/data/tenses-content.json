@@ -1,29 +1,13 @@
 {
   "sentence-repeating": [
-    {
-      "text": "She has been studying English for three years."
-    },
-    {
-      "text": "They will have finished the project by next Friday."
-    },
-    {
-      "text": "I was reading when the phone rang."
-    },
-    {
-      "text": "He had already left before we arrived."
-    },
-    {
-      "text": "We are going to visit Paris next summer."
-    },
-    {
-      "text": "The children have been playing in the garden all morning."
-    },
-    {
-      "text": "She writes in her journal every evening."
-    },
-    {
-      "text": "By this time tomorrow, I will be flying to London."
-    }
+    { "text": "She has been studying English for three years." },
+    { "text": "They will have finished the project by next Friday." },
+    { "text": "I was reading when the phone rang." },
+    { "text": "He had already left before we arrived." },
+    { "text": "We are going to visit Paris next summer." },
+    { "text": "The children have been playing in the garden all morning." },
+    { "text": "She writes in her journal every evening." },
+    { "text": "By this time tomorrow, I will be flying to London." }
   ],
   "short-stories": [
     {
@@ -32,22 +16,12 @@
       "questions": [
         {
           "q": "Why did Maya change her plan?",
-          "options": [
-            "She was tired",
-            "It was raining",
-            "She lost her shoes",
-            "She had no tea"
-          ],
+          "options": ["She was tired", "It was raining", "She lost her shoes", "She had no tea"],
           "answer": 1
         },
         {
           "q": "What tense appears in 'She had planned to go jogging'?",
-          "options": [
-            "Present simple",
-            "Past perfect",
-            "Future continuous",
-            "Present perfect"
-          ],
+          "options": ["Present simple", "Past perfect", "Future continuous", "Present perfect"],
           "answer": 1
         }
       ]
@@ -58,62 +32,29 @@
       "questions": [
         {
           "q": "How long had Arjun prepared?",
-          "options": [
-            "One day",
-            "Several weeks",
-            "One hour",
-            "He had not prepared"
-          ],
+          "options": ["One day", "Several weeks", "One hour", "He had not prepared"],
           "answer": 1
         }
       ]
     }
   ],
   "just-a-minute": [
-    {
-      "topic": "Talk for one minute about what you did yesterday. Use past simple and past continuous."
-    },
-    {
-      "topic": "Describe your plans for next week using future tense forms."
-    },
-    {
-      "topic": "Explain your daily routine using present simple."
-    },
-    {
-      "topic": "Talk about something you have learned recently using present perfect."
-    },
-    {
-      "topic": "Describe a memorable trip and what you had done before you left."
-    },
-    {
-      "topic": "Discuss your goals for the next five years using will and going to."
-    }
+    { "topic": "Talk for one minute about what you did yesterday. Use past simple and past continuous." },
+    { "topic": "Describe your plans for next week using future tense forms." },
+    { "topic": "Explain your daily routine using present simple." },
+    { "topic": "Talk about something you have learned recently using present perfect." },
+    { "topic": "Describe a memorable trip and what you had done before you left." },
+    { "topic": "Discuss your goals for the next five years using will and going to." }
   ],
   "sentence-reading": [
-    {
-      "text": "Present simple: Water boils at one hundred degrees Celsius."
-    },
-    {
-      "text": "Present continuous: She is working on her thesis this semester."
-    },
-    {
-      "text": "Past simple: They visited Rome last summer."
-    },
-    {
-      "text": "Past continuous: I was cooking dinner when the guests arrived."
-    },
-    {
-      "text": "Present perfect: We have lived here since 2019."
-    },
-    {
-      "text": "Past perfect: He had forgotten his keys before he reached the door."
-    },
-    {
-      "text": "Future simple: The train will depart at six o'clock."
-    },
-    {
-      "text": "Future continuous: This time next week, they will be travelling abroad."
-    }
+    { "text": "Present simple: Water boils at one hundred degrees Celsius." },
+    { "text": "Present continuous: She is working on her thesis this semester." },
+    { "text": "Past simple: They visited Rome last summer." },
+    { "text": "Past continuous: I was cooking dinner when the guests arrived." },
+    { "text": "Present perfect: We have lived here since 2019." },
+    { "text": "Past perfect: He had forgotten his keys before he reached the door." },
+    { "text": "Future simple: The train will depart at six o'clock." },
+    { "text": "Future continuous: This time next week, they will be travelling abroad." }
   ],
   "passage-comprehension": [
     {
@@ -131,12 +72,7 @@
         },
         {
           "q": "Past simple is best when the time is:",
-          "options": [
-            "Unspecified",
-            "Connected to now",
-            "Finished and stated",
-            "Always in the future"
-          ],
+          "options": ["Unspecified", "Connected to now", "Finished and stated", "Always in the future"],
           "answer": 2
         }
       ]
@@ -146,12 +82,7 @@
       "questions": [
         {
           "q": "'We are meeting the client on Tuesday' expresses:",
-          "options": [
-            "A spontaneous decision",
-            "A fixed arrangement",
-            "A past habit",
-            "A hypothetical"
-          ],
+          "options": ["A spontaneous decision", "A fixed arrangement", "A past habit", "A hypothetical"],
           "answer": 1
         }
       ]
@@ -231,60 +162,19 @@
       "answer": "She has already finished her homework."
     },
     {
-      "words": [
-        "was",
-        "When",
-        "I",
-        "arrived",
-        "they",
-        "were",
-        "eating",
-        "dinner",
-        "."
-      ],
+      "words": ["was", "When", "I", "arrived", "they", "were", "eating", "dinner", "."],
       "answer": "When I arrived they were eating dinner."
     },
     {
-      "words": [
-        "will",
-        "We",
-        "by",
-        "have",
-        "the",
-        "report",
-        "submitted",
-        "Friday",
-        "."
-      ],
+      "words": ["will", "We", "by", "have", "the", "report", "submitted", "Friday", "."],
       "answer": "We will have submitted the report by Friday."
     },
     {
-      "words": [
-        "had",
-        "He",
-        "never",
-        "seen",
-        "snow",
-        "before",
-        "he",
-        "moved",
-        "to",
-        "Canada",
-        "."
-      ],
+      "words": ["had", "He", "never", "seen", "snow", "before", "he", "moved", "to", "Canada", "."],
       "answer": "He had never seen snow before he moved to Canada."
     },
     {
-      "words": [
-        "are",
-        "They",
-        "meeting",
-        "the",
-        "team",
-        "tomorrow",
-        "morning",
-        "."
-      ],
+      "words": ["are", "They", "meeting", "the", "team", "tomorrow", "morning", "."],
       "answer": "They are meeting the team tomorrow morning."
     },
     {
