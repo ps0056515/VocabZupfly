@@ -144,7 +144,10 @@ LQ.goTo = function (screen, opts) {
   const sc = document.getElementById('screen-' + screen);
   if (sc) sc.classList.add('active');
   const meta = LQ.getScreenMeta ? LQ.getScreenMeta(screen) : { nav: screen };
-  var navId = meta.nav || screen;
+  var navId = screen;
+  if (!document.getElementById('desktop-nav-' + navId) && !document.getElementById('nav-' + navId)) {
+    navId = meta.nav || screen;
+  }
   if (navId === 'lists') {
     navId = (LQ._activeListCategory === 'dict') ? 'dictionary' : 'lists';
   }
@@ -190,6 +193,10 @@ LQ.goTo = function (screen, opts) {
     tutor: () => LQ.initTutor && LQ.initTutor(),
     tenses: () => LQ.renderTensesPage && LQ.renderTensesPage(),
     'tenses-practice': () => LQ.initTensesPractice && LQ.initTensesPractice(),
+    assessment: () => LQ.initAssessmentPage && LQ.initAssessmentPage(),
+    'assessment-session': () => LQ.renderAssessmentSessionScreen && LQ.renderAssessmentSessionScreen(),
+    'assessment-result': () => LQ.renderAssessmentResultScreen && LQ.renderAssessmentResultScreen(),
+    'practice-questions': () => LQ.initPracticeQuestions && LQ.initPracticeQuestions(),
   };
   if (handlers[screen]) {
     try {
