@@ -25,6 +25,18 @@ LQ.SCREEN_META = {
   'assessment-result': { title: 'Assessment Results', parent: 'assessment', nav: 'assessment', hint: '' },
   progress: { title: 'Progress', parent: 'home', nav: 'home', hint: '' },
   onboarding: { title: 'Welcome', parent: null, nav: 'home', hint: '' },
+  'admin-profile': { title: 'My Profile', parent: 'home', nav: 'admin-profile', hint: 'Manage your account details.' },
+  'change-password': { title: 'Change Password', parent: 'admin-profile', nav: 'admin-profile', hint: 'Update your account password.' },
+  'admin-students': { title: 'Students', parent: 'home', nav: 'admin-students', hint: 'Manage registered candidates.' },
+  'admin-admins': { title: 'Admins', parent: 'home', nav: 'admin-admins', hint: 'Manage organization administrators.' },
+  'admin-orgs': { title: 'Organizations', parent: 'home', nav: 'admin-orgs', hint: 'View organization details.' },
+  'admin-questions': { title: 'Questions', parent: 'home', nav: 'admin-questions', hint: 'Manage question bank, categories & evaluations.' },
+  'admin-tenses': { title: 'Tenses', parent: 'home', nav: 'admin-tenses', hint: 'Manage tenses groups.' },
+  'admin-words': { title: 'Words', parent: 'home', nav: 'admin-words', hint: 'Manage vocabulary words database.' },
+  'admin-word-lists': { title: 'Word Lists', parent: 'home', nav: 'admin-word-lists', hint: 'Manage vocabulary lists.' },
+  'admin-dictionary': { title: 'Dictionary', parent: 'home', nav: 'admin-dictionary', hint: 'Manage dictionary word lists.' },
+  'admin-bulk': { title: 'Bulk Upload', parent: 'home', nav: 'admin-bulk', hint: 'Bulk upload content and students.' },
+  cms: { title: 'Content CMS', parent: 'home', nav: 'cms', hint: 'Manage vocabulary words, lists, and content.' },
 };
 
 LQ._navStack = [];
@@ -137,8 +149,8 @@ LQ.renderFlowSubnav = function (screen, meta) {
     el.remove();
   });
   if (!meta.parent) return;
-  /* Quiz, mock, learn, revise & flashcard have their own header — avoid duplicate back bar */
-  if (screen === 'quiz' || screen === 'mock' || screen === 'learn' || screen === 'revise' || screen === 'flashcard' || screen === 'assessment-session' || screen === 'assessment-result') return;
+  if (screen === 'quiz' || screen === 'mock' || screen === 'learn' || screen === 'revise' || screen === 'flashcard' || screen === 'assessment-session' || screen === 'assessment-result' || screen === 'cms' || screen.startsWith('admin-') || screen === 'change-password') return;
+  if (LQ.currentUser && (LQ.currentUser.role === 'admin' || LQ.currentUser.role === 'super_admin')) return;
 
   const sc = document.getElementById('screen-' + screen);
   if (!sc) return;
@@ -245,3 +257,158 @@ LQ.closeMoreMenu = function () {
   if (sheet) sheet.classList.remove('open');
   document.body.classList.remove('flow-more-open');
 };
+
+/**
+ * Setup navigation rail & headers based on user role.
+ */
+LQ.setupRoleNavigation = function (user) {
+  if (!user) return;
+
+  var rail = document.querySelector('.desktop-rail');
+  if (!rail) return;
+
+  // Cache initial student sidebar HTML when loaded
+  if (!LQ._initialStudentRailHtml && document.getElementById('desktop-nav-home')) {
+    LQ._initialStudentRailHtml = rail.innerHTML;
+  }
+
+  if (user.role === 'super_admin') {
+    rail.classList.add('admin-sidebar');
+    // Dedicated Super Admin Sidebar (No student learning items or Settings)
+    rail.innerHTML =
+      '<div class="desktop-rail-brand" style="flex-shrink:0;padding-bottom:16px">VocabZupfly <span>Super Admin</span></div>' +
+      '<div class="desktop-rail-menu-wrap" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:2px;padding-right:4px;min-height:0">' +
+        '<p class="desktop-rail-label" style="margin-top:0">Management</p>' +
+        '<button type="button" class="desktop-rail-item" id="desktop-nav-admin-orgs" onclick="goTo(\'admin-orgs\')"><span class="rail-icon">🏢</span> Organizations</button>' +
+        '<button type="button" class="desktop-rail-item" id="desktop-nav-admin-admins" onclick="goTo(\'admin-admins\')"><span class="rail-icon">🛡️</span> Admins</button>' +
+        '<button type="button" class="desktop-rail-item" id="desktop-nav-admin-students" onclick="goTo(\'admin-students\')"><span class="rail-icon">👩‍🎓</span> Students</button>' +
+        '<button type="button" class="desktop-rail-item" id="desktop-nav-admin-questions" onclick="goTo(\'admin-questions\')"><span class="rail-icon">❓</span> Questions</button>' +
+        '<button type="button" class="desktop-rail-item" id="desktop-nav-cms" onclick="goTo(\'cms\')"><span class="rail-icon">⚙️</span> Content CMS</button>' +
+      '</div>' +
+      '<div class="desktop-rail-footer" style="flex-shrink:0;margin-top:auto;border-top:1px solid rgba(255,255,255,0.06);padding-top:8px;padding-bottom:4px">' +
+        '<button type="button" class="desktop-rail-item" id="desktop-nav-admin-profile" onclick="goTo(\'admin-profile\')" style="margin-bottom:2px;padding:8px 12px;font-size:13px"><span class="rail-icon">👤</span> My Profile</button>' +
+        '<button type="button" class="desktop-rail-item" onclick="LQ.Auth.logout()" style="padding:8px 12px;font-size:13px"><span class="rail-icon">🚪</span> Logout</button>' +
+      '</div>';
+    return;
+  }
+
+  if (user.role === 'admin') {
+    rail.classList.add('admin-sidebar');
+    // Dedicated Admin Sidebar
+    rail.innerHTML =
+      '<div class="desktop-rail-brand" style="flex-shrink:0;padding-bottom:16px">VocabZupfly <span>Admin</span></div>' +
+      '<div class="desktop-rail-menu-wrap" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:2px;padding-right:4px;min-height:0">' +
+        '<p class="desktop-rail-label" style="margin-top:0">Management</p>' +
+        '<button type="button" class="desktop-rail-item" id="desktop-nav-admin-students" onclick="goTo(\'admin-students\')"><span class="rail-icon">👩‍🎓</span> Students</button>' +
+        '<button type="button" class="desktop-rail-item" id="desktop-nav-admin-questions" onclick="goTo(\'admin-questions\')"><span class="rail-icon">❓</span> Questions</button>' +
+        '<button type="button" class="desktop-rail-item" id="desktop-nav-admin-tenses" onclick="goTo(\'admin-tenses\')"><span class="rail-icon">🕒</span> Tenses</button>' +
+        '<button type="button" class="desktop-rail-item" id="desktop-nav-admin-words" onclick="goTo(\'admin-words\')"><span class="rail-icon">📝</span> Words</button>' +
+        '<button type="button" class="desktop-rail-item" id="desktop-nav-admin-word-lists" onclick="goTo(\'admin-word-lists\')"><span class="rail-icon">📋</span> Word Lists</button>' +
+        '<button type="button" class="desktop-rail-item" id="desktop-nav-admin-dictionary" onclick="goTo(\'admin-dictionary\')"><span class="rail-icon">📖</span> Dictionary</button>' +
+        '<button type="button" class="desktop-rail-item" id="desktop-nav-admin-bulk" onclick="goTo(\'admin-bulk\')"><span class="rail-icon">📤</span> Bulk Upload</button>' +
+        '<button type="button" class="desktop-rail-item" id="desktop-nav-cms" onclick="goTo(\'cms\')"><span class="rail-icon">⚙️</span> Content CMS</button>' +
+      '</div>' +
+      '<div class="desktop-rail-footer" style="flex-shrink:0;margin-top:auto;border-top:1px solid rgba(255,255,255,0.06);padding-top:8px;padding-bottom:4px">' +
+        '<button type="button" class="desktop-rail-item" id="desktop-nav-admin-profile" onclick="goTo(\'admin-profile\')" style="margin-bottom:2px;padding:8px 12px;font-size:13px"><span class="rail-icon">👤</span> My Profile</button>' +
+        '<button type="button" class="desktop-rail-item" onclick="LQ.Auth.logout()" style="padding:8px 12px;font-size:13px"><span class="rail-icon">🚪</span> Logout</button>' +
+      '</div>';
+    return;
+  }
+
+  // Student role: build structured layout
+  rail.classList.add('admin-sidebar');
+  
+  var nameHtml = '';
+  if (user && user.name) {
+    nameHtml = '<div style="font-size:11px;color:#94a3b8;padding:0 14px 12px;margin-top:-10px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">👤 ' + LQ.esc(user.name) + '</div>';
+  }
+
+  rail.innerHTML =
+    '<div class="desktop-rail-brand" style="flex-shrink:0;padding-bottom:12px">Lexi<span>Quest</span></div>' +
+    nameHtml +
+    '<div class="desktop-rail-menu-wrap" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:2px;padding-right:4px;min-height:0">' +
+      '<p class="desktop-rail-label" style="margin-top:0">Overview</p>' +
+      '<button type="button" class="desktop-rail-item" id="desktop-nav-home" onclick="LQ.goHome()"><span class="rail-icon">🏠</span> Dashboard</button>' +
+      '<p class="desktop-rail-label">Study</p>' +
+      '<button type="button" class="desktop-rail-item" id="desktop-nav-vocab" onclick="goTo(\'vocab\')"><span class="rail-icon">📚</span> Vocabulary</button>' +
+      '<button type="button" class="desktop-rail-item" id="desktop-nav-tenses" onclick="goTo(\'tenses\')"><span class="rail-icon">🕐</span> Tenses</button>' +
+      '<button type="button" class="desktop-rail-item" id="desktop-nav-assessment" onclick="goTo(\'assessment\')"><span class="rail-icon">🎯</span> Assessment</button>' +
+      '<button type="button" class="desktop-rail-item" id="desktop-nav-lists" onclick="LQ.goToWordListsCategory(\'gre\')"><span class="rail-icon">📋</span> Word Lists (GRE)</button>' +
+      '<button type="button" class="desktop-rail-item" id="desktop-nav-dictionary" onclick="LQ.goToWordListsCategory(\'dict\')"><span class="rail-icon">📖</span> Dictionary</button>' +
+      '<p class="desktop-rail-label">Practice</p>' +
+      '<button type="button" class="desktop-rail-item" id="desktop-nav-learn" onclick="goTo(\'learn\')"><span class="rail-icon">✏️</span> Learn</button>' +
+      '<button type="button" class="desktop-rail-item" id="desktop-nav-revise" onclick="goTo(\'revise\')"><span class="rail-icon">🔄</span> Revise</button>' +
+      '<button type="button" class="desktop-rail-item" id="desktop-nav-quiz" onclick="goTo(\'quiz\')"><span class="rail-icon">📝</span> Quiz</button>' +
+      '<button type="button" class="desktop-rail-item" id="desktop-nav-wordbank" onclick="goTo(\'wordbank\')"><span class="rail-icon">📖</span> Word Bank</button>' +
+      '<button type="button" class="desktop-rail-item" id="desktop-nav-flashcard" onclick="goTo(\'flashcard\')"><span class="rail-icon">🃏</span> Flashcards</button>' +
+      '<button type="button" class="desktop-rail-item" id="desktop-nav-spelling" onclick="goTo(\'spelling\')"><span class="rail-icon">✍️</span> Spelling</button>' +
+      '<button type="button" class="desktop-rail-item" id="desktop-nav-drill" onclick="goTo(\'drill\')"><span class="rail-icon">🎯</span> Weak Drill</button>' +
+      '<button type="button" class="desktop-rail-item" id="desktop-nav-leagues" onclick="goTo(\'leagues\')"><span class="rail-icon">🏆</span> Rookie League</button>' +
+      '<p class="desktop-rail-label">More</p>' +
+      '<button type="button" class="desktop-rail-item" id="desktop-nav-tutor" onclick="goTo(\'tutor\')"><span class="rail-icon">✦</span> AI Tutor</button>' +
+      '<button type="button" class="desktop-rail-item" id="desktop-nav-mock" onclick="goTo(\'mock\')"><span class="rail-icon">⏱️</span> Mock Test</button>' +
+      '<button type="button" class="desktop-rail-item" id="desktop-nav-settings" onclick="goTo(\'settings\')"><span class="rail-icon">⚙️</span> Settings</button>' +
+    '</div>' +
+    '<div class="desktop-rail-footer" style="flex-shrink:0;margin-top:auto;border-top:1px solid rgba(255,255,255,0.06);padding-top:8px;padding-bottom:4px">' +
+      '<button type="button" class="desktop-rail-item" id="desktop-nav-admin-profile" onclick="goTo(\'admin-profile\')" style="margin-bottom:2px;padding:8px 12px;font-size:13px"><span class="rail-icon">👤</span> My Profile</button>' +
+      '<button type="button" class="desktop-rail-item" id="desktop-nav-logout" onclick="LQ.Auth.logout()" style="padding:8px 12px;font-size:13px"><span class="rail-icon">🚪</span> Logout</button>' +
+    '</div>';
+
+  LQ.setupProfileMenu(user);
+};
+
+/**
+ * Setup profile menu trigger in headers.
+ */
+LQ.setupProfileMenu = function (user) {
+  var avatars = document.querySelectorAll('.avatar, .portal-avatar, .user-profile-icon-btn, [title="Profile"]');
+  avatars.forEach(function (av) {
+    av.style.cursor = 'pointer';
+    av.title = user ? user.name + ' (' + user.role + ')' : 'Account & Profile';
+    av.onclick = function (e) {
+      e.stopPropagation();
+      LQ.toggleProfileDropdown(av);
+    };
+  });
+};
+
+/**
+ * Toggle profile dropdown menu.
+ */
+LQ.toggleProfileDropdown = function (anchorEl) {
+  var dropdown = document.getElementById('global-profile-dropdown');
+  if (!dropdown) {
+    dropdown = document.createElement('div');
+    dropdown.id = 'global-profile-dropdown';
+    dropdown.className = 'profile-menu-dropdown';
+    document.body.appendChild(dropdown);
+
+    // Close on click outside
+    document.addEventListener('click', function () {
+      dropdown.classList.remove('open');
+    });
+  }
+
+  var state = LQ.Store.getState();
+  var user = state.user || {};
+  var roleName = user.role === 'super_admin' ? 'Super Admin' : user.role === 'admin' ? 'Admin' : 'Student';
+
+  dropdown.innerHTML =
+    '<div style="padding:12px 16px;border-bottom:1px solid #e2e8f0">' +
+      '<div style="font-weight:700;font-size:14px;color:#0f172a">' + LQ.esc(user.name) + '</div>' +
+      '<div style="font-size:11px;color:#64748b">' + LQ.esc(user.email) + ' • <strong>' + roleName + '</strong></div>' +
+    '</div>' +
+    '<button type="button" class="profile-menu-item" onclick="goTo(\'admin-profile\')">👤 My Profile</button>' +
+    '<button type="button" class="profile-menu-item" onclick="goTo(\'change-password\')">🔑 Change Password</button>' +
+    (user.role !== 'student' ? '<button type="button" class="profile-menu-item" onclick="goTo(\'admin-students\')">👩‍🎓 Student Management</button>' : '') +
+    '<div class="profile-menu-divider"></div>' +
+    '<button type="button" class="profile-menu-item danger" onclick="LQ.Auth.logout()">🚪 Sign Out</button>';
+
+  // Position dropdown near anchor element
+  var rect = anchorEl.getBoundingClientRect();
+  dropdown.style.position = 'fixed';
+  dropdown.style.top = (rect.bottom + 8) + 'px';
+  dropdown.style.left = Math.max(10, Math.min(rect.left, window.innerWidth - 220)) + 'px';
+  dropdown.classList.toggle('open');
+};
+

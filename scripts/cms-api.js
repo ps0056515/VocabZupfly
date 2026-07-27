@@ -32,10 +32,39 @@ function json(res, status, data) {
   res.end(JSON.stringify(data));
 }
 
+const jwt = require('jsonwebtoken');
+const config = require('../server/config');
+
+function parseCookies(req) {
+  var list = {};
+  var rc = req.headers.cookie;
+  if (rc) {
+    rc.split(';').forEach(function (cookie) {
+      var parts = cookie.split('=');
+      list[parts.shift().trim()] = decodeURI(parts.join('='));
+    });
+  }
+  return list;
+}
+
 function checkAuth(req, url) {
   var key = req.headers['x-cms-key'] || '';
   if (!key && url.searchParams.get('key')) key = url.searchParams.get('key');
-  return key === API_KEY;
+  if (key === API_KEY) return true;
+
+  // Dual auth: check JWT cookie for admin or super_admin
+  var cookies = parseCookies(req);
+  var token = cookies.vz_access_token;
+  if (token) {
+    try {
+      var decoded = jwt.verify(token, config.JWT_SECRET);
+      if (decoded && (decoded.role === 'admin' || decoded.role === 'super_admin')) {
+        return true;
+      }
+    } catch (e) {}
+  }
+
+  return false;
 }
 
 function serveCmsFile(res, filePath, contentType) {

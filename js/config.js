@@ -4,7 +4,7 @@ window.LQ.Config = {
 
   /** Bump when JS changes so browsers drop stale cached scripts */
 
-  assetVersion: '20260519e',
+  assetVersion: '20260727p',
 
   stateKey: 'lexiquest_v2',
 

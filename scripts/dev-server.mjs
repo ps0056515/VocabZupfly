@@ -67,9 +67,76 @@ function serveStatic(filePath, res) {
   res.end(fs.readFileSync(filePath));
 }
 
+const expressApp = require('../server/app.js');
+const { connectDB } = require('../server/db.js');
+const User = require('../server/models/User.js');
+const Organization = require('../server/models/Organization.js');
+const config = require('../server/config.js');
+
+// Connect to MongoDB and auto-seed default super admin & org
+(async function initDatabase() {
+  try {
+    await connectDB();
+
+    // Auto-seed default Panimalar org
+    var org = await Organization.findOne({ name: config.DEFAULT_ORG_NAME });
+    if (!org) {
+      org = await Organization.create({
+        name: config.DEFAULT_ORG_NAME,
+        email: config.DEFAULT_ORG_EMAIL,
+        address: config.DEFAULT_ORG_ADDRESS,
+      });
+      console.log('  ✓ Created default org:', org.name);
+    }
+
+    // Auto-seed default Super Admin
+    var superAdmin = await User.findOne({ email: config.SUPER_ADMIN_EMAIL });
+    if (!superAdmin) {
+      superAdmin = await User.create({
+        name: config.SUPER_ADMIN_NAME,
+        email: config.SUPER_ADMIN_EMAIL,
+        password: config.SUPER_ADMIN_PASSWORD,
+        role: 'super_admin',
+        orgId: org._id,
+      });
+      console.log('  ✓ Created default Super Admin:', superAdmin.email);
+    }
+
+    // Auto-seed default TenseGroups from data/tenses-content.json
+    const TenseGroup = require('../server/models/TenseGroup.js');
+    const tensesPath = path.join(ROOT, 'data', 'tenses-content.json');
+    if (fs.existsSync(tensesPath)) {
+      try {
+        const tensesData = JSON.parse(fs.readFileSync(tensesPath, 'utf8'));
+        const groups = Object.keys(tensesData);
+        for (const grpName of groups) {
+          const exists = await TenseGroup.findOne({ name: grpName });
+          if (!exists) {
+            await TenseGroup.create({
+              name: grpName,
+              displayName: grpName.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+            });
+            console.log('  ✓ Seeded TenseGroup:', grpName);
+          }
+        }
+      } catch (err) {
+        console.warn('  ⚠ TenseGroup seeding failed:', err.message);
+      }
+    }
+  } catch (err) {
+    console.warn('  ⚠ Database initialization warning:', err.message);
+  }
+})();
+
 const server = http.createServer(async function (req, res) {
   var url = new URL(req.url, 'http://localhost');
   var pathname = url.pathname;
+
+  // Route API routes (except CMS) through Express backend
+  if (pathname.startsWith('/api/') && !pathname.startsWith('/api/cms')) {
+    expressApp(req, res);
+    return;
+  }
 
   if (cmsApi.handleCmsStatic(pathname, res)) return;
   if (await cmsApi.handleCmsApi(req, res, pathname, req.method, url)) return;

@@ -68,9 +68,9 @@ LQ.TENSES_MODULES = [
 
 LQ.TENSES_CONTENT = null;
 
-LQ.tensesReady = fetch('data/tenses-content.json')
+LQ.tensesReady = fetch('/api/tenses-content')
   .then(function (r) {
-    if (!r.ok) throw new Error('tenses-content.json ' + r.status);
+    if (!r.ok) throw new Error('API tenses-content failed: ' + r.status);
     return r.json();
   })
   .then(function (data) {
@@ -78,7 +78,7 @@ LQ.tensesReady = fetch('data/tenses-content.json')
     return data;
   })
   .catch(function (err) {
-    console.warn('tenses-content.json failed', err);
+    console.warn('API tenses-content failed', err);
     LQ.TENSES_CONTENT = {};
     return {};
   });

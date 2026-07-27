@@ -107,6 +107,7 @@ LQ.syncHomeUI = function () {
   }
   const prem = document.getElementById('premium-badge');
   if (prem) prem.style.display = LQ.S.premium ? 'inline-flex' : 'none';
+  if (LQ.setupProfileMenu && LQ.currentUser) LQ.setupProfileMenu(LQ.currentUser);
 };
 
 LQ.recordActivity = function (word, rating) {
@@ -117,6 +118,11 @@ LQ.recordActivity = function (word, rating) {
 
 LQ.goTo = function (screen, opts) {
   opts = opts || {};
+  var isAuth = LQ.Store ? LQ.Store.getState().isAuthenticated : false;
+  if (screen !== 'login' && !isAuth) {
+    if (LQ.Auth) LQ.Auth.showLoginScreen();
+    return;
+  }
   if (screen === 'flashcard' && !LQ.S.premium && !(LQ.Config && LQ.Config.enableAllFeatures)) {
     const w = LQ.currentFcWord();
     if (w && w.premium) {
@@ -134,9 +140,33 @@ LQ.goTo = function (screen, opts) {
   try {
     sessionStorage.setItem('currentScreen', screen);
   } catch (e) {}
+
+  if (!opts.noHistory && screen !== 'login') {
+    var newHash = '#' + screen;
+    try {
+      if (window.location.hash !== newHash) {
+        history.pushState({ screen: screen }, '', newHash);
+      } else {
+        history.replaceState({ screen: screen }, '', newHash);
+      }
+    } catch (e) {}
+  }
+
   if (LQ.closeMoreMenu) LQ.closeMoreMenu();
   if (LQ.closeDrawer) LQ.closeDrawer();
 
+
+  if (screen === 'login') {
+    document.body.classList.add('login-mode');
+    document.querySelectorAll('.desktop-rail, .promo-side, .desktop-only-ui').forEach((el) => {
+      el.style.setProperty('display', 'none', 'important');
+    });
+  } else {
+    document.body.classList.remove('login-mode');
+    document.querySelectorAll('.desktop-rail, .promo-side, .desktop-only-ui').forEach((el) => {
+      el.style.display = '';
+    });
+  }
 
   document.querySelectorAll('.screen').forEach((s) => s.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach((n) => n.classList.remove('active'));
@@ -190,6 +220,19 @@ LQ.goTo = function (screen, opts) {
     tutor: () => LQ.initTutor && LQ.initTutor(),
     tenses: () => LQ.renderTensesPage && LQ.renderTensesPage(),
     'tenses-practice': () => LQ.initTensesPractice && LQ.initTensesPractice(),
+    login: () => LQ.Auth && LQ.Auth.renderLoginScreen(),
+    'admin-students': () => LQ.renderAdminStudentsPage && LQ.renderAdminStudentsPage(),
+    'admin-admins': () => LQ.renderAdminListPage && LQ.renderAdminListPage(),
+    'admin-orgs': () => LQ.renderAdminOrgsPage && LQ.renderAdminOrgsPage(),
+    'admin-questions': () => LQ.renderAdminQuestionsPage && LQ.renderAdminQuestionsPage(),
+    'admin-tenses': () => LQ.renderAdminTensesPage && LQ.renderAdminTensesPage(),
+    'admin-words': () => LQ.renderAdminWordsPage && LQ.renderAdminWordsPage(),
+    'admin-word-lists': () => LQ.renderAdminWordListsPage && LQ.renderAdminWordListsPage(),
+    'admin-dictionary': () => LQ.renderAdminDictionaryPage && LQ.renderAdminDictionaryPage(),
+    'admin-bulk': () => LQ.renderAdminBulkPage && LQ.renderAdminBulkPage(),
+    'admin-profile': () => LQ.renderProfilePage && LQ.renderProfilePage(),
+    'change-password': () => LQ.renderChangePasswordPage && LQ.renderChangePasswordPage(),
+    cms: () => {},
     assessment: () => LQ.initAssessmentPage && LQ.initAssessmentPage(),
     'assessment-session': () => LQ.renderAssessmentSessionScreen && LQ.renderAssessmentSessionScreen(),
     'assessment-result': () => LQ.renderAssessmentResultScreen && LQ.renderAssessmentResultScreen(),
@@ -216,6 +259,33 @@ LQ.initDOMListeners = function () {
   });
   window.addEventListener('error', function (e) {
     console.error('LexiQuest error:', e.message, e.filename, e.lineno);
+  });
+  window.addEventListener('popstate', function (e) {
+    var isAuth = LQ.Store ? LQ.Store.getState().isAuthenticated : false;
+    if (!isAuth) {
+      try {
+        history.replaceState({ screen: 'login' }, '', window.location.pathname + '#login');
+      } catch (err) {}
+      if (LQ.Auth) LQ.Auth.showLoginScreen();
+      return;
+    }
+
+    var screenFromState = e.state && e.state.screen;
+    var screenFromHash = window.location.hash ? window.location.hash.substring(1) : null;
+    var targetScreen = screenFromState || screenFromHash;
+
+    if (targetScreen && targetScreen !== 'login') {
+      LQ.goTo(targetScreen, { noHistory: true });
+    } else {
+      var state = LQ.Store ? LQ.Store.getState() : {};
+      var user = state.user;
+      var defaultScreen = 'home';
+      if (user) {
+        if (user.role === 'super_admin') defaultScreen = 'admin-orgs';
+        else if (user.role === 'admin') defaultScreen = 'admin-students';
+      }
+      LQ.goTo(defaultScreen, { noHistory: true });
+    }
   });
   window.addEventListener('unhandledrejection', function (e) {
     console.error('LexiQuest unhandled rejection:', e.reason);

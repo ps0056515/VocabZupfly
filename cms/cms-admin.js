@@ -28,7 +28,9 @@
 
   function api(path, opts) {
     opts = opts || {};
-    var headers = { 'X-CMS-Key': apiKey() };
+    var headers = {};
+    var key = apiKey();
+    if (key) headers['X-CMS-Key'] = key;
     if (opts.body && typeof opts.body === 'object' && !(opts.body instanceof FormData)) {
       headers['Content-Type'] = 'application/json';
       opts.body = JSON.stringify(opts.body);
@@ -36,6 +38,7 @@
     return fetch(API_BASE + path, {
       method: opts.method || 'GET',
       headers: headers,
+      credentials: 'include',
       body: opts.body,
     }).then(function (r) {
       return r.text().then(function (text) {
@@ -1616,14 +1619,12 @@
     $('tab-lists').appendChild(listsSaveBtn);
   }
 
-  if (sessionStorage.getItem(STORAGE_KEY)) {
-    api('/status')
-      .then(function () {
-        showApp(true);
-        loadContent();
-      })
-      .catch(function () {
-        showApp(false);
-      });
-  }
+  api('/status')
+    .then(function () {
+      showApp(true);
+      loadContent();
+    })
+    .catch(function () {
+      showApp(false);
+    });
 })();

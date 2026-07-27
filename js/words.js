@@ -12,9 +12,9 @@ LQ.contentUrl = function (localPath) {
   return url;
 };
 
-LQ.wordListsReady = fetch(LQ.contentUrl('data/word-lists.json'))
+LQ.wordListsReady = fetch('/api/word-lists')
   .then(function (r) {
-    if (!r.ok) throw new Error('word-lists.json ' + r.status);
+    if (!r.ok) throw new Error('API word-lists failed: ' + r.status);
     return r.json();
   })
   .then(function (data) {
@@ -23,19 +23,16 @@ LQ.wordListsReady = fetch(LQ.contentUrl('data/word-lists.json'))
     return data;
   })
   .catch(function (err) {
-    console.warn('word-lists.json failed', err);
+    console.warn('API word-lists failed', err);
     LQ.WORD_LISTS = null;
     return null;
   });
 
 LQ.wordsReady = Promise.all([
-  fetch(LQ.contentUrl('data/words-merged.json'))
+  fetch('/api/words')
     .then(function (r) {
-      if (r.ok) return r.json();
-      return fetch(LQ.contentUrl('data/words.json')).then(function (r2) {
-        if (!r2.ok) throw new Error('words json ' + r2.status);
-        return r2.json();
-      });
+      if (!r.ok) throw new Error('API words failed: ' + r.status);
+      return r.json();
     }),
   LQ.wordListsReady,
 ])

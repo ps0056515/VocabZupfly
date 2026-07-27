@@ -29,7 +29,8 @@
     "ios:build": "npm run cap:sync:ios && cd ios/App && xcodebuild -scheme App -configuration Debug",
     "tutor:api": "node scripts/tutor-api-example.mjs",
     "dev": "node scripts/dev-server.mjs",
-    "dev:check": "node scripts/check-dev-assets.mjs"
+    "dev:check": "node scripts/check-dev-assets.mjs",
+    "seed": "node server/seed.js"
   },
   "dependencies": {
     "@capacitor-community/text-to-speech": "^6.1.0",
@@ -41,7 +42,15 @@
     "@capacitor/splash-screen": "^7.0.5",
     "@capacitor/status-bar": "^7.0.1",
     "@fontsource/plus-jakarta-sans": "^5.2.8",
-    "@fontsource/syne": "^5.2.7"
+    "@fontsource/syne": "^5.2.7",
+    "bcryptjs": "^2.4.3",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.9.5",
+    "multer": "^1.4.5-lts.1",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@capacitor/assets": "^3.0.5",

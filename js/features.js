@@ -327,7 +327,21 @@ LQ.renderSettings = function () {
       '<p class="settings-text">Auto follows window size · Phone shows bottom nav · Web shows sidebar.</p>' +
       '</div></section>';
 
+  const userState = (LQ.Store && LQ.Store.getState()) || {};
+  const currUser = userState.user;
+  const userBlock = currUser
+    ? '<section class="settings-card" style="background:#fff;border:1px solid #cbd5e1;border-radius:16px;margin-bottom:16px;padding:20px;">' +
+      '<div class="settings-card-head" style="margin-bottom:12px"><h3 style="color:#0f172a;font-size:16px;font-weight:700;margin:0 0 4px;">Account & Security</h3>' +
+      '<p style="font-size:13px;color:#64748b;margin:0">Logged in as <strong>' + LQ.esc(currUser.name) + '</strong> (' + LQ.esc(currUser.email) + ') — <span style="text-transform:capitalize">' + LQ.esc(currUser.role) + '</span></p></div>' +
+      '<div class="settings-card-body" style="display:flex;gap:10px;flex-wrap:wrap;padding:0;">' +
+      '<button type="button" class="admin-btn admin-btn-primary" onclick="goTo(\'admin-profile\')">👤 View Profile</button>' +
+      '<button type="button" class="admin-btn admin-btn-outline" onclick="LQ.renderChangePasswordPage();goTo(\'admin-profile\')">🔑 Change Password</button>' +
+      '<button type="button" class="admin-btn admin-btn-danger" onclick="LQ.Auth.logout()">🚪 Sign Out</button>' +
+      '</div></section>'
+    : '';
+
   wrap.innerHTML =
+    userBlock +
     (allOn
       ? '<div class="settings-badge dev">✓ Dev mode — all features enabled</div>'
       : '') +

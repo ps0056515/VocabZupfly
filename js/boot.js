@@ -11,6 +11,44 @@ LQ.hideSplash = function () {
   } catch (e) {}
 };
 
+LQ.bootAfterAuth = function (user) {
+  LQ.currentUser = user;
+  document.body.classList.remove('login-mode');
+
+  // Show nav bars again
+  var bottomNav = document.getElementById('bottom-nav');
+  if (bottomNav) bottomNav.style.display = '';
+  var desktopRail = document.querySelector('.desktop-rail');
+  if (desktopRail) desktopRail.style.display = '';
+
+  // Setup navigation / sidebar for user role
+  if (LQ.setupRoleNavigation) LQ.setupRoleNavigation(user);
+
+  // Check if URL hash specifies a screen (e.g., #admin-questions)
+  var hashScreen = window.location.hash ? window.location.hash.substring(1) : null;
+  if (hashScreen === 'login') {
+    hashScreen = null;
+  }
+
+  if (hashScreen) {
+    LQ.goTo(hashScreen, { resetStack: true });
+  } else if (user.role === 'admin') {
+    LQ.goTo('admin-students', { resetStack: true });
+  } else if (user.role === 'super_admin') {
+    LQ.goTo('admin-orgs', { resetStack: true });
+  } else {
+    // Student
+    var lastScreen = 'home';
+    try {
+      lastScreen = sessionStorage.getItem('currentScreen') || 'home';
+    } catch (e) {}
+    if (lastScreen === 'onboarding' || lastScreen === 'login' || lastScreen.startsWith('admin-')) lastScreen = 'home';
+    LQ.goTo(lastScreen, { resetStack: true });
+    if (LQ.renderStudentDashboard && lastScreen === 'home') LQ.renderStudentDashboard();
+    LQ.updateGreeting();
+  }
+};
+
 LQ.boot = async function () {
   try {
     await Promise.race([
@@ -46,35 +84,22 @@ LQ.boot = async function () {
       window.speechSynthesis.onvoiceschanged = function () {};
     }
 
-    if (!LQ.S.onboardingComplete && !(LQ.Config && LQ.Config.enableAllFeatures)) {
-      document.querySelectorAll('.screen').forEach(function (s) {
-        s.classList.remove('active');
-      });
-      var ob = document.getElementById('screen-onboarding');
-      if (ob) ob.classList.add('active');
-      LQ.renderOnboarding();
+    // ══ AUTH CHECK ══
+    var user = null;
+    if (LQ.Auth) {
+      user = await LQ.Auth.checkAuth();
+    }
+
+    if (!user) {
+      LQ.goTo('login', { resetStack: true });
     } else {
-      var lastScreen = 'home';
-      try {
-        lastScreen = sessionStorage.getItem('currentScreen') || 'home';
-      } catch (e) {}
-      if (lastScreen === 'onboarding') lastScreen = 'home';
-      LQ.goTo(lastScreen, { resetStack: true });
-      if (LQ.renderStudentDashboard && lastScreen === 'home') LQ.renderStudentDashboard();
-      LQ.updateGreeting();
+      LQ.bootAfterAuth(user);
     }
   } catch (err) {
     console.error('LexiQuest boot failed', err);
     try {
-      LQ.S = LQ.S || LQ.loadState();
-      var lastScreen = 'home';
-      try {
-        lastScreen = sessionStorage.getItem('currentScreen') || 'home';
-      } catch (e) {}
-      if (lastScreen === 'onboarding') lastScreen = 'home';
-      LQ.goTo(lastScreen, { resetStack: true });
+      LQ.goTo('login', { resetStack: true });
     } catch (e2) {}
-    LQ.toast('Something failed to load — try a hard refresh (Ctrl+Shift+R)');
   } finally {
     LQ.hideSplash();
     setTimeout(LQ.hideSplash, 300);

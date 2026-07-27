@@ -6,6 +6,7 @@
 <meta name="theme-color" content="#0f172a">
 <meta name="color-scheme" content="light">
 <link rel="manifest" href="manifest.json">
+<link rel="stylesheet" href="css/admin.css">
 <title>LexiQuest</title>
 <script>
 (function () {
@@ -1290,12 +1291,30 @@ body.native-app .desktop-only-ui{display:none!important}
           <button type="button" class="desktop-rail-item" id="desktop-nav-settings" onclick="goTo('settings')">
             <span class="rail-icon">⚙️</span> Settings
           </button>
+          <button type="button" class="desktop-rail-item" id="desktop-nav-admin-profile" onclick="goTo('admin-profile')">
+            <span class="rail-icon">👤</span> My Profile
+          </button>
         </nav>
         <div class="app-main">
       <div class="app-inner" id="app-inner">
 
+        <!-- ══ AUTH & ADMIN SCREENS ══ -->
+        <div class="screen" id="screen-login"></div>
+        <div class="screen" id="screen-admin-students"><div id="admin-students-wrap" class="admin-fixed-layout-screen"></div></div>
+        <div class="screen" id="screen-admin-admins"><div id="admin-admins-wrap" class="admin-fixed-layout-screen"></div></div>
+        <div class="screen" id="screen-admin-orgs"><div id="admin-orgs-wrap" class="admin-fixed-layout-screen"></div></div>
+        <div class="screen" id="screen-admin-profile"><div id="admin-profile-wrap"></div></div>
+        <div class="screen" id="screen-change-password"><div id="change-password-wrap"></div></div>
+        <div class="screen" id="screen-admin-questions"><div id="admin-questions-wrap" class="admin-fixed-layout-screen"></div></div>
+        <div class="screen" id="screen-admin-tenses"><div id="admin-tenses-wrap" class="admin-fixed-layout-screen"></div></div>
+        <div class="screen" id="screen-admin-words"><div id="admin-words-wrap" class="admin-fixed-layout-screen"></div></div>
+        <div class="screen" id="screen-admin-word-lists"><div id="admin-word-lists-wrap" class="admin-fixed-layout-screen"></div></div>
+        <div class="screen" id="screen-admin-dictionary"><div id="admin-dictionary-wrap" class="admin-fixed-layout-screen"></div></div>
+        <div class="screen" id="screen-admin-bulk"><div id="admin-bulk-wrap" class="admin-fixed-layout-screen"></div></div>
+        <div class="screen" id="screen-cms" style="padding:0;height:100%"><iframe id="cms-frame" src="/cms/" style="width:100%;height:calc(100vh - 20px);border:none;background:#f8fafc"></iframe></div>
+
         <!-- ══ DASHBOARD (student home) ══ -->
-        <div class="screen active" id="screen-home">
+        <div class="screen" id="screen-home">
           <div class="portal-header student-dash-header">
             <div class="portal-header-row">
               <div>
@@ -2068,6 +2087,10 @@ body.native-app .desktop-only-ui{display:none!important}
 <script src="js/assessment-db.js?v=20260721a"></script>
 <script src="js/assessment.js?v=20260721a"></script>
 <script src="js/flow.js?v=20260530a"></script>
+<script src="js/idb.js?v=20260724a"></script>
+<script src="js/store.js?v=20260724a"></script>
+<script src="js/auth.js?v=20260724a"></script>
+<script src="js/admin-pages.js?v=20260724a"></script>
 <script src="js/boot.js?v=20260529a"></script>
 <script src="js/native-bridge.js?v=20260529a"></script>
 </body>
