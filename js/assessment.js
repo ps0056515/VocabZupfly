@@ -669,7 +669,8 @@ window.LQ = window.LQ || {};
         dateStyle: "medium",
         timeStyle: "short",
       });
-      titleInp.value = `Practice Assessment — ${dateStr}`;
+      const randHex = Math.random().toString(36).substring(2, 5).toUpperCase();
+      titleInp.value = `Practice Assessment — ${dateStr} #${randHex}`;
     }
     const qCountInp = document.getElementById("asm-q-count");
     if (qCountInp) qCountInp.value = "10";
