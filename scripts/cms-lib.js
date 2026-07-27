@@ -10,8 +10,11 @@ const DATA = path.join(ROOT, 'data');
 const WORDS_FILE = path.join(DATA, 'words-merged.json');
 const LISTS_FILE = path.join(DATA, 'word-lists.json');
 const MANIFEST_FILE = path.join(DATA, 'content-manifest.json');
+const TENSES_FILE = path.join(DATA, 'tenses-content.json');
+const PRACTICE_QUESTIONS_FILE = path.join(DATA, 'practice-questions.json');
 
-const CSV_NAMES = ['Words.csv', 'WordLists.csv', 'Groups.csv', 'GroupWords.csv', 'DictionaryWords.csv'];
+
+const CSV_NAMES = ['Words.csv', 'WordLists.csv', 'Groups.csv', 'GroupWords.csv', 'DictionaryWords.csv', 'TensesQuestions.csv'];
 
 function parseCsv(text) {
   var rows = [];
@@ -407,6 +410,165 @@ function addDictionaryWord(listId, wordName) {
   return lst;
 }
 
+function loadTensesContent() {
+  if (!fs.existsSync(TENSES_FILE)) return {};
+  try {
+    return JSON.parse(fs.readFileSync(TENSES_FILE, 'utf8'));
+  } catch (e) {
+    return {};
+  }
+}
+
+function saveTensesContent(content) {
+  fs.writeFileSync(TENSES_FILE, JSON.stringify(content, null, 2), 'utf8');
+  const wwwTenses = path.join(ROOT, 'www', 'data', 'tenses-content.json');
+  if (fs.existsSync(path.dirname(wwwTenses))) {
+    try {
+      fs.writeFileSync(wwwTenses, JSON.stringify(content, null, 2), 'utf8');
+    } catch (e) {}
+  }
+  return content;
+}
+
+function addTensesQuestion(group, title, category) {
+  const data = loadTensesContent();
+  const grp = (group || 'sentence-repeating').trim();
+  if (!data[grp]) data[grp] = [];
+  const qTitle = (title || '').trim();
+  const qCat = (category || 'reading').trim().toLowerCase();
+  
+  if (!qTitle) throw new Error('Question title is required');
+
+  const newObj = { text: qTitle, category: qCat };
+  data[grp].push(newObj);
+  saveTensesContent(data);
+  return data;
+}
+
+function deleteTensesQuestion(group, index) {
+  const data = loadTensesContent();
+  if (data[group] && data[group][index] !== undefined) {
+    data[group].splice(index, 1);
+    saveTensesContent(data);
+  }
+  return data;
+}
+
+function importTensesQuestions(rows) {
+  const data = loadTensesContent();
+  let count = 0;
+  (rows || []).forEach(function (row) {
+    const grp = (row.Group || row.group || row['Group Name'] || 'sentence-repeating').trim();
+    const title = (row['Question Title'] || row.title || row.text || row.Question || row.Title || '').trim();
+    const cat = (row.Category || row.category || 'reading').trim().toLowerCase();
+
+    if (title) {
+      if (!data[grp]) data[grp] = [];
+      data[grp].push({ text: title, category: cat });
+      count++;
+    }
+  });
+  saveTensesContent(data);
+  return { count: count, data: data };
+}
+
+const OFFICIAL_TESTS_FILE = path.join(DATA, 'official-tests.json');
+const OFFICIAL_RESULTS_FILE = path.join(DATA, 'official-test-results.json');
+
+function loadOfficialTests() {
+  if (!fs.existsSync(OFFICIAL_TESTS_FILE)) return [];
+  try {
+    return JSON.parse(fs.readFileSync(OFFICIAL_TESTS_FILE, 'utf8')) || [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveOfficialTests(tests) {
+  fs.writeFileSync(OFFICIAL_TESTS_FILE, JSON.stringify(tests, null, 2), 'utf8');
+  return tests.length;
+}
+
+function loadOfficialTestResults() {
+  if (!fs.existsSync(OFFICIAL_RESULTS_FILE)) return [];
+  try {
+    return JSON.parse(fs.readFileSync(OFFICIAL_RESULTS_FILE, 'utf8')) || [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveOfficialTestResults(results) {
+  fs.writeFileSync(OFFICIAL_RESULTS_FILE, JSON.stringify(results, null, 2), 'utf8');
+  return results.length;
+}
+
+function loadPracticeQuestions() {
+  if (!fs.existsSync(PRACTICE_QUESTIONS_FILE)) return [];
+  try {
+    return JSON.parse(fs.readFileSync(PRACTICE_QUESTIONS_FILE, 'utf8')) || [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function savePracticeQuestions(questions) {
+  fs.writeFileSync(PRACTICE_QUESTIONS_FILE, JSON.stringify(questions, null, 2), 'utf8');
+  const wwwPractice = path.join(ROOT, 'www', 'data', 'practice-questions.json');
+  if (fs.existsSync(path.dirname(wwwPractice))) {
+    try {
+      fs.writeFileSync(wwwPractice, JSON.stringify(questions, null, 2), 'utf8');
+    } catch (e) {}
+  }
+  return questions;
+}
+
+function addPracticeQuestion(q) {
+  const questions = loadPracticeQuestions();
+  q.id = q.id || 'q_prac_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+  q.createdAt = q.createdAt || Date.now();
+  
+  if (q.type === 'mcq' && q.options) {
+    q.options = q.options.map(function(o) { return o.trim(); }).filter(Boolean);
+  }
+  
+  var existingIdx = questions.findIndex(function(x) { return x.id === q.id; });
+  if (existingIdx >= 0) {
+    questions[existingIdx] = q;
+  } else {
+    questions.push(q);
+  }
+  
+  savePracticeQuestions(questions);
+  return q;
+}
+
+function deletePracticeQuestion(id) {
+  var questions = loadPracticeQuestions();
+  var next = questions.filter(function(q) { return q.id !== id; });
+  savePracticeQuestions(next);
+  return next;
+}
+
+function addPracticeQuestionsBulk(newQs) {
+  const questions = loadPracticeQuestions();
+  newQs.forEach(q => {
+    q.id = q.id || 'q_prac_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+    q.createdAt = q.createdAt || Date.now();
+    if ((q.type === 'mcq' || q.type === 'mcq_multi') && q.options) {
+      q.options = q.options.map(function(o) { return o.trim(); }).filter(Boolean);
+    }
+    var existingIdx = questions.findIndex(function(x) { return x.id === q.id; });
+    if (existingIdx >= 0) {
+      questions[existingIdx] = q;
+    } else {
+      questions.push(q);
+    }
+  });
+  savePracticeQuestions(questions);
+  return questions;
+}
+
 module.exports = {
   ROOT,
   CSV_NAMES,
@@ -427,4 +589,18 @@ module.exports = {
   upsertWord,
   deleteWord,
   addDictionaryWord,
+  loadTensesContent,
+  saveTensesContent,
+  addTensesQuestion,
+  deleteTensesQuestion,
+  importTensesQuestions,
+  loadOfficialTests,
+  saveOfficialTests,
+  loadOfficialTestResults,
+  saveOfficialTestResults,
+  loadPracticeQuestions,
+  savePracticeQuestions,
+  addPracticeQuestion,
+  deletePracticeQuestion,
+  addPracticeQuestionsBulk,
 };
