@@ -258,10 +258,6 @@ body.portal-theme .mode-card.flashcard {
 body.portal-theme .commit-banner {
   background: linear-gradient(135deg, var(--zf-navy), var(--zf-navy-800)) !important;
   border-color: rgba(245, 166, 35, 0.3) !important;
-  color: #ffffff !important;
-}
-body.portal-theme .commit-banner * {
-  color: #ffffff !important;
 }
 
 body.portal-theme .vocab-hero.learn {

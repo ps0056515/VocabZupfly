@@ -7,7 +7,3 @@ android/local.properties
 *.iml
 .DS_Store
 .capacitor/
-official-tests.json
-official-test-results.json
-data/practice-questions.json
-www/data/practice-questions.json

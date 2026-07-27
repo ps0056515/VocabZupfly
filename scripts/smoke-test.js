@@ -42,7 +42,7 @@ check('fonts/', () => {
 
 const jsFiles = [
   'config', 'words', 'state', 'core', 'lessons', 'vocab', 'practice', 'study',
-  'tutor', 'tenses', 'flow', 'boot', 'dashboard', 'features', 'assessment-db', 'assessment',
+  'tutor', 'tenses', 'flow', 'boot', 'dashboard', 'features',
 ];
 check('JS files exist', () => {
   jsFiles.forEach((f) => {
