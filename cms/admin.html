@@ -168,6 +168,7 @@
           
           <button type="button" class="btn primary" id="btn-add-pq">+ Add Question (Manual)</button>
           <button type="button" class="btn" id="btn-bulk-upload-pq">+ Bulk Upload (CSV/Excel)</button>
+          <button type="button" class="btn" id="btn-download-pq-template">📋 Download Template</button>
           <input type="file" id="pq-bulk-file-input" style="display: none;" accept=".csv, .xlsx, .xls">
         </div>
         <div class="table-wrap">
@@ -404,24 +405,22 @@
         <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid #e2e8f0;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
             <h3>📝 Question Builder</h3>
-            <button type="button" class="btn primary" id="btn-add-test-question">+ Add Custom Question</button>
           </div>
 
-          <!-- Import from Tenses Group Control Box -->
+          <!-- Import from Practice Question Pool Control Box -->
           <div class="card" style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:12px; padding:14px; margin-bottom:16px;">
-            <h4 style="margin:0 0 8px; color:#0f172a; font-size:14px;">⚡ Import Questions from Predefined Tenses Groups</h4>
+            <h4 style="margin:0 0 8px; color:#0f172a; font-size:14px;">⚡ Add Questions from Practice Questions Pool</h4>
             
-            <label style="font-size:12px; font-weight:700; display:block; margin-bottom:6px; color:#334155;">Select Target Groups (Select multiple for random auto-generation):</label>
-            <div id="test-import-groups-checkboxes" style="display:grid; grid-template-columns: repeat(3, 1fr); gap:6px 12px; background:#ffffff; padding:10px; border:1px solid #cbd5e1; border-radius:8px; max-height:110px; overflow-y:auto; margin-bottom:12px; font-size:12px;">
-              <label class="chk"><input type="checkbox" name="import_group_chk" value="sentence-repeating" checked> Sentence Repeating</label>
-              <label class="chk"><input type="checkbox" name="import_group_chk" value="short-stories" checked> Short Stories</label>
-              <label class="chk"><input type="checkbox" name="import_group_chk" value="grammar" checked> Grammar</label>
-              <label class="chk"><input type="checkbox" name="import_group_chk" value="sentence-reading" checked> Sentence Reading</label>
-              <label class="chk"><input type="checkbox" name="import_group_chk" value="passage-comprehension" checked> Passage Comprehension</label>
-              <label class="chk"><input type="checkbox" name="import_group_chk" value="essay-writing" checked> Essay Writing</label>
-              <label class="chk"><input type="checkbox" name="import_group_chk" value="jumbled-sentences" checked> Jumbled Sentences</label>
-              <label class="chk"><input type="checkbox" name="import_group_chk" value="story-retelling" checked> Story Retelling</label>
-              <label class="chk"><input type="checkbox" name="import_group_chk" value="just-a-minute" checked> Just a Minute</label>
+            <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+              <div style="flex: 1;">
+                <label style="font-size:12px; font-weight:700; display:block; margin-bottom:6px; color:#334155;">Select List:</label>
+                <select id="test-import-list" class="inp" style="font-size:13px;"></select>
+              </div>
+            </div>
+            
+            <label style="font-size:12px; font-weight:700; display:block; margin-bottom:6px; color:#334155;">Select Target Group(s):</label>
+            <div id="test-import-groups" style="display:grid; grid-template-columns: repeat(3, 1fr); gap:6px 12px; background:#ffffff; padding:10px; border:1px solid #cbd5e1; border-radius:8px; max-height:110px; overflow-y:auto; margin-bottom:12px; font-size:12px;">
+              <!-- will be populated dynamically -->
             </div>
 
             <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center;">

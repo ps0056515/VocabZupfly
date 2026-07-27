@@ -1148,6 +1148,24 @@
     toast('Template downloaded!', true);
   }
 
+  function downloadPqTemplate() {
+    var csvHeader = 'List,Group,Question,Option A,Option B,Option C,Option D,Answer Key,Category\n';
+    var sampleRows = [
+      'list-1,Prediction,"A good chess player must ____ several moves ahead to win against a grandmaster.","ignore","forget","delay","anticipate","D (anticipate)",normal',
+      'list-1,Prediction,"Which of the following are synonyms of forecast? (Select all that apply)","predict","ignore","foresee","delay","A, C",normal'
+    ].join('\n');
+
+    var blob = new Blob([csvHeader + sampleRows], { type: 'text/csv;charset=utf-8;' });
+    var link = document.createElement('a');
+    var url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'PracticeQuestions_Template.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast('Template downloaded!', true);
+  }
+
   function handleTensesSheetUpload(e) {
     var file = e.target.files && e.target.files[0];
     if (!file) return;
@@ -1501,6 +1519,71 @@
     if (modal) modal.classList.remove('hidden');
   };
 
+  var selectedTestImportListId = null;
+  var selectedTestImportGroupIds = [];
+
+  function initTestImportSelectors() {
+    var listSelect = $('test-import-list');
+    if (!listSelect) return;
+    
+    var lists = (state.wordLists && state.wordLists.lists) ? state.wordLists.lists : [];
+    listSelect.innerHTML = lists.map(function (l) {
+      return '<option value="' + esc(l.id) + '">' + esc(l.title) + '</option>';
+    }).join('');
+
+    if (lists.length > 0) {
+      selectedTestImportListId = lists[0].id;
+      listSelect.value = selectedTestImportListId;
+    }
+
+    listSelect.onchange = function () {
+      selectedTestImportListId = listSelect.value;
+      populateTestImportGroups();
+    };
+
+    populateTestImportGroups();
+  }
+
+  function populateTestImportGroups() {
+    var groupDiv = $('test-import-groups');
+    if (!groupDiv || !selectedTestImportListId) return;
+
+    var lists = (state.wordLists && state.wordLists.lists) ? state.wordLists.lists : [];
+    var lst = lists.find(function (l) { return l.id === selectedTestImportListId; });
+    var groups = lst ? (lst.groups || []) : [];
+
+    selectedTestImportGroupIds = [];
+
+    if (!groups.length) {
+      groupDiv.innerHTML = '<div style="padding: 12px; font-size: 13px; color: #64748b; text-align: center; grid-column: span 3;">No groups in this list</div>';
+      return;
+    }
+
+    groupDiv.innerHTML = groups.map(function (g) {
+      return '<label class="chk" style="display:flex; align-items:center; gap:6px; cursor:pointer;">' +
+        '<input type="checkbox" name="import_group_chk" value="' + esc(g.id) + '" checked onchange="window.toggleTestImportGroup(\'' + esc(g.id) + '\', this.checked)">' +
+        '<span>' + esc(g.title) + '</span>' +
+        '</label>';
+    }).join('');
+
+    groups.forEach(function (g) {
+      selectedTestImportGroupIds.push(g.id);
+    });
+  }
+
+  window.toggleTestImportGroup = function (groupId, isChecked) {
+    if (isChecked) {
+      if (selectedTestImportGroupIds.indexOf(groupId) === -1) {
+        selectedTestImportGroupIds.push(groupId);
+      }
+    } else {
+      var idx = selectedTestImportGroupIds.indexOf(groupId);
+      if (idx >= 0) {
+        selectedTestImportGroupIds.splice(idx, 1);
+      }
+    }
+  };
+
   function openTestModal(test) {
     var modal = $('test-modal');
     if (!modal) return;
@@ -1514,11 +1597,9 @@
     $('test-modal-title').textContent = test ? 'Edit Official Test' : 'Create Official Test';
 
     builderQuestions = test && test.questions ? JSON.parse(JSON.stringify(test.questions)) : [];
-    if (!builderQuestions.length) {
-      addTestQuestion();
-    } else {
-      renderQuestionBuilder();
-    }
+    
+    initTestImportSelectors();
+    renderQuestionBuilder();
 
     $('test-title-feedback').textContent = '';
     isTitleUnique = true;
@@ -1557,194 +1638,69 @@
       });
   }
 
-  function addTestQuestion() {
-    builderQuestions.push({
-      id: 'q_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-      type: 'mcq',
-      text: '',
-      groupTitle: 'General Evaluation',
-      options: ['Option A', 'Option B', 'Option C', 'Option D'],
-      correctAnswerIndex: 0,
-      correctAnswerText: ''
-    });
+  function removeTestQuestion(idx) {
+    builderQuestions.splice(idx, 1);
     renderQuestionBuilder();
   }
 
-  function removeTestQuestion(idx) {
-    builderQuestions.splice(idx, 1);
-    if (!builderQuestions.length) {
-      addTestQuestion();
-    } else {
-      renderQuestionBuilder();
-    }
-  }
+  window.removeTestQuestion = function (idx) {
+    removeTestQuestion(idx);
+  };
 
   function renderQuestionBuilder() {
     var container = $('test-questions-builder-container');
     if (!container) return;
 
-    container.innerHTML = builderQuestions.map(function (q, idx) {
-      var optionsHtml = '';
+    if (!builderQuestions.length) {
+      container.innerHTML = '<div style="text-align:center; padding: 20px; color: #64748b; font-size:13px; border: 1px dashed #cbd5e1; border-radius:8px;">No questions added yet. Use the automatic generator or manual browser above to add questions.</div>';
+      return;
+    }
 
-      if (q.type === 'mcq') {
-        optionsHtml =
-          '<div style="margin-top:8px;">' +
-          '<div style="font-size:12px;font-weight:600;margin-bottom:4px;color:#475569;">Options (Select single correct answer):</div>' +
-          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
-          (q.options || ['A', 'B', 'C', 'D']).map(function (opt, oIdx) {
-            var isSelected = q.correctAnswerIndex === oIdx ? 'checked' : '';
-            return (
-              '<div style="display:flex;align-items:center;gap:6px;">' +
-              '<input type="radio" name="q_correct_' + idx + '" ' + isSelected + ' onchange="window.updateQuestionCorrect(' + idx + ', ' + oIdx + ')">' +
-              '<input type="text" class="inp" value="' + esc(opt) + '" placeholder="Option ' + (oIdx + 1) + '" oninput="window.updateQuestionOption(' + idx + ', ' + oIdx + ', this.value)">' +
-              '</div>'
-            );
+    container.innerHTML = builderQuestions.map(function (q, idx) {
+      var detailsHtml = '';
+
+      if (q.type === 'mcq' || q.type === 'mcq_multi') {
+        detailsHtml = 
+          '<div style="margin-top:6px; font-size:13px;">' +
+          '<strong>Options:</strong>' +
+          '<ul style="margin: 4px 0 0 16px; padding:0; list-style-type: disc;">' +
+          (q.options || []).map(function (opt, oIdx) {
+            var isCorrect = false;
+            if (q.type === 'mcq') {
+              isCorrect = q.correctAnswerIndex === oIdx;
+            } else {
+              isCorrect = (q.correctAnswerIndices || []).indexOf(oIdx) >= 0;
+            }
+            var boldStart = isCorrect ? '<strong style="color:var(--success);">' : '';
+            var boldEnd = isCorrect ? ' (Correct Answer)</strong>' : '';
+            return '<li style="margin-bottom: 2px;">' + boldStart + String.fromCharCode(65 + oIdx) + ': ' + esc(opt) + boldEnd + '</li>';
           }).join('') +
-          '</div></div>';
-      } else if (q.type === 'mcq_multi') {
-        q.correctAnswerIndices = q.correctAnswerIndices || [0];
-        optionsHtml =
-          '<div style="margin-top:8px;">' +
-          '<div style="font-size:12px;font-weight:600;margin-bottom:4px;color:#475569;">Options (Check all correct answers):</div>' +
-          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
-          (q.options || ['A', 'B', 'C', 'D']).map(function (opt, oIdx) {
-            var isSelected = (q.correctAnswerIndices || []).indexOf(oIdx) >= 0 ? 'checked' : '';
-            return (
-              '<div style="display:flex;align-items:center;gap:6px;">' +
-              '<input type="checkbox" ' + isSelected + ' onchange="window.updateQuestionMultiCorrect(' + idx + ', ' + oIdx + ', this.checked)">' +
-              '<input type="text" class="inp" value="' + esc(opt) + '" placeholder="Option ' + (oIdx + 1) + '" oninput="window.updateQuestionOption(' + idx + ', ' + oIdx + ', this.value)">' +
-              '</div>'
-            );
-          }).join('') +
-          '</div></div>';
-      } else if (q.type === 'fill_blank') {
-        q.correctAnswers = q.correctAnswers || (q.correctAnswerText ? [q.correctAnswerText] : ['']);
-        optionsHtml =
-          '<div style="margin-top:8px;">' +
-          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">' +
-          '<label style="font-size:12px;font-weight:600;color:#475569;">Correct Answer(s) for Blank(s) <span style="color:#ef4444">*</span></label>' +
-          '<button type="button" class="btn btn-sm" onclick="window.addQuestionBlank(' + idx + ')">+ Add Blank</button>' +
-          '</div>' +
-          '<div style="display:flex;flex-direction:column;gap:6px;">' +
-          q.correctAnswers.map(function (ans, bIdx) {
-            return (
-              '<div style="display:flex;align-items:center;gap:6px;">' +
-              '<span style="font-size:12px;font-weight:600;width:60px;">Blank ' + (bIdx + 1) + ':</span>' +
-              '<input type="text" class="inp" value="' + esc(ans || '') + '" placeholder="Expected answer text for blank ' + (bIdx + 1) + '..." oninput="window.updateQuestionBlankText(' + idx + ', ' + bIdx + ', this.value)">' +
-              (q.correctAnswers.length > 1 ? '<button type="button" class="btn btn-sm danger-outline" onclick="window.removeQuestionBlank(' + idx + ', ' + bIdx + ')">✕</button>' : '') +
-              '</div>'
-            );
-          }).join('') +
-          '</div></div>';
-      } else if (q.type === 'true_false') {
-        optionsHtml =
-          '<div style="display:flex;gap:16px;margin-top:8px;">' +
-          '<label style="font-weight:600;"><input type="radio" name="q_correct_' + idx + '" ' + (q.correctAnswerIndex === 0 ? 'checked' : '') + ' onchange="window.updateQuestionTrueFalse(' + idx + ', 0)"> True</label>' +
-          '<label style="font-weight:600;"><input type="radio" name="q_correct_' + idx + '" ' + (q.correctAnswerIndex === 1 ? 'checked' : '') + ' onchange="window.updateQuestionTrueFalse(' + idx + ', 1)"> False</label>' +
+          '</ul>' +
+          '</div>';
+      } else {
+        var expected = q.correctAnswerText || (q.correctAnswers ? q.correctAnswers.join(', ') : '');
+        detailsHtml = 
+          '<div style="margin-top:6px; font-size:13px;">' +
+          '<strong>Type:</strong> Fill in the Blank<br>' +
+          '<strong>Expected Answer(s):</strong> <strong style="color:var(--success);">' + esc(expected) + '</strong>' +
           '</div>';
       }
 
       return (
         '<div style="border:1px solid #cbd5e1;border-radius:12px;padding:14px;background:#ffffff;margin-bottom:8px;">' +
-        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
-        '<strong>Question ' + (idx + 1) + '</strong>' +
-        '<div style="display:flex;gap:8px;align-items:center;">' +
-        '<select class="inp" style="width:180px;padding:4px 8px;font-size:12px;font-weight:600;" onchange="window.updateQuestionType(' + idx + ', this.value)">' +
-        '<option value="mcq" ' + (q.type === 'mcq' ? 'selected' : '') + '>MCQ (Single Answer)</option>' +
-        '<option value="mcq_multi" ' + (q.type === 'mcq_multi' ? 'selected' : '') + '>MCQ (Multiple Answers)</option>' +
-        '<option value="fill_blank" ' + (q.type === 'fill_blank' ? 'selected' : '') + '>Fill in Blanks (1 or Multi)</option>' +
-        '<option value="true_false" ' + (q.type === 'true_false' ? 'selected' : '') + '>True / False</option>' +
-        '</select>' +
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">' +
+        '<div>' +
+        '<strong style="font-size:14px;">Question ' + (idx + 1) + '</strong>' +
+        '<span style="font-size:11px; font-weight:600; color:#64748b; background:#f1f5f9; padding:2px 8px; border-radius:6px; margin-left:8px;">' + esc(q.groupTitle) + '</span>' +
+        '</div>' +
         '<button type="button" class="btn btn-sm danger-outline" onclick="window.removeTestQuestion(' + idx + ')">✕ Remove</button>' +
         '</div>' +
-        '</div>' +
-        '<input type="text" class="inp" value="' + esc(q.text || '') + '" placeholder="Enter question prompt..." oninput="window.updateQuestionText(' + idx + ', this.value)" style="margin-bottom:6px;">' +
-        optionsHtml +
+        '<div style="font-size:13px; font-weight:600; color:#0f172a; margin-bottom:8px; line-height:1.5;">' + esc(q.text || '') + '</div>' +
+        detailsHtml +
         '</div>'
       );
     }).join('');
   }
-
-  window.updateQuestionType = function (idx, type) {
-    if (!builderQuestions[idx]) return;
-    builderQuestions[idx].type = type;
-    if (type === 'mcq') {
-      builderQuestions[idx].options = builderQuestions[idx].options || ['Option A', 'Option B', 'Option C', 'Option D'];
-      builderQuestions[idx].correctAnswerIndex = 0;
-    } else if (type === 'mcq_multi') {
-      builderQuestions[idx].options = builderQuestions[idx].options || ['Option A', 'Option B', 'Option C', 'Option D'];
-      builderQuestions[idx].correctAnswerIndices = builderQuestions[idx].correctAnswerIndices || [0];
-    } else if (type === 'fill_blank') {
-      builderQuestions[idx].correctAnswers = builderQuestions[idx].correctAnswers || [''];
-    } else if (type === 'true_false') {
-      builderQuestions[idx].options = ['True', 'False'];
-      builderQuestions[idx].correctAnswerIndex = 0;
-    }
-    renderQuestionBuilder();
-  };
-
-  window.updateQuestionText = function (idx, text) {
-    if (builderQuestions[idx]) builderQuestions[idx].text = text;
-  };
-
-  window.updateQuestionOption = function (qIdx, oIdx, val) {
-    if (builderQuestions[qIdx] && builderQuestions[qIdx].options) {
-      builderQuestions[qIdx].options[oIdx] = val;
-    }
-  };
-
-  window.updateQuestionCorrect = function (qIdx, oIdx) {
-    if (builderQuestions[qIdx]) builderQuestions[qIdx].correctAnswerIndex = oIdx;
-  };
-
-  window.updateQuestionMultiCorrect = function (qIdx, oIdx, isChecked) {
-    if (!builderQuestions[qIdx]) return;
-    var list = builderQuestions[qIdx].correctAnswerIndices || [];
-    if (isChecked) {
-      if (list.indexOf(oIdx) === -1) list.push(oIdx);
-    } else {
-      var pos = list.indexOf(oIdx);
-      if (pos >= 0) list.splice(pos, 1);
-    }
-    builderQuestions[qIdx].correctAnswerIndices = list;
-  };
-
-  window.addQuestionBlank = function (qIdx) {
-    if (!builderQuestions[qIdx]) return;
-    builderQuestions[qIdx].correctAnswers = builderQuestions[qIdx].correctAnswers || [];
-    builderQuestions[qIdx].correctAnswers.push('');
-    renderQuestionBuilder();
-  };
-
-  window.removeQuestionBlank = function (qIdx, bIdx) {
-    if (!builderQuestions[qIdx] || !builderQuestions[qIdx].correctAnswers) return;
-    builderQuestions[qIdx].correctAnswers.splice(bIdx, 1);
-    renderQuestionBuilder();
-  };
-
-  window.updateQuestionBlankText = function (qIdx, bIdx, val) {
-    if (builderQuestions[qIdx] && builderQuestions[qIdx].correctAnswers) {
-      builderQuestions[qIdx].correctAnswers[bIdx] = val;
-    }
-  };
-
-  window.updateQuestionCorrectText = function (qIdx, val) {
-    if (builderQuestions[qIdx]) {
-      builderQuestions[qIdx].correctAnswers = [val];
-      builderQuestions[qIdx].correctAnswerText = val;
-    }
-  };
-
-  window.updateQuestionTrueFalse = function (qIdx, val) {
-    if (builderQuestions[qIdx]) {
-      builderQuestions[qIdx].options = ['True', 'False'];
-      builderQuestions[qIdx].correctAnswerIndex = val;
-    }
-  };
-
-  window.removeTestQuestion = function (idx) {
-    removeTestQuestion(idx);
-  };
 
   window.editOfficialTest = function (id) {
     var t = (state.officialTests || []).find(function (x) { return x.id === id; });
@@ -1884,17 +1840,7 @@
   if ($('test-search')) $('test-search').oninput = renderOfficialTests;
   if ($('cms-report-search')) $('cms-report-search').oninput = function () { renderOfficialResults(); };
 
-  /* ══ TENSES GROUP QUESTION IMPORT & PICKER ══ */
-  function getQuestionText(item) {
-    if (!item) return '';
-    if (typeof item === 'string') return item;
-    if (item.q) return item.q;
-    if (item.story) return item.story + '\n\nQuestion: ' + ((item.questions && item.questions[0] && item.questions[0].q) || '');
-    if (item.text) return item.text;
-    if (item.title) return item.title;
-    return JSON.stringify(item);
-  }
-
+  /* ══ PRACTICE QUESTION POOL IMPORT & PICKER ══ */
   function isQuestionInBuilder(promptText) {
     if (!promptText) return false;
     var cleanText = promptText.trim().toLowerCase();
@@ -1903,65 +1849,45 @@
     });
   }
 
-  function convertGroupItemToQuestion(item, groupName) {
-    if (!item) return null;
+  function convertPracticeQuestionToTestQuestion(pq) {
+    if (!pq) return null;
+    
     var qObj = {
-      id: 'q_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-      groupTitle: groupName || 'Tenses Evaluation',
-      type: 'mcq',
-      text: getQuestionText(item),
-      options: ['Option A', 'Option B', 'Option C', 'Option D'],
-      correctAnswerIndex: 0,
-      correctAnswerText: ''
+      id: pq.id + '_' + Date.now(),
+      practiceQuestionId: pq.id,
+      type: pq.type === "mcq" ? "mcq" : pq.type === "mcq_multi" ? "mcq_multi" : "fill_blank",
+      text: pq.title,
+      groupTitle: pq.groupId || 'General',
+      options: pq.options || null,
     };
 
-    if (item.q && item.options) {
-      qObj.type = 'mcq';
-      qObj.options = item.options;
-      qObj.correctAnswerIndex = item.answer !== undefined ? item.answer : 0;
-    } else if (item.story && item.questions && item.questions.length) {
-      var firstQ = item.questions[0];
-      qObj.type = 'mcq';
-      qObj.options = firstQ.options || ['A', 'B', 'C', 'D'];
-      qObj.correctAnswerIndex = firstQ.answer !== undefined ? firstQ.answer : 0;
-    } else if (item.text) {
-      qObj.type = 'fill_blank';
-      qObj.correctAnswerText = item.text;
-      qObj.correctAnswers = [item.text];
-    } else if (item.title) {
-      qObj.type = 'fill_blank';
-      qObj.correctAnswerText = item.title;
-      qObj.correctAnswers = [item.title];
+    if (pq.type === "mcq") {
+      qObj.correctAnswerIndex = pq.options.indexOf(pq.correctAnswer);
+    } else if (pq.type === "mcq_multi") {
+      var correctList = pq.correctAnswer.split(",").map(function (s) { return s.trim(); });
+      qObj.correctAnswerIndices = correctList.map(function (c) { return pq.options.indexOf(c); }).filter(function (idx) { return idx >= 0; });
+    } else {
+      qObj.correctAnswerText = pq.correctAnswer;
+      qObj.correctAnswers = pq.correctAnswer.split(",").map(function (s) { return s.trim(); });
     }
     return qObj;
   }
 
   function importRandomGroupQuestions() {
-    var checkBoxes = document.querySelectorAll('input[name="import_group_chk"]:checked');
-    var selectedGroups = [];
-    checkBoxes.forEach(function (cb) { selectedGroups.push(cb.value); });
-
-    if (!selectedGroups.length) {
-      toast('Please select at least one Tenses group checkbox.');
+    if (!selectedTestImportListId || !selectedTestImportGroupIds.length) {
+      toast('Please select a list and at least one group checkbox.');
       return;
     }
 
     var countInp = $('test-import-count');
     var totalCount = parseInt(countInp ? countInp.value : '5', 10) || 5;
 
-    var pool = [];
-    selectedGroups.forEach(function (grpKey) {
-      var items = (state.tenses && state.tenses[grpKey]) ? state.tenses[grpKey] : [];
-      var optionEl = document.querySelector('#test-import-groups-checkboxes label input[value="' + grpKey + '"]');
-      var groupName = optionEl && optionEl.parentElement ? optionEl.parentElement.textContent.trim() : grpKey;
+    var pool = (state.practiceQuestions || []).filter(function (q) {
+      return q.listId === selectedTestImportListId && selectedTestImportGroupIds.indexOf(q.groupId) >= 0;
+    });
 
-      items.forEach(function (it) {
-        var txt = getQuestionText(it);
-        // Filter out questions that are ALREADY in builderQuestions to prevent duplicates
-        if (!isQuestionInBuilder(txt)) {
-          pool.push({ item: it, groupName: groupName });
-        }
-      });
+    pool = pool.filter(function (q) {
+      return !isQuestionInBuilder(q.title);
     });
 
     if (!pool.length) {
@@ -1972,12 +1898,12 @@
     var shuffled = pool.slice().sort(function () { return 0.5 - Math.random(); });
     var picked = shuffled.slice(0, totalCount);
 
-    picked.forEach(function (entry) {
-      var q = convertGroupItemToQuestion(entry.item, entry.groupName);
+    picked.forEach(function (pq) {
+      var q = convertPracticeQuestionToTestQuestion(pq);
       if (q) builderQuestions.push(q);
     });
 
-    toast('Added ' + picked.length + ' new non-duplicate questions across selected groups!', true);
+    toast('Added ' + picked.length + ' new questions from selected groups!', true);
     renderQuestionBuilder();
   }
 
@@ -1987,23 +1913,21 @@
     pickerSelectedItemsMap.clear();
     
     // Auto-mark questions that are ALREADY in builderQuestions
-    Object.keys(state.tenses || {}).forEach(function (grpKey) {
-      var items = state.tenses[grpKey] || [];
-      var groupName = grpKey;
-      var optionEl = document.querySelector('#test-import-groups-checkboxes label input[value="' + grpKey + '"]');
-      if (optionEl && optionEl.parentElement) groupName = optionEl.parentElement.textContent.trim();
-
-      items.forEach(function (it, idx) {
-        var txt = getQuestionText(it);
-        if (isQuestionInBuilder(txt)) {
-          pickerSelectedItemsMap.set(grpKey + '_' + idx, { item: it, groupName: groupName, preExisting: true });
-        }
-      });
+    (state.practiceQuestions || []).forEach(function (pq, idx) {
+      if (pq.listId === selectedTestImportListId && isQuestionInBuilder(pq.title)) {
+        pickerSelectedItemsMap.set(pq.groupId + '_' + idx, { item: pq, groupName: pq.groupId, preExisting: true });
+      }
     });
 
     var modalGroupSelect = $('modal-picker-group-select');
-    if (modalGroupSelect && modalGroupSelect.options.length) {
-      modalGroupSelect.selectedIndex = 0;
+    if (modalGroupSelect && selectedTestImportListId) {
+      var lists = (state.wordLists && state.wordLists.lists) ? state.wordLists.lists : [];
+      var lst = lists.find(function (l) { return l.id === selectedTestImportListId; });
+      var groups = lst ? (lst.groups || []) : [];
+      modalGroupSelect.innerHTML = groups.map(function (g) {
+        return '<option value="' + esc(g.id) + '">' + esc(g.title) + '</option>';
+      }).join('');
+      if (groups.length > 0) modalGroupSelect.selectedIndex = 0;
     }
 
     if ($('group-picker-search')) $('group-picker-search').value = '';
@@ -2023,16 +1947,19 @@
     var listContainer = $('group-picker-list');
     var search = ($('group-picker-search') ? $('group-picker-search').value : '').trim().toLowerCase();
     var modalGroupSelect = $('modal-picker-group-select');
-    if (!listContainer || !modalGroupSelect) return;
+    if (!listContainer || !modalGroupSelect || !selectedTestImportListId) return;
 
     var grp = modalGroupSelect.value;
     var groupName = modalGroupSelect.options[modalGroupSelect.selectedIndex].text;
-    var currentGroupItems = (state.tenses && state.tenses[grp]) ? state.tenses[grp] : [];
+    
+    var currentGroupItems = (state.practiceQuestions || []).filter(function (q) {
+      return q.listId === selectedTestImportListId && q.groupId === grp;
+    });
 
     var itemsToDisplay = currentGroupItems;
     if (search) {
       itemsToDisplay = itemsToDisplay.filter(function (it) {
-        var str = getQuestionText(it).toLowerCase();
+        var str = (it.title || '').toLowerCase();
         return str.indexOf(search) >= 0;
       });
     }
@@ -2045,10 +1972,9 @@
     listContainer.innerHTML = itemsToDisplay.map(function (it) {
       var origIdx = currentGroupItems.indexOf(it);
       var itemKey = grp + '_' + origIdx;
-      var qTxt = getQuestionText(it);
-      var isAlreadyAdded = isQuestionInBuilder(qTxt);
+      var isAlreadyAdded = isQuestionInBuilder(it.title);
       var isChecked = pickerSelectedItemsMap.has(itemKey) || isAlreadyAdded ? 'checked' : '';
-      var previewText = qTxt.length > 130 ? qTxt.slice(0, 130) + '...' : qTxt;
+      var previewText = it.title.length > 130 ? it.title.slice(0, 130) + '...' : it.title;
 
       var addedBadge = isAlreadyAdded
         ? '<span class="status-badge badge-active" style="margin-left:8px;font-size:10px;padding:2px 8px;">✓ Added to Test</span>'
@@ -2079,7 +2005,10 @@
   window.togglePickerItem = function (grp, origIdx, groupName, isChecked) {
     var itemKey = grp + '_' + origIdx;
     if (isChecked) {
-      var item = (state.tenses && state.tenses[grp]) ? state.tenses[grp][origIdx] : null;
+      var currentGroupItems = (state.practiceQuestions || []).filter(function (q) {
+        return q.listId === selectedTestImportListId && q.groupId === grp;
+      });
+      var item = currentGroupItems[origIdx];
       if (item) pickerSelectedItemsMap.set(itemKey, { item: item, groupName: groupName });
     } else {
       pickerSelectedItemsMap.delete(itemKey);
@@ -2095,9 +2024,9 @@
 
     var addedCount = 0;
     pickerSelectedItemsMap.forEach(function (val) {
-      var txt = getQuestionText(val.item);
+      var txt = val.item.title;
       if (!isQuestionInBuilder(txt)) {
-        var q = convertGroupItemToQuestion(val.item, val.groupName);
+        var q = convertPracticeQuestionToTestQuestion(val.item);
         if (q) {
           builderQuestions.push(q);
           addedCount++;
@@ -2128,10 +2057,13 @@
   if ($('chk-picker-select-all')) $('chk-picker-select-all').onchange = function (e) {
     var checkAll = e.target.checked;
     var modalGroupSelect = $('modal-picker-group-select');
-    if (!modalGroupSelect) return;
+    if (!modalGroupSelect || !selectedTestImportListId) return;
     var grp = modalGroupSelect.value;
     var groupName = modalGroupSelect.options[modalGroupSelect.selectedIndex].text;
-    var currentGroupItems = (state.tenses && state.tenses[grp]) ? state.tenses[grp] : [];
+    
+    var currentGroupItems = (state.practiceQuestions || []).filter(function (q) {
+      return q.listId === selectedTestImportListId && q.groupId === grp;
+    });
 
     currentGroupItems.forEach(function (it, idx) {
       var itemKey = grp + '_' + idx;
@@ -2167,6 +2099,7 @@
   if ($('btn-add-pq-option')) $('btn-add-pq-option').onclick = addPqModalOption;
   if ($('btn-bulk-upload-pq')) $('btn-bulk-upload-pq').onclick = function () { $('pq-bulk-file-input').click(); };
   if ($('pq-bulk-file-input')) $('pq-bulk-file-input').onchange = handlePqBulkUpload;
+  if ($('btn-download-pq-template')) $('btn-download-pq-template').onclick = downloadPqTemplate;
   var pqBackdrop = document.querySelector('#pq-modal .modal-backdrop');
   if (pqBackdrop) pqBackdrop.onclick = closePqModal;
   if ($('btn-dict-add')) $('btn-dict-add').onclick = addDictWord;
