@@ -36,6 +36,7 @@
       <button type="button" class="nav-btn" data-tab="official-tests">Official Tests &amp; Reports</button>
       <button type="button" class="nav-btn" data-tab="words">Words</button>
       <button type="button" class="nav-btn" data-tab="tenses">Tenses Questions</button>
+      <button type="button" class="nav-btn" data-tab="practice-questions">Practice Questions</button>
       <button type="button" class="nav-btn" data-tab="lists">Lists</button>
       <button type="button" class="nav-btn" data-tab="dictionary">Dictionary</button>
       <button type="button" class="nav-btn" data-tab="import">Import CSV</button>
@@ -151,6 +152,42 @@
             <tbody id="tenses-tbody"></tbody>
           </table>
         </div>
+      </section>
+
+      <section id="tab-practice-questions" class="tab-panel">
+        <div class="toolbar practice-questions-toolbar">
+          <label>Filter List:</label>
+          <select id="pq-filter-list-select" class="inp">
+            <option value="all">All Lists</option>
+          </select>
+          
+          <label>Filter Group:</label>
+          <select id="pq-filter-group-select" class="inp">
+            <option value="all">All Groups</option>
+          </select>
+          
+          <button type="button" class="btn primary" id="btn-add-pq">+ Add Question (Manual)</button>
+          <button type="button" class="btn" id="btn-bulk-upload-pq">+ Bulk Upload (CSV/Excel)</button>
+          <input type="file" id="pq-bulk-file-input" style="display: none;" accept=".csv, .xlsx, .xls">
+        </div>
+        <div class="table-wrap">
+          <table class="data-table" id="pq-table">
+            <thead>
+              <tr>
+                <th>List</th>
+                <th>Group</th>
+                <th>Type</th>
+                <th>Question Title</th>
+                <th>Category</th>
+                <th>Options</th>
+                <th>Correct Answer</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="pq-tbody"></tbody>
+          </table>
+        </div>
+        <p id="pq-count" class="muted"></p>
       </section>
 
       <section id="tab-official-tests" class="tab-panel">
@@ -278,6 +315,57 @@
 
         <div class="modal-actions">
           <button type="button" class="btn" id="tenses-modal-cancel">Cancel</button>
+          <button type="submit" class="btn primary">Save Question</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="pq-modal" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-card" style="max-width: 600px; width: 90%;">
+      <h2 id="pq-modal-title">Add Practice Question</h2>
+      <form id="pq-form">
+        <input type="hidden" name="id" id="pq-form-id">
+        
+        <label>List</label>
+        <select name="listId" id="pq-form-list" required class="inp"></select>
+        
+        <label>Group</label>
+        <select name="groupId" id="pq-form-group" required class="inp"></select>
+        
+        <label>Category</label>
+        <select name="category" id="pq-form-category" required class="inp">
+          <option value="normal" selected>Normal</option>
+        </select>
+        
+        <label>Question Type</label>
+        <select name="type" id="pq-form-type" required class="inp">
+          <option value="mcq" selected>Multiple Choice (Single Select)</option>
+          <option value="mcq_multi">Multiple Choice (Multi Select)</option>
+          <option value="fib">Fill in the Blanks</option>
+        </select>
+        
+        <label>Question Title / Prompt</label>
+        <textarea name="title" id="pq-form-title" rows="3" required class="inp" placeholder="e.g. Which of the following is a synonym of anticipate?"></textarea>
+        
+        <div id="pq-options-section">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; margin-bottom:5px;">
+            <label style="margin:0;">MCQ Options (Min 4, Max 6)</label>
+            <button type="button" class="btn sm" id="btn-add-pq-option">+ Add Option</button>
+          </div>
+          <div id="pq-options-container" style="display:flex; flex-direction:column; gap:8px;">
+            <!-- will be populated dynamically -->
+          </div>
+        </div>
+        
+        <label style="margin-top:12px;">Correct Answer</label>
+        <div id="pq-correct-answer-container">
+          <!-- will be a select dropdown for MCQ or text input for FIB -->
+        </div>
+        
+        <div class="modal-actions" style="margin-top:20px;">
+          <button type="button" class="btn" id="pq-modal-cancel">Cancel</button>
           <button type="submit" class="btn primary">Save Question</button>
         </div>
       </form>

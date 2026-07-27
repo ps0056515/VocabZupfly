@@ -655,40 +655,202 @@ window.LQ = window.LQ || {};
     } catch (e) {}
   }
 
+  let selectedAsmListId = "";
+  let selectedAsmGroupIds = [];
+
   LQ.openCreateAssessmentModal = async function () {
-    await LQ.tensesReady;
     const modal = document.getElementById("modal-create-assessment");
-    const container = document.getElementById("asm-modal-groups-list");
-    if (!modal || !container) return;
+    if (!modal) return;
 
-    const modules = LQ.TENSES_MODULES || [
-      { id: "sentence-repeating", title: "Sentence Repeating" },
-      { id: "short-stories", title: "Short Stories" },
-      { id: "grammar", title: "Grammar" },
-      { id: "sentence-reading", title: "Sentence Reading" },
-      { id: "passage-comprehension", title: "Passage Comprehension" },
-      { id: "essay-writing", title: "Essay Writing" },
-      { id: "jumbled-sentences", title: "Jumbled Sentences" },
-      { id: "story-retelling", title: "Story Retelling" },
-      { id: "just-a-minute", title: "Just a Minute" },
-    ];
+    // Reset fields
+    const titleInp = document.getElementById("asm-title");
+    if (titleInp) {
+      const dateStr = new Date().toLocaleString(undefined, {
+        dateStyle: "medium",
+        timeStyle: "short",
+      });
+      titleInp.value = `Practice Assessment — ${dateStr}`;
+    }
+    const qCountInp = document.getElementById("asm-q-count");
+    if (qCountInp) qCountInp.value = "10";
+    const durInp = document.getElementById("asm-duration");
+    if (durInp) durInp.value = "";
 
-    container.innerHTML = modules
-      .map(
-        (m) =>
-          '<label class="asm-chk-item">' +
-          '<input type="checkbox" name="asm_groups" value="' +
-          m.id +
-          '" checked>' +
-          "<span>" +
-          LQ.esc(m.title) +
-          "</span>" +
-          "</label>",
-      )
-      .join("");
+    // Pre-fetch practice questions if not yet loaded
+    if (!LQ.practiceQuestionsData || !Array.isArray(LQ.practiceQuestionsData)) {
+      try {
+        const v = "?v=" + (LQ.version || Date.now());
+        const r = await fetch("data/practice-questions.json" + v);
+        const data = await r.json();
+        LQ.practiceQuestionsData = Array.isArray(data) ? data : [];
+      } catch (e) {
+        console.warn("Failed to pre-fetch practice-questions.json in assessment modal", e);
+      }
+    }
+
+    // Set up dropdown events
+    const listTrigger = document.getElementById("asm-pq-list-dropdown-trigger");
+    const listMenu = document.getElementById("asm-pq-list-dropdown-menu");
+    const groupTrigger = document.getElementById("asm-pq-group-dropdown-trigger");
+    const groupMenu = document.getElementById("asm-pq-group-dropdown-menu");
+
+    if (listTrigger && listMenu) {
+      listTrigger.onclick = function (e) {
+        e.stopPropagation();
+        const isShown = listMenu.style.display === "block";
+        closeAllAsmDropdowns();
+        if (!isShown) listMenu.style.display = "block";
+      };
+    }
+
+    if (groupTrigger && groupMenu) {
+      groupTrigger.onclick = function (e) {
+        e.stopPropagation();
+        const isShown = groupMenu.style.display === "block";
+        closeAllAsmDropdowns();
+        if (!isShown) groupMenu.style.display = "block";
+      };
+    }
+
+    document.addEventListener("click", closeAllAsmDropdowns);
+
+    const lists = (LQ.WORD_LISTS && LQ.WORD_LISTS.lists) ? LQ.WORD_LISTS.lists : [];
+    if (listMenu && lists.length > 0) {
+      listMenu.innerHTML = lists.map(l => `
+        <div class="pq-dropdown-item asm-pq-list-item" onclick="LQ.selectAsmListOption('${l.id}', '${l.title.replace(/'/g, "\\'")}')" style="padding: 10px 12px; font-size: 13px; cursor: pointer; border-radius: 4px; color: var(--ink); font-weight: 500; transition: background 0.1s;">
+          ${l.title}
+        </div>
+      `).join("");
+      
+      LQ.selectAsmListOption(lists[0].id, lists[0].title);
+    }
 
     modal.classList.remove("hidden");
   };
+
+  function closeAllAsmDropdowns() {
+    const listMenu = document.getElementById("asm-pq-list-dropdown-menu");
+    const groupMenu = document.getElementById("asm-pq-group-dropdown-menu");
+    if (listMenu) listMenu.style.display = "none";
+    if (groupMenu) groupMenu.style.display = "none";
+  }
+
+  LQ.selectAsmListOption = function (listId, listTitle) {
+    selectedAsmListId = listId;
+    const labelEl = document.getElementById("asm-pq-list-dropdown-label");
+    if (labelEl) labelEl.textContent = listTitle;
+    
+    const listMenu = document.getElementById("asm-pq-list-dropdown-menu");
+    if (listMenu) {
+      listMenu.querySelectorAll(".asm-pq-list-item").forEach(item => {
+        const text = item.textContent.trim();
+        item.style.backgroundColor = (text === listTitle) ? "rgba(245,166,35,0.08)" : "transparent";
+      });
+    }
+    
+    populateAsmUserGroups();
+  };
+
+  function populateAsmUserGroups() {
+    const groupMenu = document.getElementById("asm-pq-group-dropdown-menu");
+    if (!groupMenu || !selectedAsmListId) return;
+
+    const lists = (LQ.WORD_LISTS && LQ.WORD_LISTS.lists) ? LQ.WORD_LISTS.lists : [];
+    const lst = lists.find(l => l.id === selectedAsmListId);
+    const groups = lst ? (lst.groups || []) : [];
+
+    selectedAsmGroupIds = [];
+
+    if (!groups.length) {
+      groupMenu.innerHTML = '<div style="padding: 12px; font-size: 13px; color: #64748b; text-align: center;">No groups in this list</div>';
+      updateAsmGroupTriggerLabel();
+      return;
+    }
+
+    const selectAllHtml = `
+      <div class="pq-dropdown-item" onclick="LQ.toggleAsmGroupSelectAll(event)" style="padding: 10px 12px; font-size: 13px; cursor: pointer; border-radius: 4px; color: var(--ink); font-weight: 700; transition: background 0.1s; display: flex; align-items: center; gap: 8px;">
+        <input type="checkbox" id="asm-pq-group-select-all-chk" style="cursor: pointer;" onclick="event.stopPropagation(); LQ.toggleAsmGroupSelectAll(event)">
+        <span>Select All</span>
+      </div>
+    `;
+
+    const itemsHtml = groups.map(g => `
+      <div class="pq-dropdown-item asm-pq-group-item" data-group-id="${g.id}" onclick="LQ.toggleAsmGroupOption(event, '${g.id}')" style="padding: 10px 12px; font-size: 13px; cursor: pointer; border-radius: 4px; color: var(--ink); font-weight: 500; transition: background 0.1s; display: flex; align-items: center; gap: 8px;">
+        <input type="checkbox" class="asm-pq-group-chk" value="${g.id}" style="cursor: pointer;" onclick="event.stopPropagation(); LQ.toggleAsmGroupOption(event, '${g.id}')">
+        <span>${g.title}</span>
+      </div>
+    `).join("");
+
+    groupMenu.innerHTML = selectAllHtml + itemsHtml;
+    
+    // Default to Select All
+    LQ.toggleAsmGroupSelectAll({ stopPropagation: () => {} });
+  }
+
+  LQ.toggleAsmGroupSelectAll = function (e) {
+    if (e && e.stopPropagation) e.stopPropagation();
+    const chk = document.getElementById("asm-pq-group-select-all-chk");
+    if (!chk) return;
+    
+    const isChecked = !chk.checked;
+    chk.checked = isChecked;
+
+    const chks = document.querySelectorAll(".asm-pq-group-chk");
+    selectedAsmGroupIds = [];
+    chks.forEach(c => {
+      c.checked = isChecked;
+      if (isChecked) {
+        selectedAsmGroupIds.push(c.value);
+      }
+    });
+
+    updateAsmGroupTriggerLabel();
+  };
+
+  LQ.toggleAsmGroupOption = function (e, groupId) {
+    if (e && e.stopPropagation) e.stopPropagation();
+    
+    const chks = document.querySelectorAll(".asm-pq-group-chk");
+    const targetChk = Array.from(chks).find(c => c.value === groupId);
+    if (!targetChk) return;
+    
+    if (e.target !== targetChk) {
+      targetChk.checked = !targetChk.checked;
+    }
+
+    selectedAsmGroupIds = [];
+    chks.forEach(c => {
+      if (c.checked) {
+        selectedAsmGroupIds.push(c.value);
+      }
+    });
+
+    const allChk = document.getElementById("asm-pq-group-select-all-chk");
+    if (allChk) {
+      allChk.checked = (selectedAsmGroupIds.length === chks.length);
+    }
+
+    updateAsmGroupTriggerLabel();
+  };
+
+  function updateAsmGroupTriggerLabel() {
+    const labelEl = document.getElementById("asm-pq-group-dropdown-label");
+    if (!labelEl) return;
+
+    if (selectedAsmGroupIds.length === 0) {
+      labelEl.textContent = "Select Group(s)";
+    } else {
+      const lists = (LQ.WORD_LISTS && LQ.WORD_LISTS.lists) ? LQ.WORD_LISTS.lists : [];
+      const lst = lists.find(l => l.id === selectedAsmListId);
+      const groups = lst ? (lst.groups || []) : [];
+      
+      if (selectedAsmGroupIds.length === groups.length) {
+        labelEl.textContent = `All Groups Selected (${groups.length})`;
+      } else {
+        labelEl.textContent = `${selectedAsmGroupIds.length} Group(s) Selected`;
+      }
+    }
+  }
 
   LQ.closeCreateAssessmentModal = function () {
     const modal = document.getElementById("modal-create-assessment");
@@ -697,15 +859,9 @@ window.LQ = window.LQ || {};
 
   LQ.createPracticeAssessment = async function (e) {
     if (e) e.preventDefault();
-    await LQ.tensesReady;
 
-    const checkedInputs = document.querySelectorAll(
-      'input[name="asm_groups"]:checked',
-    );
-    const selectedGroupIds = Array.from(checkedInputs).map((el) => el.value);
-
-    if (!selectedGroupIds.length) {
-      LQ.toast("Please select at least one question group");
+    if (!selectedAsmListId || !selectedAsmGroupIds.length) {
+      LQ.toast("Please select a list and at least one group");
       return;
     }
 
@@ -713,30 +869,13 @@ window.LQ = window.LQ || {};
     const durInp = document.getElementById("asm-duration");
     const titleInp = document.getElementById("asm-title");
 
-    const questionCount = Math.max(
-      1,
-      parseInt((qCountInp && qCountInp.value) || "10", 10),
-    );
-    const durationMinutes =
-      durInp && durInp.value ? parseInt(durInp.value, 10) : null;
-    const title =
-      (titleInp && titleInp.value.trim()) || "Custom Practice Assessment";
+    const questionCount = Math.max(1, parseInt((qCountInp && qCountInp.value) || "10", 10));
+    const durationMinutes = durInp && durInp.value ? parseInt(durInp.value, 10) : null;
+    const title = (titleInp && titleInp.value.trim()) || "Custom Practice Assessment";
 
-    // Gather questions from selected groups
-    const pool = [];
-    selectedGroupIds.forEach((grpId) => {
-      const items = (LQ.TENSES_CONTENT && LQ.TENSES_CONTENT[grpId]) || [];
-      const mod = (LQ.TENSES_MODULES || []).find((m) => m.id === grpId);
-      const groupTitle = mod ? mod.title : grpId;
-
-      items.forEach((item) => {
-        pool.push({
-          groupId: grpId,
-          groupTitle: groupTitle,
-          rawItem: item,
-        });
-      });
-    });
+    // Gather questions from the new practice-questions file/data
+    const practiceQuestions = Array.isArray(LQ.practiceQuestionsData) ? LQ.practiceQuestionsData : [];
+    const pool = practiceQuestions.filter(q => q.listId === selectedAsmListId && selectedAsmGroupIds.includes(q.groupId));
 
     if (!pool.length) {
       LQ.toast("No questions available in the selected groups");
@@ -745,46 +884,54 @@ window.LQ = window.LQ || {};
 
     // Shuffle and pick questionCount questions
     const shuffled = pool.sort(() => 0.5 - Math.random());
-    const selectedQuestions = shuffled
-      .slice(0, Math.min(questionCount, shuffled.length))
-      .map((q, idx) => {
-        const raw = q.rawItem;
-        let text = raw.text || raw.title || raw.story || raw.passage || "";
-        let options = raw.options || null;
-        let answerIndex = raw.answer !== undefined ? raw.answer : null;
+    const selectedQuestions = shuffled.slice(0, Math.min(questionCount, shuffled.length)).map((q, idx) => {
+      let type = q.type || "mcq";
+      if (type === "fib") type = "fill_blank";
 
-        // Handle nested questions in story/passage if available
-        if (raw.questions && raw.questions.length) {
-          const nestedQ = raw.questions[0];
-          text = (raw.title ? raw.title + ": " : "") + (nestedQ.q || text);
-          options = nestedQ.options || options;
-          answerIndex =
-            nestedQ.answer !== undefined ? nestedQ.answer : answerIndex;
-        }
+      const options = q.options || null;
+      let correctAnswerIndex = null;
+      let correctAnswerText = "";
 
-        return {
-          id: "q_" + idx,
-          groupId: q.groupId,
-          groupTitle: q.groupTitle,
-          text: text,
-          options: options,
-          correctAnswerIndex: answerIndex,
-          userAnswerIndex: null,
-          userTextAnswer: "",
-        };
-      });
+      if (options && options.length) {
+        correctAnswerIndex = options.indexOf(q.correctAnswer);
+        if (correctAnswerIndex === -1) correctAnswerIndex = 0;
+      } else {
+        correctAnswerText = q.correctAnswer;
+      }
+
+      const lists = (LQ.WORD_LISTS && LQ.WORD_LISTS.lists) ? LQ.WORD_LISTS.lists : [];
+      const lst = lists.find(l => l.id === selectedAsmListId);
+      const groupObj = lst ? lst.groups.find(g => g.id === q.groupId) : null;
+      const groupTitle = groupObj ? groupObj.title : q.groupId;
+
+      return {
+        id: "q_" + idx,
+        groupId: q.groupId,
+        groupTitle: groupTitle,
+        type: type,
+        text: q.title,
+        options: options,
+        correctAnswerIndex: correctAnswerIndex,
+        correctAnswerText: correctAnswerText,
+        correctAnswers: [correctAnswerText],
+        userAnswerIndex: null,
+        userTextAnswer: "",
+      };
+    });
 
     const asmId = "asm_" + Date.now();
-    const groupNames = selectedGroupIds.map((id) => {
-      const m = (LQ.TENSES_MODULES || []).find((x) => x.id === id);
-      return m ? m.title : id;
+    const lists = (LQ.WORD_LISTS && LQ.WORD_LISTS.lists) ? LQ.WORD_LISTS.lists : [];
+    const lst = lists.find(l => l.id === selectedAsmListId);
+    const groupNames = selectedAsmGroupIds.map((id) => {
+      const g = lst ? lst.groups.find(x => x.id === id) : null;
+      return g ? g.title : id;
     });
 
     const newAssessment = {
       id: asmId,
       type: "practice",
       title: title,
-      groupIds: selectedGroupIds,
+      groupIds: selectedAsmGroupIds,
       groupNames: groupNames,
       totalQuestions: selectedQuestions.length,
       durationMinutes: durationMinutes,
@@ -798,9 +945,10 @@ window.LQ = window.LQ || {};
     LQ.closeCreateAssessmentModal();
     LQ.toast("Practice Assessment created!", true);
 
-    // Land on main assessment page
-    goTo("assessment");
-    LQ.switchAssessmentTab("practice");
+    // Refresh cards
+    if (LQ.initAssessmentPage) {
+      LQ.initAssessmentPage();
+    }
   };
 
   LQ.deleteAssessmentCard = async function (id) {
@@ -1446,10 +1594,16 @@ window.LQ = window.LQ || {};
                     "</p>"
                   : "");
             } else {
+              const expected = q.correctAnswerText || (q.correctAnswers ? q.correctAnswers[0] : "");
               ansStr =
                 '<p class="asm-res-ans"><strong>Your answer:</strong> ' +
                 LQ.esc(q.userAnswer || "(Empty)") +
-                "</p>";
+                "</p>" +
+                (!isOk
+                  ? '<p class="asm-res-ans correct"><strong>Correct answer:</strong> ' +
+                    LQ.esc(expected) +
+                    "</p>"
+                  : "");
             }
 
             return (

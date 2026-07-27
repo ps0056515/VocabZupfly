@@ -11,6 +11,8 @@ const WORDS_FILE = path.join(DATA, 'words-merged.json');
 const LISTS_FILE = path.join(DATA, 'word-lists.json');
 const MANIFEST_FILE = path.join(DATA, 'content-manifest.json');
 const TENSES_FILE = path.join(DATA, 'tenses-content.json');
+const PRACTICE_QUESTIONS_FILE = path.join(DATA, 'practice-questions.json');
+
 
 const CSV_NAMES = ['Words.csv', 'WordLists.csv', 'Groups.csv', 'GroupWords.csv', 'DictionaryWords.csv', 'TensesQuestions.csv'];
 
@@ -501,6 +503,72 @@ function saveOfficialTestResults(results) {
   return results.length;
 }
 
+function loadPracticeQuestions() {
+  if (!fs.existsSync(PRACTICE_QUESTIONS_FILE)) return [];
+  try {
+    return JSON.parse(fs.readFileSync(PRACTICE_QUESTIONS_FILE, 'utf8')) || [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function savePracticeQuestions(questions) {
+  fs.writeFileSync(PRACTICE_QUESTIONS_FILE, JSON.stringify(questions, null, 2), 'utf8');
+  const wwwPractice = path.join(ROOT, 'www', 'data', 'practice-questions.json');
+  if (fs.existsSync(path.dirname(wwwPractice))) {
+    try {
+      fs.writeFileSync(wwwPractice, JSON.stringify(questions, null, 2), 'utf8');
+    } catch (e) {}
+  }
+  return questions;
+}
+
+function addPracticeQuestion(q) {
+  const questions = loadPracticeQuestions();
+  q.id = q.id || 'q_prac_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+  q.createdAt = q.createdAt || Date.now();
+  
+  if (q.type === 'mcq' && q.options) {
+    q.options = q.options.map(function(o) { return o.trim(); }).filter(Boolean);
+  }
+  
+  var existingIdx = questions.findIndex(function(x) { return x.id === q.id; });
+  if (existingIdx >= 0) {
+    questions[existingIdx] = q;
+  } else {
+    questions.push(q);
+  }
+  
+  savePracticeQuestions(questions);
+  return q;
+}
+
+function deletePracticeQuestion(id) {
+  var questions = loadPracticeQuestions();
+  var next = questions.filter(function(q) { return q.id !== id; });
+  savePracticeQuestions(next);
+  return next;
+}
+
+function addPracticeQuestionsBulk(newQs) {
+  const questions = loadPracticeQuestions();
+  newQs.forEach(q => {
+    q.id = q.id || 'q_prac_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+    q.createdAt = q.createdAt || Date.now();
+    if ((q.type === 'mcq' || q.type === 'mcq_multi') && q.options) {
+      q.options = q.options.map(function(o) { return o.trim(); }).filter(Boolean);
+    }
+    var existingIdx = questions.findIndex(function(x) { return x.id === q.id; });
+    if (existingIdx >= 0) {
+      questions[existingIdx] = q;
+    } else {
+      questions.push(q);
+    }
+  });
+  savePracticeQuestions(questions);
+  return questions;
+}
+
 module.exports = {
   ROOT,
   CSV_NAMES,
@@ -530,4 +598,9 @@ module.exports = {
   saveOfficialTests,
   loadOfficialTestResults,
   saveOfficialTestResults,
+  loadPracticeQuestions,
+  savePracticeQuestions,
+  addPracticeQuestion,
+  deletePracticeQuestion,
+  addPracticeQuestionsBulk,
 };

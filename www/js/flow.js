@@ -20,6 +20,8 @@ LQ.SCREEN_META = {
   leagues: { title: 'Rookie League', parent: 'home', nav: 'more', hint: 'See how you rank this week.' },
   speak: { title: 'Speak', parent: 'vocab', nav: 'vocab', hint: 'Say the word aloud for pronunciation practice.' },
   settings: { title: 'Settings', parent: 'home', nav: 'more', hint: 'Exam focus, daily goals, and preferences.' },
+  'practice-questions': { title: 'Practice Questions', parent: 'home', nav: 'practice-questions', hint: 'Practice custom MCQ and Fill-in-the-Blank questions.' },
+  'practice-result': { title: 'Practice Results', parent: 'practice-questions', nav: 'practice-questions', hint: '' },
   assessment: { title: 'Assessment', parent: 'home', nav: 'assessment', hint: 'Custom practice evaluations and tests.' },
   'assessment-session': { title: 'Assessment Practice', parent: 'assessment', nav: 'assessment', hint: '' },
   'assessment-result': { title: 'Assessment Results', parent: 'assessment', nav: 'assessment', hint: '' },
@@ -137,8 +139,7 @@ LQ.renderFlowSubnav = function (screen, meta) {
     el.remove();
   });
   if (!meta.parent) return;
-  /* Quiz, mock, learn, revise & flashcard have their own header — avoid duplicate back bar */
-  if (screen === 'quiz' || screen === 'mock' || screen === 'learn' || screen === 'revise' || screen === 'flashcard' || screen === 'assessment-session' || screen === 'assessment-result') return;
+  if (screen === 'quiz' || screen === 'mock' || screen === 'learn' || screen === 'revise' || screen === 'flashcard' || screen === 'assessment-session' || screen === 'assessment-result' || screen === 'practice-questions' || screen === 'practice-result') return;
 
   const sc = document.getElementById('screen-' + screen);
   if (!sc) return;

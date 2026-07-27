@@ -1,7 +1,7 @@
 (function () {
   var API_BASE = '/api/cms';
   var STORAGE_KEY = 'lexiquest_cms_key';
-  var state = { words: [], wordLists: { lists: [] }, manifest: {}, tenses: {} };
+  var state = { words: [], wordLists: { lists: [] }, manifest: {}, tenses: {}, practiceQuestions: [] };
   var importFiles = {};
   var editingWord = null;
   var editingTenseGroup = null;
@@ -101,7 +101,8 @@
       }),
       loadTenses(),
       loadOfficialTests(),
-      loadOfficialResults()
+      loadOfficialResults(),
+      loadPracticeQuestions()
     ]);
   }
 
@@ -112,6 +113,586 @@
     }).catch(function (err) {
       console.warn('Failed to load tenses', err);
     });
+  }
+
+  function loadPracticeQuestions() {
+    return api('/practice-questions').then(function (data) {
+      state.practiceQuestions = data.questions || [];
+      renderPracticeQuestions();
+      initPqDropdownsAndFilters();
+    }).catch(function (err) {
+      console.warn('Failed to load practice questions', err);
+    });
+  }
+
+  var pqModalOptions = [];
+  var isPqModalInitializing = false;
+
+  function initPqDropdownsAndFilters() {
+    var listSelect = $('pq-filter-list-select');
+    var groupSelect = $('pq-filter-group-select');
+    if (listSelect) {
+      var prevListVal = listSelect.value;
+      listSelect.innerHTML = '<option value="all">All Lists</option>' + (state.wordLists.lists || []).map(function (lst) {
+        return '<option value="' + esc(lst.id) + '">' + esc(lst.title) + '</option>';
+      }).join('');
+      if (prevListVal) listSelect.value = prevListVal;
+      
+      listSelect.onchange = function () {
+        populatePqFilterGroups();
+        renderPracticeQuestions();
+      };
+    }
+    populatePqFilterGroups();
+    
+    var modalList = $('pq-form-list');
+    if (modalList) {
+      modalList.innerHTML = (state.wordLists.lists || []).map(function (lst) {
+        return '<option value="' + esc(lst.id) + '">' + esc(lst.title) + '</option>';
+      }).join('');
+      modalList.onchange = function () {
+        populatePqModalGroups();
+      };
+    }
+  }
+
+  function populatePqFilterGroups() {
+    var listSelect = $('pq-filter-list-select');
+    var groupSelect = $('pq-filter-group-select');
+    if (!listSelect || !groupSelect) return;
+    
+    var listId = listSelect.value;
+    if (listId === 'all') {
+      groupSelect.innerHTML = '<option value="all">All Groups</option>';
+      groupSelect.value = 'all';
+      groupSelect.onchange = renderPracticeQuestions;
+      return;
+    }
+    
+    var lst = (state.wordLists.lists || []).find(function (l) { return l.id === listId; });
+    var groups = lst ? (lst.groups || []) : [];
+    
+    var prevGroupVal = groupSelect.value;
+    groupSelect.innerHTML = '<option value="all">All Groups</option>' + groups.map(function (g) {
+      return '<option value="' + esc(g.id) + '">' + esc(g.title) + '</option>';
+    }).join('');
+    
+    if (prevGroupVal) groupSelect.value = prevGroupVal;
+    groupSelect.onchange = renderPracticeQuestions;
+  }
+
+  function populatePqModalGroups() {
+    var modalList = $('pq-form-list');
+    var modalGroup = $('pq-form-group');
+    if (!modalList || !modalGroup) return;
+    
+    var listId = modalList.value;
+    var lst = (state.wordLists.lists || []).find(function (l) { return l.id === listId; });
+    var groups = lst ? (lst.groups || []) : [];
+    
+    modalGroup.innerHTML = groups.map(function (g) {
+      return '<option value="' + esc(g.id) + '">' + esc(g.title) + '</option>';
+    }).join('');
+  }
+
+  function renderPracticeQuestions() {
+    var listId = ($('pq-filter-list-select') ? $('pq-filter-list-select').value : 'all') || 'all';
+    var groupId = ($('pq-filter-group-select') ? $('pq-filter-group-select').value : 'all') || 'all';
+    var tbody = $('pq-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    
+    var rows = state.practiceQuestions || [];
+    if (listId !== 'all') {
+      rows = rows.filter(function (q) { return q.listId === listId; });
+    }
+    if (groupId !== 'all') {
+      rows = rows.filter(function (q) { return q.groupId === groupId; });
+    }
+    
+    rows.forEach(function (q) {
+      var tr = document.createElement('tr');
+      var listObj = (state.wordLists.lists || []).find(function (l) { return l.id === q.listId; });
+      var groupObj = listObj ? (listObj.groups || []).find(function (g) { return g.id === q.groupId; }) : null;
+      
+      var listTitle = listObj ? listObj.title : q.listId;
+      var groupTitle = groupObj ? groupObj.title : q.groupId;
+      var optionsText = q.type === 'mcq' ? (q.options || []).join(', ') : '—';
+      
+      tr.innerHTML = 
+        '<td><strong>' + esc(listTitle) + '</strong></td>' +
+        '<td>' + esc(groupTitle) + '</td>' +
+        '<td><span class="badge-cat badge-reading">' + esc(q.type.toUpperCase()) + '</span></td>' +
+        '<td>' + esc(q.title) + '</td>' +
+        '<td>' + esc(q.category || 'normal') + '</td>' +
+        '<td>' + esc(optionsText) + '</td>' +
+        '<td><strong style="color:var(--success, #16a34a);">' + esc(q.correctAnswer) + '</strong></td>' +
+        '<td>' +
+        '<button type="button" class="btn btn-edit-pq" data-id="' + esc(q.id) + '">Edit</button> ' +
+        '<button type="button" class="btn danger-outline btn-del-pq" data-id="' + esc(q.id) + '">Delete</button>' +
+        '</td>';
+        
+      tbody.appendChild(tr);
+    });
+    
+    if ($('pq-count')) {
+      $('pq-count').textContent = 'Showing ' + rows.length + ' question(s) · ' + state.practiceQuestions.length + ' total';
+    }
+    
+    tbody.querySelectorAll('.btn-edit-pq').forEach(function (btn) {
+      btn.onclick = function () {
+        openPqModal(btn.getAttribute('data-id'));
+      };
+    });
+    tbody.querySelectorAll('.btn-del-pq').forEach(function (btn) {
+      btn.onclick = function () {
+        var id = btn.getAttribute('data-id');
+        if (confirm('Are you sure you want to delete this question?')) {
+          deletePracticeQuestion(id);
+        }
+      };
+    });
+  }
+
+  function deletePracticeQuestion(id) {
+    api('/practice-questions', { method: 'DELETE', body: { id: id } })
+      .then(function (res) {
+        state.practiceQuestions = res.questions;
+        toast('Question deleted', true);
+        renderPracticeQuestions();
+      })
+      .catch(function (err) {
+        toast(err.message || 'Failed to delete question');
+      });
+  }
+
+  function openPqModal(id) {
+    isPqModalInitializing = true;
+    var q = state.practiceQuestions.find(function (x) { return x.id === id; });
+    var modal = $('pq-modal');
+    if (!modal) return;
+    
+    $('pq-modal-title').textContent = q ? 'Edit Practice Question' : 'Add Practice Question';
+    
+    var f = $('pq-form');
+    f.id.value = q ? q.id : '';
+    
+    if (q) {
+      f.listId.value = q.listId;
+      populatePqModalGroups();
+      f.groupId.value = q.groupId;
+      f.category.value = q.category || 'normal';
+      f.type.value = q.type;
+      f.title.value = q.title;
+      pqModalOptions = q.options ? q.options.slice() : ['', '', '', ''];
+    } else {
+      if (state.wordLists.lists && state.wordLists.lists.length > 0) {
+        f.listId.value = state.wordLists.lists[0].id;
+      }
+      populatePqModalGroups();
+      f.category.value = 'normal';
+      f.type.value = 'mcq';
+      f.title.value = '';
+      pqModalOptions = ['', '', '', ''];
+    }
+    
+    togglePqModalTypeView();
+    isPqModalInitializing = false;
+    modal.classList.remove('hidden');
+  }
+
+  function togglePqModalTypeView() {
+    var type = $('pq-form-type').value;
+    var optSection = $('pq-options-section');
+    var correctAnsContainer = $('pq-correct-answer-container');
+    
+    if (type === 'mcq' || type === 'mcq_multi') {
+      optSection.style.display = 'block';
+      renderPqModalOptions();
+    } else {
+      optSection.style.display = 'none';
+      correctAnsContainer.innerHTML = '<input type="text" id="pq-form-correct-answer-text" name="correctAnswer" required class="inp" placeholder="Enter correct answer text">';
+      var q = state.practiceQuestions.find(function (x) { return x.id === $('pq-form-id').value; });
+      if (q && q.type === 'fib') {
+        $('pq-form-correct-answer-text').value = q.correctAnswer || '';
+      }
+    }
+  }
+
+  function renderPqModalOptions() {
+    var container = $('pq-options-container');
+    if (!container) return;
+    
+    container.innerHTML = pqModalOptions.map(function (val, idx) {
+      var removeBtn = pqModalOptions.length > 4 
+        ? '<button type="button" class="btn danger-outline sm" style="padding: 4px 10px;" onclick="window.removePqModalOption(' + idx + ')">✕</button>'
+        : '';
+      return '<div style="display:flex; gap:8px; align-items:center;">' +
+        '<span style="font-weight:600; width: 20px;">' + String.fromCharCode(65 + idx) + '</span>' +
+        '<input type="text" class="inp pq-opt-input" data-idx="' + idx + '" value="' + esc(val) + '" placeholder="Option ' + (idx + 1) + '" required oninput="window.updatePqModalOptionText(' + idx + ', this.value)">' +
+        removeBtn +
+        '</div>';
+    }).join('');
+    
+    renderPqModalCorrectAnswerSelector();
+    
+    var addBtn = $('btn-add-pq-option');
+    if (addBtn) {
+      addBtn.style.display = pqModalOptions.length < 6 ? 'block' : 'none';
+    }
+  }
+
+  window.updatePqModalOptionText = function (idx, val) {
+    pqModalOptions[idx] = val;
+    renderPqModalCorrectAnswerSelector();
+  };
+
+  window.removePqModalOption = function (idx) {
+    if (pqModalOptions.length <= 4) return;
+    pqModalOptions.splice(idx, 1);
+    renderPqModalOptions();
+  };
+
+  function addPqModalOption() {
+    if (pqModalOptions.length >= 6) return;
+    pqModalOptions.push('');
+    renderPqModalOptions();
+  }
+
+  function renderPqModalCorrectAnswerSelector() {
+    var container = $('pq-correct-answer-container');
+    if (!container) return;
+    
+    var type = $('pq-form-type').value;
+    var q = state.practiceQuestions.find(function (x) { return x.id === $('pq-form-id').value; });
+    var prevVal = q ? q.correctAnswer : '';
+    
+    if (type === 'mcq_multi') {
+      var correctList = prevVal.split(',').map(function (s) { return s.trim(); });
+      var selectEl = $('pq-form-correct-answer-select');
+      if (selectEl) {
+        correctList = [selectEl.value];
+      }
+      
+      // Preserve checked state if user is typing option texts (not initializing)
+      if (!isPqModalInitializing) {
+        var checkedChks = document.querySelectorAll('.pq-correct-answer-chk:checked');
+        if (checkedChks.length > 0) {
+          correctList = Array.from(checkedChks).map(function (c) { return c.value; });
+        }
+      }
+
+      var html = '<div style="display:flex; flex-direction:column; gap:6px; margin-top:6px;">';
+      pqModalOptions.forEach(function (optText, idx) {
+        var val = optText.trim();
+        if (!val) return;
+        var checkedAttr = correctList.includes(val) ? ' checked' : '';
+        html += '<label style="display:flex; align-items:center; gap:8px; font-weight:normal; cursor:pointer;">' +
+          '<input type="checkbox" class="pq-correct-answer-chk" value="' + esc(val) + '"' + checkedAttr + ' style="cursor:pointer;">' +
+          '<span>Option ' + String.fromCharCode(65 + idx) + ': ' + esc(val) + '</span>' +
+          '</label>';
+      });
+      html += '</div>';
+      container.innerHTML = html;
+    } else {
+      var selectEl = $('pq-form-correct-answer-select');
+      if (selectEl && !isPqModalInitializing) prevVal = selectEl.value;
+      
+      var html = '<select id="pq-form-correct-answer-select" name="correctAnswer" required class="inp">';
+      pqModalOptions.forEach(function (optText, idx) {
+        var displayLabel = (optText.trim() ? optText : 'Option ' + String.fromCharCode(65 + idx));
+        var val = optText.trim();
+        var selectedAttr = val && val === prevVal ? ' selected' : '';
+        html += '<option value="' + esc(val) + '"' + selectedAttr + '>' + esc(displayLabel) + '</option>';
+      });
+      html += '</select>';
+      container.innerHTML = html;
+    }
+  }
+
+  function closePqModal() {
+    $('pq-modal').classList.add('hidden');
+    $('pq-form').reset();
+    pqModalOptions = [];
+  }
+
+  function savePqFromForm(e) {
+    e.preventDefault();
+    var f = $('pq-form');
+    var id = f.id.value || null;
+    var listId = f.listId.value;
+    var groupId = f.groupId.value;
+    var category = f.category.value;
+    var type = f.type.value;
+    var title = f.title.value.trim();
+    var correctAnswer = '';
+    
+    if (type === 'mcq') {
+      var selectEl = $('pq-form-correct-answer-select');
+      correctAnswer = selectEl ? selectEl.value : '';
+      if (!correctAnswer) {
+        toast('Please enter text for your MCQ options before saving.');
+        return;
+      }
+    } else if (type === 'mcq_multi') {
+      var chks = document.querySelectorAll('.pq-correct-answer-chk:checked');
+      var correctTexts = Array.from(chks).map(function (c) { return c.value; });
+      if (!correctTexts.length) {
+        toast('Please select at least one correct answer.');
+        return;
+      }
+      correctAnswer = correctTexts.join(', ');
+    } else {
+      var textEl = $('pq-form-correct-answer-text');
+      correctAnswer = textEl ? textEl.value.trim() : '';
+      if (!correctAnswer) {
+        toast('Please enter correct answer.');
+        return;
+      }
+    }
+    
+    var payload = {
+      id: id,
+      listId: listId,
+      groupId: groupId,
+      category: category,
+      type: type,
+      title: title,
+      options: (type === 'mcq' || type === 'mcq_multi') ? pqModalOptions : null,
+      correctAnswer: correctAnswer
+    };
+    
+    api('/practice-questions', { method: 'POST', body: payload })
+      .then(function (res) {
+        state.practiceQuestions = res.questions;
+        toast('Question saved successfully!', true);
+        closePqModal();
+        renderPracticeQuestions();
+      })
+      .catch(function (err) {
+        toast(err.message || 'Failed to save question');
+      });
+  }
+
+  function parseCSV(text) {
+    var lines = [];
+    var row = [""];
+    var inQuotes = false;
+    for (var i = 0; i < text.length; i++) {
+      var c = text[i];
+      var next = text[i + 1];
+      if (c === '"') {
+        if (inQuotes && next === '"') {
+          row[row.length - 1] += '"';
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (c === ',' && !inQuotes) {
+        row.push('');
+      } else if ((c === '\r' || c === '\n') && !inQuotes) {
+        if (c === '\r' && next === '\n') i++;
+        lines.push(row);
+        row = [''];
+      } else {
+        row[row.length - 1] += c;
+      }
+    }
+    if (row.length > 1 || row[0] !== '') {
+      lines.push(row);
+    }
+    return lines;
+  }
+
+  function handlePqBulkUpload(e) {
+    var file = e.target.files[0];
+    if (!file) return;
+
+    var ext = file.name.split('.').pop().toLowerCase();
+    
+    if (ext === 'xlsx' || ext === 'xls') {
+      if (window.XLSX) {
+        processExcel(file);
+      } else {
+        var script = document.createElement('script');
+        script.src = "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js";
+        script.onload = function () {
+          processExcel(file);
+        };
+        script.onerror = function () {
+          toast('Failed to load Excel parsing library from CDN. Please upload a CSV instead.');
+        };
+        document.head.appendChild(script);
+      }
+    } else {
+      var reader = new FileReader();
+      reader.onload = function (evt) {
+        try {
+          var text = evt.target.result;
+          var rows = parseCSV(text);
+          processRows(rows);
+        } catch (err) {
+          toast('Error parsing CSV file: ' + err.message);
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function processExcel(f) {
+      var reader = new FileReader();
+      reader.onload = function (evt) {
+        try {
+          var data = new Uint8Array(evt.target.result);
+          var workbook = XLSX.read(data, { type: 'array' });
+          var firstSheetName = workbook.SheetNames[0];
+          var worksheet = workbook.Sheets[firstSheetName];
+          var rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+          var cleanedRows = rows.map(function (row) {
+            return row.map(function (val) {
+              return val === null || val === undefined ? '' : String(val);
+            });
+          });
+          processRows(cleanedRows);
+        } catch (err) {
+          toast('Error parsing Excel file: ' + err.message);
+        }
+      };
+      reader.readAsArrayBuffer(f);
+    }
+
+    function processRows(rows) {
+      try {
+        if (rows.length < 2) {
+          toast('Sheet is empty or invalid.');
+          return;
+        }
+        
+        var headers = rows[0].map(function (h) {
+          return h.trim().toLowerCase();
+        });
+        
+        var listIdx = headers.indexOf('list');
+        var groupIdx = headers.indexOf('group');
+        var questionIdx = headers.indexOf('question');
+        var answerKeyIdx = headers.indexOf('answer key');
+        var categoryIdx = headers.indexOf('category');
+        
+        var optionIndices = [];
+        headers.forEach(function (h, idx) {
+          if (h.indexOf('option') === 0 || h.indexOf('opt') === 0) {
+            optionIndices.push({ idx: idx, key: h });
+          }
+        });
+        optionIndices.sort(function (a, b) {
+          return a.key.localeCompare(b.key);
+        });
+
+        if (groupIdx === -1 || questionIdx === -1 || answerKeyIdx === -1) {
+          toast('Required headers missing! CSV/Excel must contain: Group, Question, Answer Key.');
+          return;
+        }
+
+        var newQuestions = [];
+        for (var rIdx = 1; rIdx < rows.length; rIdx++) {
+          var row = rows[rIdx];
+          if (!row || row.length === 0 || (row.length === 1 && !row[0].trim())) continue;
+          
+          var questionText = (row[questionIdx] || '').trim();
+          if (!questionText) continue;
+
+          var listVal = listIdx !== -1 ? (row[listIdx] || '').trim() : '';
+          var groupVal = (row[groupIdx] || '').trim();
+          var categoryVal = categoryIdx !== -1 ? (row[categoryIdx] || '').trim() : 'normal';
+          var answerKeyVal = (row[answerKeyIdx] || '').trim();
+
+          var resolvedListId = 'list-1';
+          if (listVal && state.wordLists && state.wordLists.lists) {
+            var matchedList = state.wordLists.lists.find(function (l) {
+              return l.title.toLowerCase() === listVal.toLowerCase() || l.id === listVal;
+            });
+            if (matchedList) resolvedListId = matchedList.id;
+          }
+
+          var resolvedGroupId = groupVal;
+          if (state.wordLists && state.wordLists.lists) {
+            var activeList = state.wordLists.lists.find(function (l) { return l.id === resolvedListId; });
+            if (activeList && activeList.groups) {
+              var matchedGroup = activeList.groups.find(function (g) {
+                return g.title.toLowerCase() === groupVal.toLowerCase() || g.id === groupVal;
+              });
+              if (matchedGroup) resolvedGroupId = matchedGroup.id;
+            }
+          }
+
+          var options = [];
+          optionIndices.forEach(function (opt) {
+            var val = (row[opt.idx] || '').trim();
+            val = val.replace(/^"+|"+$/g, '').trim(); // Strip surrounding double-quotes
+            if (val) {
+              options.push(val);
+            }
+          });
+
+          var answerTokens = answerKeyVal.split(',');
+          var correctLetters = [];
+          answerTokens.forEach(function (tok) {
+            var match = tok.trim().match(/^[A-Fa-f]/);
+            if (match) {
+              correctLetters.push(match[0].toUpperCase());
+            }
+          });
+
+          if (!correctLetters.length) continue;
+
+          var type = correctLetters.length > 1 ? 'mcq_multi' : 'mcq';
+          var correctAnswer = '';
+
+          if (type === 'mcq') {
+            var letterIdx = correctLetters[0].charCodeAt(0) - 65;
+            correctAnswer = options[letterIdx] || '';
+          } else {
+            var correctTexts = [];
+            correctLetters.forEach(function (lettr) {
+              var idx = lettr.charCodeAt(0) - 65;
+              if (options[idx]) {
+                correctTexts.push(options[idx]);
+              }
+            });
+            correctAnswer = correctTexts.join(', ');
+          }
+
+          newQuestions.push({
+            listId: resolvedListId,
+            groupId: resolvedGroupId,
+            category: categoryVal,
+            type: type,
+            title: questionText,
+            options: options.length ? options : null,
+            correctAnswer: correctAnswer
+          });
+        }
+
+        if (!newQuestions.length) {
+          toast('No valid questions found to upload.');
+          return;
+        }
+
+        api('/practice-questions/bulk', { method: 'POST', body: newQuestions })
+          .then(function (res) {
+            state.practiceQuestions = res.questions;
+            toast('Successfully bulk uploaded ' + newQuestions.length + ' questions!', true);
+            renderPracticeQuestions();
+          })
+          .catch(function (err) {
+            toast(err.message || 'Failed to upload practice questions');
+          });
+
+      } catch (err) {
+        toast('Error processing sheet data: ' + err.message);
+      }
+    }
+
+    e.target.value = '';
   }
 
   function renderStats() {
@@ -1578,6 +2159,16 @@
   if ($('word-form')) $('word-form').onsubmit = saveWordFromForm;
   var backdrop = document.querySelector('.modal-backdrop');
   if (backdrop) backdrop.onclick = closeWordModal;
+  
+  if ($('btn-add-pq')) $('btn-add-pq').onclick = function () { openPqModal(null); };
+  if ($('pq-modal-cancel')) $('pq-modal-cancel').onclick = closePqModal;
+  if ($('pq-form')) $('pq-form').onsubmit = savePqFromForm;
+  if ($('pq-form-type')) $('pq-form-type').onchange = togglePqModalTypeView;
+  if ($('btn-add-pq-option')) $('btn-add-pq-option').onclick = addPqModalOption;
+  if ($('btn-bulk-upload-pq')) $('btn-bulk-upload-pq').onclick = function () { $('pq-bulk-file-input').click(); };
+  if ($('pq-bulk-file-input')) $('pq-bulk-file-input').onchange = handlePqBulkUpload;
+  var pqBackdrop = document.querySelector('#pq-modal .modal-backdrop');
+  if (pqBackdrop) pqBackdrop.onclick = closePqModal;
   if ($('btn-dict-add')) $('btn-dict-add').onclick = addDictWord;
   if ($('btn-import-run')) $('btn-import-run').onclick = runImport;
   if ($('btn-export-disk')) {

@@ -198,6 +198,28 @@ async function handleCmsApi(req, res, pathname, method, url) {
       json(res, pub.ok ? 200 : 500, pub);
       return true;
     }
+    if (route === '/practice-questions' && method === 'GET') {
+      json(res, 200, { ok: true, questions: cms.loadPracticeQuestions() });
+      return true;
+    }
+    if (route === '/practice-questions' && method === 'POST') {
+      var qBody = JSON.parse(await readBody(req));
+      var saved = cms.addPracticeQuestion(qBody);
+      json(res, 200, { ok: true, question: saved, questions: cms.loadPracticeQuestions() });
+      return true;
+    }
+    if (route === '/practice-questions/bulk' && method === 'POST') {
+      var qBody = JSON.parse(await readBody(req));
+      var questions = cms.addPracticeQuestionsBulk(qBody);
+      json(res, 200, { ok: true, questions: questions });
+      return true;
+    }
+    if (route === '/practice-questions' && method === 'DELETE') {
+      var qDel = JSON.parse(await readBody(req));
+      cms.deletePracticeQuestion(qDel.id);
+      json(res, 200, { ok: true, questions: cms.loadPracticeQuestions() });
+      return true;
+    }
     /* ══ OFFICIAL TEST ASSESSMENTS ENDPOINTS ══ */
     if (route === '/tests' && method === 'GET') {
       json(res, 200, { ok: true, tests: cms.loadOfficialTests() });
