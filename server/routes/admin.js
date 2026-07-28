@@ -16,6 +16,7 @@ const TenseGroup = require('../models/TenseGroup');
 const Word = require('../models/Word');
 const WordList = require('../models/WordList');
 const TenseContent = require('../models/TenseContent');
+const PracticeQuestion = require('../models/PracticeQuestion');
 const { authenticate, requireRole } = require('../middleware/auth');
 
 const router = express.Router();
@@ -1441,11 +1442,63 @@ router.post('/import/csv', requireRole('admin', 'super_admin'), async function (
       }
     }
 
+    var practiceSuccessCount = 0;
+    var practiceFailedRows = [];
+    if (files['PracticeQuestions.csv']) {
+      var rows = parseCsv(files['PracticeQuestions.csv']);
+      for (var r of rows) {
+        try {
+          var title = (r.title || '').trim();
+          var correctAnswer = (r.correctAnswer || '').trim();
+          var listId = (r.listId || '').trim();
+          var groupId = (r.groupId || '').trim();
+          
+          if (!title) throw new Error('Missing title/question prompt');
+          if (!correctAnswer) throw new Error('Missing correctAnswer');
+          if (!listId) throw new Error('Missing listId');
+          if (!groupId) throw new Error('Missing groupId');
+          
+          var listObj = await WordList.findOne({ id: listId });
+          if (!listObj) throw new Error('Word List "' + listId + '" not found in database');
+          
+          var groupExists = (listObj.groups || []).some(g => g.id === groupId);
+          if (!groupExists) throw new Error('Synonym Group "' + groupId + '" not found in list "' + listId + '"');
+          
+          var opts = r.options ? r.options.split('|').map(function(o) { return o.trim(); }) : [];
+          
+          await PracticeQuestion.create({
+            listId: listId,
+            groupId: groupId,
+            category: (r.category || 'normal').trim(),
+            type: (r.type || 'mcq').trim(),
+            title: title,
+            options: opts,
+            correctAnswer: correctAnswer,
+            createdBy: req.user.id
+          });
+          practiceSuccessCount++;
+        } catch (err) {
+          practiceFailedRows.push({
+            listId: r.listId || '',
+            groupId: r.groupId || '',
+            category: r.category || '',
+            type: r.type || '',
+            title: r.title || '',
+            options: r.options || '',
+            correctAnswer: r.correctAnswer || '',
+            Reason: err.message || 'Database error'
+          });
+        }
+      }
+    }
+
     res.json({
       ok: true,
       wordCount: wordCount,
       listCount: listCount,
       tensesCount: tensesCount,
+      practiceSuccessCount: practiceSuccessCount,
+      practiceFailedRows: practiceFailedRows,
       message: 'Successfully imported ' + wordCount + ' words, ' + listCount + ' word lists, and ' + tensesCount + ' tense records.'
     });
   } catch (err) {
@@ -1741,6 +1794,270 @@ router.get('/templates/dictionary-words', requireRole('admin', 'super_admin'), f
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
   res.setHeader('Content-Disposition', 'attachment; filename="DictionaryWords_Template.csv"');
   res.end(csv);
+});
+
+/**
+ * GET /api/admin/practice-questions — List all practice questions (paginated & searchable/filterable)
+ */
+router.get('/practice-questions', requireRole('admin', 'super_admin'), async function (req, res) {
+  try {
+    var conditions = [];
+    
+    if (req.query.search) {
+      var search = req.query.search.trim();
+      if (search) {
+        conditions.push({ title: new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') });
+      }
+    }
+    
+    if (req.query.listId) {
+      conditions.push({ listId: req.query.listId });
+    }
+    
+    if (req.query.groupId) {
+      conditions.push({ groupId: req.query.groupId });
+    }
+    
+    var filter = conditions.length > 1 ? { $and: conditions } : (conditions.length === 1 ? conditions[0] : {});
+    
+    var page = Math.max(1, parseInt(req.query.page) || 1);
+    var limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
+    var skip = (page - 1) * limit;
+    
+    var total = await PracticeQuestion.countDocuments(filter);
+    var questions = await PracticeQuestion.find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+      
+    res.json({
+      ok: true,
+      questions: questions,
+      pagination: { page: page, limit: limit, total: total, pages: Math.ceil(total / limit) || 1 }
+    });
+  } catch (err) {
+    console.error('[Admin] List practice questions error:', err);
+    res.status(500).json({ error: 'Failed to fetch practice questions.' });
+  }
+});
+
+/**
+ * POST /api/admin/practice-questions — Create or Update a practice question
+ */
+router.post('/practice-questions', requireRole('admin', 'super_admin'), async function (req, res) {
+  try {
+    var id = req.body.id;
+    var listId = (req.body.listId || '').trim();
+    var groupId = (req.body.groupId || '').trim();
+    var category = (req.body.category || 'normal').trim();
+    var type = (req.body.type || 'mcq').trim();
+    var title = (req.body.title || '').trim();
+    var options = Array.isArray(req.body.options) ? req.body.options : [];
+    var correctAnswer = (req.body.correctAnswer || '').trim();
+    
+    if (!listId || !groupId || !title || !correctAnswer) {
+      return res.status(400).json({ error: 'List ID, Group ID, Title (Question Text), and Correct Answer are required.' });
+    }
+    
+    var qData = {
+      listId: listId,
+      groupId: groupId,
+      category: category,
+      type: type,
+      title: title,
+      options: (type === 'mcq' || type === 'mcq_multi') ? options : [],
+      correctAnswer: correctAnswer
+    };
+    
+    var question;
+    if (id && mongoose.Types.ObjectId.isValid(id)) {
+      question = await PracticeQuestion.findByIdAndUpdate(id, { $set: qData }, { new: true });
+      if (!question) return res.status(404).json({ error: 'Question not found.' });
+    } else {
+      qData.createdBy = req.user.id;
+      question = await PracticeQuestion.create(qData);
+    }
+    
+    res.json({ ok: true, question: question });
+  } catch (err) {
+    console.error('[Admin] Save practice question error:', err);
+    res.status(500).json({ error: 'Failed to save practice question.' });
+  }
+});
+
+/**
+ * DELETE /api/admin/practice-questions/:id — Delete a practice question
+ */
+router.delete('/practice-questions/:id', requireRole('admin', 'super_admin'), async function (req, res) {
+  try {
+    var question = await PracticeQuestion.findByIdAndDelete(req.params.id);
+    if (!question) return res.status(404).json({ error: 'Question not found.' });
+    res.json({ ok: true, message: 'Practice question deleted.' });
+  } catch (err) {
+    console.error('[Admin] Delete practice question error:', err);
+    res.status(500).json({ error: 'Failed to delete practice question.' });
+  }
+});
+
+/**
+ * GET /api/admin/templates/practice-questions — Download PracticeQuestions.csv template
+ */
+router.get('/templates/practice-questions', requireRole('admin', 'super_admin'), function (req, res) {
+  var csv = 'List,Group,Question,Option A,Option B,Option C,Option D,Answer Key,Category\n' +
+    'list-1,grp-1,"What is a synonym for Accord?",Agreement,Conflict,Refusal,Denial,Agreement,normal\n' +
+    'list-1,grp-1,"Fill in the blank: Agreement is synonym of ___",,,,,Accord,normal\n';
+
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', 'attachment; filename="PracticeQuestions_Template.csv"');
+  res.end(csv);
+});
+
+/**
+ * POST /api/admin/practice-questions/import — Import practice questions from CSV or XLSX file
+ */
+router.post('/practice-questions/import', requireRole('admin', 'super_admin'), upload.single('file'), async function (req, res) {
+  try {
+    if (!req.file || !req.file.buffer) {
+      return res.status(400).json({ error: 'Please upload a file (.csv, .xlsx).' });
+    }
+
+    var rows = [];
+    var filename = req.file.originalname || 'file.csv';
+    var isXlsx = filename.endsWith('.xlsx') || filename.endsWith('.xls') || req.file.mimetype.includes('spreadsheet') || req.file.mimetype.includes('excel');
+
+    if (isXlsx) {
+      var workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
+      var sheetName = workbook.SheetNames[0];
+      var sheet = workbook.Sheets[sheetName];
+      rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+    } else {
+      var csvText = req.file.buffer.toString('utf8');
+      rows = parseCsv(csvText);
+    }
+
+    if (!rows || !rows.length) {
+      return res.status(400).json({ error: 'The uploaded file is empty or has no data rows.' });
+    }
+
+    var practiceSuccessCount = 0;
+    var practiceFailedRows = [];
+
+    for (var r of rows) {
+      var listInput = (r.List || r.listId || r.list || '').toString().trim();
+      var groupInput = (r.Group || r.groupId || r.group || '').toString().trim();
+      var title = (r.Question || r.title || r.question || '').toString().trim();
+      var correctAnswer = (r['Answer Key'] || r.correctAnswer || r.answer || '').toString().trim();
+      var category = (r.Category || r.category || 'normal').toString().trim();
+      var type = (r.Type || r.type || '').toString().trim();
+
+      // Gather options
+      var opts = [];
+      if (r.options) {
+        opts = r.options.toString().split('|').map(function (o) { return o.trim(); });
+      } else {
+        var optA = (r['Option A'] || '').toString().trim();
+        var optB = (r['Option B'] || '').toString().trim();
+        var optC = (r['Option C'] || '').toString().trim();
+        var optD = (r['Option D'] || '').toString().trim();
+        if (optA || optB || optC || optD) {
+          opts = [optA, optB, optC, optD].filter(Boolean);
+        }
+      }
+
+      try {
+        if (!title) throw new Error('Missing Question Prompt');
+        if (!correctAnswer) throw new Error('Missing Answer Key');
+        if (!listInput) throw new Error('Missing List ID or Title');
+        if (!groupInput) throw new Error('Missing Group ID or Title');
+
+        // Ignore question with same title (case-insensitive)
+        var dup = await PracticeQuestion.findOne({
+          title: { $regex: '^' + title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', $options: 'i' }
+        });
+        if (dup) throw new Error('Duplicate Question: A question with this title already exists');
+
+        // Parse option key and ignore bracket data, e.g. A (Agreement) -> Agreement
+        // Also support multiple answers like A, B -> mcq_multi
+        var cleanAnswerParts = [];
+        var rawAnswerParts = correctAnswer.split(/[,&]/).map(function(s) { return s.trim(); });
+        for (var part of rawAnswerParts) {
+          var match = part.match(/^([A-Fa-f])(?:\b|\s*\(|$)/);
+          if (match) {
+            var optLetter = match[1].toUpperCase();
+            var optIdx = optLetter.charCodeAt(0) - 65;
+            var optVal = opts[optIdx];
+            if (optVal) {
+              cleanAnswerParts.push(optVal);
+            } else {
+              cleanAnswerParts.push(part);
+            }
+          } else {
+            cleanAnswerParts.push(part);
+          }
+        }
+        correctAnswer = cleanAnswerParts.join(', ');
+
+        if (!type) {
+          if (cleanAnswerParts.length > 1) {
+            type = 'mcq_multi';
+          } else {
+            type = opts.length > 0 ? 'mcq' : 'fib';
+          }
+        }
+
+        // Match list by ID or Title (case-insensitive)
+        var listObj = await WordList.findOne({
+          $or: [
+            { id: listInput },
+            { title: new RegExp('^' + listInput.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i') }
+          ]
+        });
+        if (!listObj) throw new Error('Word List "' + listInput + '" not found in database');
+
+        // Match group by ID or Title (case-insensitive)
+        var groupObj = (listObj.groups || []).find(function (g) {
+          return g.id.toLowerCase() === groupInput.toLowerCase() ||
+                 g.title.toLowerCase() === groupInput.toLowerCase();
+        });
+        if (!groupObj) throw new Error('Synonym Group "' + groupInput + '" not found in list "' + listObj.title + '"');
+
+        await PracticeQuestion.create({
+          listId: listObj.id,
+          groupId: groupObj.id,
+          category: category,
+          type: type,
+          title: title,
+          options: opts,
+          correctAnswer: correctAnswer,
+          createdBy: req.user.id
+        });
+        practiceSuccessCount++;
+      } catch (err) {
+        practiceFailedRows.push({
+          List: listInput,
+          Group: groupInput,
+          Question: title,
+          'Option A': r['Option A'] || '',
+          'Option B': r['Option B'] || '',
+          'Option C': r['Option C'] || '',
+          'Option D': r['Option D'] || '',
+          'Answer Key': correctAnswer,
+          Category: category,
+          Reason: err.message || 'Database error'
+        });
+      }
+    }
+
+    res.json({
+      ok: true,
+      practiceSuccessCount: practiceSuccessCount,
+      practiceFailedRows: practiceFailedRows
+    });
+  } catch (err) {
+    console.error('[Admin] Bulk practice questions import error:', err);
+    res.status(500).json({ error: 'Failed to process bulk upload.' });
+  }
 });
 
 module.exports = router;

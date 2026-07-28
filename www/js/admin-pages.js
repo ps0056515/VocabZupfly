@@ -3447,6 +3447,15 @@ LQ.renderAdminBulkPage = function () {
             '<button class="admin-btn admin-btn-primary admin-btn-sm" style="flex:1" onclick="LQ.renderTensesBulkUploadForm()">Upload</button>' +
           '</div>' +
         '</div>' +
+        // 6. Practice Questions card
+        '<div style="' + cardStyle + '">' +
+          '<h3 style="' + titleStyle + '">📝 Practice Questions</h3>' +
+          '<p style="' + descStyle + '">Import synonym group practice questions with choices, categories, and correct answers.</p>' +
+          '<div style="' + btnWrapStyle + '">' +
+            '<a href="/api/admin/templates/practice-questions" class="admin-btn admin-btn-outline admin-btn-sm" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center;flex:1">Templates</a>' +
+            '<button class="admin-btn admin-btn-primary admin-btn-sm" style="flex:1" onclick="LQ.renderPracticeQuestionsBulkUploadForm()">Upload</button>' +
+          '</div>' +
+        '</div>' +
       '</div>' +
     '</div>';
 };
@@ -3682,6 +3691,623 @@ LQ._removeGroupWord = async function (listId, groupId, word) {
     }
   } catch (err) {
     LQ.toast('Network error.');
+  }
+};
+
+/* ══════════════════════════════════════════════════
+   PRACTICE QUESTIONS MANAGEMENT PAGE (admin only)
+   ══════════════════════════════════════════════════ */
+
+LQ.renderAdminPracticeQuestionsPage = async function () {
+  var wrap = document.getElementById('admin-practice-questions-wrap');
+  if (!wrap) return;
+
+  wrap.innerHTML =
+    '<div class="admin-page-header">' +
+      '<h2 class="admin-page-title">📝 Practice Questions</h2>' +
+      '<div class="admin-header-actions">' +
+        '<button type="button" class="admin-btn admin-btn-outline" style="margin-right:8px" onclick="LQ.renderPracticeQuestionsBulkUploadForm()">📤 Bulk Upload</button>' +
+        '<button type="button" class="admin-btn admin-btn-primary" onclick="LQ.renderAddPracticeQuestionForm()">+ Add Question</button>' +
+      '</div>' +
+    '</div>' +
+    '<div class="admin-search-bar" style="display:flex;gap:12px;align-items:center;margin-bottom:16px;flex-wrap:wrap">' +
+      '<input type="text" id="pq-search-input" class="admin-search-input" placeholder="Search question title..." oninput="LQ._triggerPqSearch(this.value)" style="flex:1;min-width:160px" />' +
+      '<select id="pq-filter-list" class="admin-search-input" style="max-width:200px" onchange="LQ._populatePqFilterGroups();LQ._pqPage=1;LQ._loadAdminPracticeQuestions()">' +
+        '<option value="all">All Lists</option>' +
+      '</select>' +
+      '<select id="pq-filter-group" class="admin-search-input" style="max-width:200px" onchange="LQ._pqPage=1;LQ._loadAdminPracticeQuestions()">' +
+        '<option value="all">All Groups</option>' +
+      '</select>' +
+    '</div>' +
+    '<div id="admin-pq-table-wrap" class="admin-table-wrap"><p class="admin-loading">Loading questions...</p></div>' +
+    '<div id="admin-pq-pagination-wrap" class="admin-pagination-row" style="display:none;background:#fff;border-top:1px solid #e2e8f0;padding:12px 20px;flex-shrink:0;justify-content:space-between;align-items:center;"></div>';
+
+  LQ._pqPage = 1;
+  LQ._pqSearchQuery = '';
+  LQ._pqLists = [];
+
+  try {
+    var respL = await fetch('/api/admin/word-lists?limit=100', { credentials: 'include' });
+    var dataL = await respL.json();
+    if (dataL.ok && dataL.items) {
+      LQ._pqLists = dataL.items;
+      var listSelect = document.getElementById('pq-filter-list');
+      if (listSelect) {
+        listSelect.innerHTML = '<option value="all">All Lists</option>' + dataL.items.map(function (l) {
+          return '<option value="' + LQ.esc(l.id) + '">' + LQ.esc(l.title) + '</option>';
+        }).join('');
+      }
+    }
+  } catch (e) {
+    console.error('[PQ] Load lists filter error:', e);
+  }
+
+  LQ._loadAdminPracticeQuestions();
+};
+
+LQ._triggerPqSearch = function (val) {
+  LQ._pqSearchQuery = val.trim();
+  LQ._pqPage = 1;
+  if (LQ._pqSearchTimeout) clearTimeout(LQ._pqSearchTimeout);
+  LQ._pqSearchTimeout = setTimeout(function () {
+    LQ._loadAdminPracticeQuestions();
+  }, 300);
+};
+
+LQ._loadAdminPracticeQuestions = async function () {
+  var tableWrap = document.getElementById('admin-pq-table-wrap');
+  var pagWrap = document.getElementById('admin-pq-pagination-wrap');
+  if (!tableWrap) return;
+
+  var listId = document.getElementById('pq-filter-list') ? document.getElementById('pq-filter-list').value : 'all';
+  var groupId = document.getElementById('pq-filter-group') ? document.getElementById('pq-filter-group').value : 'all';
+
+  var url = '/api/admin/practice-questions?page=' + LQ._pqPage + '&limit=15';
+  if (LQ._pqSearchQuery) url += '&search=' + encodeURIComponent(LQ._pqSearchQuery);
+  if (listId !== 'all') url += '&listId=' + encodeURIComponent(listId);
+  if (groupId !== 'all') url += '&groupId=' + encodeURIComponent(groupId);
+
+  try {
+    var resp = await fetch(url, { credentials: 'include' });
+    var data = await resp.json();
+
+    if (!resp.ok) {
+      tableWrap.innerHTML = '<p class="admin-error">' + LQ.esc(data.error || 'Failed to load') + '</p>';
+      return;
+    }
+
+    var questions = data.questions || [];
+    if (!questions.length) {
+      tableWrap.innerHTML =
+        '<div style="text-align:center;padding:40px">' +
+          '<h3 style="margin:0 0 6px;color:#0f172a">No practice questions found</h3>' +
+          '<p style="color:#64748b;font-size:13px;margin:0">Create a practice question to start building the practice pool.</p>' +
+        '</div>';
+      if (pagWrap) pagWrap.style.display = 'none';
+      return;
+    }
+
+    var html =
+      '<div class="admin-table-responsive"><table class="admin-table"><thead><tr>' +
+        '<th style="width:50px">#</th><th>List</th><th>Group</th><th>Type</th><th>Question Prompt</th><th>Options</th><th>Correct Answer</th><th style="width:120px">Actions</th>' +
+      '</tr></thead><tbody>';
+
+    questions.forEach(function (q, idx) {
+      var startIdx = (data.pagination.page - 1) * data.pagination.limit + idx + 1;
+      var listObj = LQ._pqLists.find(l => l.id === q.listId);
+      var groupObj = listObj ? (listObj.groups || []).find(g => g.id === q.groupId) : null;
+      var listName = listObj ? listObj.title : q.listId;
+      var groupName = groupObj ? groupObj.title : q.groupId;
+      var optionsStr = (q.options && q.options.length) ? q.options.filter(Boolean).join(' | ') : '—';
+
+      html +=
+        '<tr>' +
+          '<td>' + startIdx + '</td>' +
+          '<td>' + LQ.esc(listName) + '</td>' +
+          '<td>' + LQ.esc(groupName) + '</td>' +
+          '<td><code>' + LQ.esc(q.type) + '</code></td>' +
+          '<td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + LQ.esc(q.title) + '"><strong>' + LQ.esc(q.title) + '</strong></td>' +
+          '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + LQ.esc(optionsStr) + '</td>' +
+          '<td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><code>' + LQ.esc(q.correctAnswer) + '</code></td>' +
+          '<td>' +
+            '<button class="admin-btn admin-btn-outline admin-btn-sm" style="margin-right:6px" onclick="LQ.renderEditPracticeQuestionForm(\'' + q._id + '\')">Edit</button>' +
+            '<button class="admin-btn admin-btn-danger admin-btn-sm" onclick="LQ._deletePracticeQuestion(\'' + q._id + '\')">Delete</button>' +
+          '</td>' +
+        '</tr>';
+    });
+
+    html += '</tbody></table></div>';
+    tableWrap.innerHTML = html;
+
+    if (pagWrap) {
+      if (data.pagination.pages > 1) {
+        var pagHtml = '<span class="admin-pagination-info" style="font-size:13px;color:#64748b">Showing page ' + data.pagination.page + ' of ' + data.pagination.pages + ' (' + data.pagination.total + ' total)</span>' +
+          '<div style="display:flex;gap:6px">';
+        if (data.pagination.page > 1) {
+          pagHtml += '<button class="admin-page-btn" onclick="LQ._pqPage=' + (data.pagination.page - 1) + ';LQ._loadAdminPracticeQuestions()">← Prev</button>';
+        }
+        for (var i = 1; i <= data.pagination.pages; i++) {
+          if (i === data.pagination.page) {
+            pagHtml += '<button class="admin-page-btn active" style="background:#2563eb;color:#fff;border-color:#2563eb" disabled>' + i + '</button>';
+          } else if (i === 1 || i === data.pagination.pages || Math.abs(i - data.pagination.page) <= 2) {
+            pagHtml += '<button class="admin-page-btn" onclick="LQ._pqPage=' + i + ';LQ._loadAdminPracticeQuestions()">' + i + '</button>';
+          } else if (i === 2 || i === data.pagination.pages - 1) {
+            pagHtml += '<span style="padding:0 4px;color:#94a3b8">…</span>';
+          }
+        }
+        if (data.pagination.page < data.pagination.pages) {
+          pagHtml += '<button class="admin-page-btn" onclick="LQ._pqPage=' + (data.pagination.page + 1) + ';LQ._loadAdminPracticeQuestions()">Next →</button>';
+        }
+        pagHtml += '</div>';
+        pagWrap.innerHTML = pagHtml;
+        pagWrap.style.display = 'flex';
+      } else {
+        pagWrap.innerHTML = '<span class="admin-pagination-info" style="font-size:13px;color:#64748b">' + data.pagination.total + ' question(s) total</span>';
+        pagWrap.style.display = 'flex';
+      }
+    }
+  } catch (err) {
+    tableWrap.innerHTML = '<p class="admin-error">Failed to load practice questions.</p>';
+  }
+};
+
+LQ.renderAddPracticeQuestionForm = function () {
+  if (!LQ._pqLists || !LQ._pqLists.length) {
+    LQ.toast('Create a Grouped Word List first before adding practice questions.');
+    return;
+  }
+
+  LQ._pqFormOptions = ['', '', '', ''];
+  LQ._pqFormPrevCorrect = '';
+
+  var formHtml =
+    '<form id="practice-question-form" class="admin-form" onsubmit="LQ._submitPracticeQuestion(event)">' +
+      '<div class="admin-form-field">' +
+        '<label for="pq-form-listId">Word List <span class="req">*</span></label>' +
+        '<select id="pq-form-listId" class="admin-search-input" style="width:100%;box-sizing:border-box" onchange="window.populatePqFormGroups()" required>' +
+          LQ._pqLists.map(l => '<option value="' + LQ.esc(l.id) + '">' + LQ.esc(l.title) + '</option>').join('') +
+        '</select>' +
+      '</div>' +
+      '<div class="admin-form-field">' +
+        '<label for="pq-form-groupId">Synonym Group <span class="req">*</span></label>' +
+        '<select id="pq-form-groupId" class="admin-search-input" style="width:100%;box-sizing:border-box" required>' +
+        '</select>' +
+      '</div>' +
+      '<div class="admin-form-field">' +
+        '<label for="pq-form-category">Category</label>' +
+        '<select id="pq-form-category" class="admin-search-input" style="width:100%;box-sizing:border-box" required>' +
+          '<option value="normal">Normal</option>' +
+          '<option value="reading">Reading</option>' +
+          '<option value="writing">Writing</option>' +
+          '<option value="speaking">Speaking</option>' +
+          '<option value="listening">Listening</option>' +
+        '</select>' +
+      '</div>' +
+      '<div class="admin-form-field">' +
+        '<label for="pq-form-type">Question Type <span class="req">*</span></label>' +
+        '<select id="pq-form-type" class="admin-search-input" style="width:100%;box-sizing:border-box" onchange="window.togglePqFormTypeView()" required>' +
+          '<option value="mcq">MCQ (Single Correct)</option>' +
+          '<option value="mcq_multi">MCQ (Multiple Correct)</option>' +
+          '<option value="fib">Fill in the Blanks</option>' +
+        '</select>' +
+      '</div>' +
+      '<div class="admin-form-field">' +
+        '<label for="pq-form-title">Question Prompt (Text) <span class="req">*</span></label>' +
+        '<textarea id="pq-form-title" class="admin-search-input" style="width:100%;box-sizing:border-box;height:80px;font-family:inherit" placeholder="e.g. Choose the correct synonym of Concord." required></textarea>' +
+      '</div>' +
+      
+      '<div id="pq-options-section" style="margin-top:16px">' +
+        '<label style="font-weight:600;margin-bottom:8px;display:block">MCQ Options (Provide at least 4 options)</label>' +
+        '<div id="pq-options-container"></div>' +
+        '<button type="button" id="btn-add-pq-option" class="admin-btn admin-btn-outline admin-btn-sm" style="margin-top:8px" onclick="window.addPqFormOption()">+ Add Option</button>' +
+      '</div>' +
+
+      '<div class="admin-form-field" style="margin-top:16px">' +
+        '<label id="pq-correct-answer-label">Correct Option</label>' +
+        '<div id="pq-correct-answer-container"></div>' +
+      '</div>' +
+
+      '<p id="pq-form-error" class="admin-error-msg" style="display:none"></p>' +
+      '<div class="admin-form-actions" style="margin-top:24px">' +
+        '<button type="button" class="admin-btn admin-btn-outline" onclick="LQ.closeAdminDrawer()">Cancel</button>' +
+        '<button type="submit" class="admin-btn admin-btn-primary">Save Question</button>' +
+      '</div>' +
+    '</form>';
+
+  LQ.openAdminDrawer('➕ Add Practice Question', formHtml);
+
+  setTimeout(function () {
+    window.populatePqFormGroups();
+    window.togglePqFormTypeView();
+  }, 100);
+};
+
+LQ.renderEditPracticeQuestionForm = async function (id) {
+  try {
+    var resp = await fetch('/api/admin/practice-questions?limit=100', { credentials: 'include' });
+    var data = await resp.json();
+    var q = (data.questions || []).find(x => x._id === id);
+    if (!q) {
+      LQ.toast('Practice question not found.');
+      return;
+    }
+
+    LQ._pqFormOptions = q.options && q.options.length ? q.options.slice() : ['', '', '', ''];
+    LQ._pqFormPrevCorrect = q.correctAnswer || '';
+
+    var formHtml =
+      '<form id="practice-question-form" class="admin-form" onsubmit="LQ._submitPracticeQuestion(event, \'' + id + '\')">' +
+        '<div class="admin-form-field">' +
+          '<label for="pq-form-listId">Word List <span class="req">*</span></label>' +
+          '<select id="pq-form-listId" class="admin-search-input" style="width:100%;box-sizing:border-box" onchange="window.populatePqFormGroups()" required>' +
+            LQ._pqLists.map(l => '<option value="' + LQ.esc(l.id) + '"' + (l.id === q.listId ? ' selected' : '') + '>' + LQ.esc(l.title) + '</option>').join('') +
+          '</select>' +
+        '</div>' +
+        '<div class="admin-form-field">' +
+          '<label for="pq-form-groupId">Synonym Group <span class="req">*</span></label>' +
+          '<select id="pq-form-groupId" class="admin-search-input" style="width:100%;box-sizing:border-box" data-selected="' + LQ.esc(q.groupId) + '" required>' +
+          '</select>' +
+        '</div>' +
+        '<div class="admin-form-field">' +
+          '<label for="pq-form-category">Category</label>' +
+          '<select id="pq-form-category" class="admin-search-input" style="width:100%;box-sizing:border-box" required>' +
+            '<option value="normal"' + (q.category === 'normal' ? ' selected' : '') + '>Normal</option>' +
+            '<option value="reading"' + (q.category === 'reading' ? ' selected' : '') + '>Reading</option>' +
+            '<option value="writing"' + (q.category === 'writing' ? ' selected' : '') + '>Writing</option>' +
+            '<option value="speaking"' + (q.category === 'speaking' ? ' selected' : '') + '>Speaking</option>' +
+            '<option value="listening"' + (q.category === 'listening' ? ' selected' : '') + '>Listening</option>' +
+          '</select>' +
+        '</div>' +
+        '<div class="admin-form-field">' +
+          '<label for="pq-form-type">Question Type <span class="req">*</span></label>' +
+          '<select id="pq-form-type" class="admin-search-input" style="width:100%;box-sizing:border-box" onchange="window.togglePqFormTypeView()" required>' +
+            '<option value="mcq"' + (q.type === 'mcq' ? ' selected' : '') + '>MCQ (Single Correct)</option>' +
+            '<option value="mcq_multi"' + (q.type === 'mcq_multi' ? ' selected' : '') + '>MCQ (Multiple Correct)</option>' +
+            '<option value="fib"' + (q.type === 'fib' ? ' selected' : '') + '>Fill in the Blanks</option>' +
+          '</select>' +
+        '</div>' +
+        '<div class="admin-form-field">' +
+          '<label for="pq-form-title">Question Prompt (Text) <span class="req">*</span></label>' +
+          '<textarea id="pq-form-title" class="admin-search-input" style="width:100%;box-sizing:border-box;height:80px;font-family:inherit" required>' + LQ.esc(q.title) + '</textarea>' +
+        '</div>' +
+        
+        '<div id="pq-options-section" style="margin-top:16px">' +
+          '<label style="font-weight:600;margin-bottom:8px;display:block">MCQ Options (Provide at least 4 options)</label>' +
+          '<div id="pq-options-container"></div>' +
+          '<button type="button" id="btn-add-pq-option" class="admin-btn admin-btn-outline admin-btn-sm" style="margin-top:8px" onclick="window.addPqFormOption()">+ Add Option</button>' +
+        '</div>' +
+
+        '<div class="admin-form-field" style="margin-top:16px">' +
+          '<label id="pq-correct-answer-label">Correct Option</label>' +
+          '<div id="pq-correct-answer-container"></div>' +
+        '</div>' +
+
+        '<p id="pq-form-error" class="admin-error-msg" style="display:none"></p>' +
+        '<div class="admin-form-actions" style="margin-top:24px">' +
+          '<button type="button" class="admin-btn admin-btn-outline" onclick="LQ.closeAdminDrawer()">Cancel</button>' +
+          '<button type="submit" class="admin-btn admin-btn-primary">Update Question</button>' +
+        '</div>' +
+      '</form>';
+
+    LQ.openAdminDrawer('📝 Edit Practice Question', formHtml);
+
+    setTimeout(function () {
+      window.populatePqFormGroups();
+      var groupSelect = document.getElementById('pq-form-groupId');
+      var selectedVal = groupSelect ? groupSelect.getAttribute('data-selected') : '';
+      if (groupSelect && selectedVal) groupSelect.value = selectedVal;
+
+      window.togglePqFormTypeView();
+    }, 100);
+  } catch (err) {
+    LQ.toast('Failed to load edit form');
+  }
+};
+
+LQ._submitPracticeQuestion = async function (e, id) {
+  e.preventDefault();
+  var errEl = document.getElementById('pq-form-error');
+  var listId = document.getElementById('pq-form-listId').value;
+  var groupId = document.getElementById('pq-form-groupId').value;
+  var category = document.getElementById('pq-form-category').value.trim();
+  var type = document.getElementById('pq-form-type').value;
+  var title = document.getElementById('pq-form-title').value.trim();
+  var correctAnswer = '';
+
+  if (type === 'mcq') {
+    var selectEl = document.getElementById('pq-form-correct-answer-select');
+    correctAnswer = selectEl ? selectEl.value : '';
+    if (!correctAnswer) {
+      if (errEl) { errEl.textContent = 'Please configure options and select a correct answer.'; errEl.style.display = 'block'; }
+      return;
+    }
+  } else if (type === 'mcq_multi') {
+    var chks = document.querySelectorAll('.pq-form-correct-chk:checked');
+    var correctList = Array.from(chks).map(c => c.value);
+    if (!correctList.length) {
+      if (errEl) { errEl.textContent = 'Please select at least one correct choice.'; errEl.style.display = 'block'; }
+      return;
+    }
+    correctAnswer = correctList.join(', ');
+  } else {
+    var textEl = document.getElementById('pq-form-correct-answer-text');
+    correctAnswer = textEl ? textEl.value.trim() : '';
+    if (!correctAnswer) {
+      if (errEl) { errEl.textContent = 'Please enter correct answer text.'; errEl.style.display = 'block'; }
+      return;
+    }
+  }
+
+  var payload = {
+    id: id || null,
+    listId: listId,
+    groupId: groupId,
+    category: category,
+    type: type,
+    title: title,
+    options: (type === 'mcq' || type === 'mcq_multi') ? LQ._pqFormOptions : [],
+    correctAnswer: correctAnswer
+  };
+
+  try {
+    var resp = await fetch('/api/admin/practice-questions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(payload)
+    });
+    var data = await resp.json();
+
+    if (resp.ok) {
+      LQ.toast(id ? 'Question updated.' : 'Question created.');
+      LQ.closeAdminDrawer();
+      LQ._loadAdminPracticeQuestions();
+    } else {
+      if (errEl) { errEl.textContent = data.error || 'Failed to save question.'; errEl.style.display = 'block'; }
+    }
+  } catch (err) {
+    if (errEl) { errEl.textContent = 'Network error.'; errEl.style.display = 'block'; }
+  }
+};
+
+LQ._deletePracticeQuestion = async function (id) {
+  if (!confirm('Are you sure you want to delete this practice question?')) return;
+
+  try {
+    var resp = await fetch('/api/admin/practice-questions/' + encodeURIComponent(id), {
+      method: 'DELETE',
+      credentials: 'include'
+    });
+    var data = await resp.json();
+
+    if (resp.ok) {
+      LQ.toast('Question deleted.');
+      LQ._loadAdminPracticeQuestions();
+    } else {
+      LQ.toast(data.error || 'Failed to delete question.');
+    }
+  } catch (err) {
+    LQ.toast('Network error.');
+  }
+};
+
+window.populatePqFormGroups = function () {
+  var listSelect = document.getElementById('pq-form-listId');
+  var groupSelect = document.getElementById('pq-form-groupId');
+  if (!listSelect || !groupSelect) return;
+  var listId = listSelect.value;
+  var lst = LQ._pqLists.find(l => l.id === listId);
+  var groups = lst ? (lst.groups || []) : [];
+  groupSelect.innerHTML = groups.map(function (g) {
+    return '<option value="' + LQ.esc(g.id) + '">' + LQ.esc(g.title) + '</option>';
+  }).join('');
+};
+
+LQ._populatePqFilterGroups = function () {
+  var listSelect = document.getElementById('pq-filter-list');
+  var groupSelect = document.getElementById('pq-filter-group');
+  if (!listSelect || !groupSelect) return;
+  var listId = listSelect.value;
+  if (!listId || listId === 'all') {
+    groupSelect.innerHTML = '<option value="all">All Groups</option>';
+    return;
+  }
+  var lst = LQ._pqLists.find(l => l.id === listId);
+  var groups = lst ? (lst.groups || []) : [];
+  groupSelect.innerHTML = '<option value="all">All Groups</option>' + groups.map(function (g) {
+    return '<option value="' + LQ.esc(g.id) + '">' + LQ.esc(g.title) + '</option>';
+  }).join('');
+};
+
+window.addPqFormOption = function () {
+  if (LQ._pqFormOptions.length >= 6) return;
+  LQ._pqFormOptions.push('');
+  window.renderPqFormOptions();
+};
+
+window.removePqFormOption = function (idx) {
+  if (LQ._pqFormOptions.length <= 4) return;
+  LQ._pqFormOptions.splice(idx, 1);
+  window.renderPqFormOptions();
+};
+
+window.updatePqFormOptionText = function (idx, val) {
+  LQ._pqFormOptions[idx] = val;
+  window.renderPqFormCorrectAnswerSelector();
+};
+
+window.renderPqFormOptions = function () {
+  var container = document.getElementById('pq-options-container');
+  if (!container) return;
+  container.innerHTML = LQ._pqFormOptions.map(function (val, idx) {
+    var removeBtn = LQ._pqFormOptions.length > 4 
+      ? '<button type="button" class="admin-btn admin-btn-danger admin-btn-sm" style="padding:4px 8px;margin-left:8px" onclick="window.removePqFormOption(' + idx + ')">✕</button>'
+      : '';
+    return '<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">' +
+      '<span style="font-weight:600;width:20px;font-size:12px">' + String.fromCharCode(65 + idx) + '</span>' +
+      '<input type="text" class="admin-search-input" style="flex:1" value="' + LQ.esc(val) + '" placeholder="Option ' + (idx + 1) + '" required oninput="window.updatePqFormOptionText(' + idx + ', this.value)">' +
+      removeBtn +
+      '</div>';
+  }).join('');
+  
+  var addBtn = document.getElementById('btn-add-pq-option');
+  if (addBtn) {
+    addBtn.style.display = LQ._pqFormOptions.length < 6 ? 'block' : 'none';
+  }
+  window.renderPqFormCorrectAnswerSelector();
+};
+
+window.renderPqFormCorrectAnswerSelector = function () {
+  var container = document.getElementById('pq-correct-answer-container');
+  if (!container) return;
+  var type = document.getElementById('pq-form-type').value;
+  var prevVal = LQ._pqFormPrevCorrect || '';
+
+  if (type === 'mcq_multi') {
+    var correctList = prevVal.split(',').map(s => s.trim());
+    var html = '<div style="display:flex;flex-direction:column;gap:6px;margin-top:6px">';
+    LQ._pqFormOptions.forEach(function (optText, idx) {
+      var val = optText.trim();
+      if (!val) return;
+      var checkedAttr = correctList.includes(val) ? ' checked' : '';
+      html += '<label style="display:flex;align-items:center;gap:8px;font-weight:normal;cursor:pointer;font-size:13px">' +
+        '<input type="checkbox" class="pq-form-correct-chk" value="' + LQ.esc(val) + '"' + checkedAttr + ' onchange="LQ._pqFormPrevCorrect=Array.from(document.querySelectorAll(\'.pq-form-correct-chk:checked\')).map(c=>c.value).join(\', \')" style="cursor:pointer">' +
+        '<span>Option ' + String.fromCharCode(65 + idx) + ': ' + LQ.esc(val) + '</span>' +
+        '</label>';
+    });
+    html += '</div>';
+    container.innerHTML = html;
+  } else {
+    var html = '<select id="pq-form-correct-answer-select" required class="admin-search-input" style="width:100%;box-sizing:border-box" onchange="LQ._pqFormPrevCorrect=this.value">';
+    LQ._pqFormOptions.forEach(function (optText, idx) {
+      var val = optText.trim();
+      var displayLabel = val ? val : 'Option ' + String.fromCharCode(65 + idx);
+      var selectedAttr = val && val === prevVal ? ' selected' : '';
+      html += '<option value="' + LQ.esc(val) + '"' + selectedAttr + '>' + LQ.esc(displayLabel) + '</option>';
+    });
+    html += '</select>';
+    container.innerHTML = html;
+    
+    // Set the saved value to select if it has option
+    var selectEl = document.getElementById('pq-form-correct-answer-select');
+    if (selectEl && prevVal) {
+      selectEl.value = prevVal;
+    }
+  }
+};
+
+window.togglePqFormTypeView = function () {
+  var type = document.getElementById('pq-form-type').value;
+  var optSection = document.getElementById('pq-options-section');
+  var correctAnsLabel = document.getElementById('pq-correct-answer-label');
+  var correctAnsContainer = document.getElementById('pq-correct-answer-container');
+  
+  if (type === 'mcq' || type === 'mcq_multi') {
+    optSection.style.display = 'block';
+    if (correctAnsLabel) correctAnsLabel.textContent = type === 'mcq_multi' ? 'Correct Option(s) (Select multiple)' : 'Correct Option';
+    window.renderPqFormOptions();
+  } else {
+    optSection.style.display = 'none';
+    if (correctAnsLabel) correctAnsLabel.textContent = 'Correct Answer Text';
+    var textVal = LQ._pqFormPrevCorrect || '';
+    correctAnsContainer.innerHTML = '<input type="text" id="pq-form-correct-answer-text" required class="admin-search-input" style="width:100%;box-sizing:border-box" placeholder="Enter correct answer text" value="' + LQ.esc(textVal) + '">';
+  }
+};
+
+LQ.renderPracticeQuestionsBulkUploadForm = function () {
+  var formHtml =
+    '<div class="admin-bulk-info">' +
+      '<p>Upload a <code>PracticeQuestions.csv</code> or <code>.xlsx</code> file to import questions into synonym groups.</p>' +
+      '<p style="font-size:12px;color:#64748b;margin-top:6px">Columns: <code>List, Group, Question, Option A, Option B, Option C, Option D, Answer Key, Category</code></p>' +
+      '<a href="/api/admin/templates/practice-questions" class="admin-btn admin-btn-outline admin-btn-sm" style="margin-top:10px;display:inline-block;text-decoration:none">📥 Download Template</a>' +
+    '</div>' +
+    '<form id="pq-bulk-form" class="admin-form" onsubmit="LQ._submitPracticeQuestionsBulkUpload(event)">' +
+      '<div class="admin-file-drop" id="pq-file-drop" onclick="document.getElementById(\'pq-file-input\').click()">' +
+        '<input type="file" id="pq-file-input" accept=".csv,text/csv,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" style="display:none" onchange="LQ._handlePracticeQuestionsFileSelect(event)" />' +
+        '<p class="admin-file-drop-text" id="pq-file-name-display">📁 Click to select PracticeQuestions CSV/XLSX file</p>' +
+      '</div>' +
+      '<p id="pq-bulk-error" class="admin-error-msg" style="display:none"></p>' +
+      '<div class="admin-form-actions" style="margin-top:20px">' +
+        '<button type="button" class="admin-btn admin-btn-outline" onclick="LQ.closeAdminDrawer()">Cancel</button>' +
+        '<button type="submit" class="admin-btn admin-btn-primary" id="pq-bulk-submit-btn">Upload & Save</button>' +
+      '</div>' +
+    '</form>';
+
+  LQ._selectedPqFile = null;
+  LQ.openAdminDrawer('📤 Bulk Upload Practice Questions', formHtml);
+};
+
+LQ._handlePracticeQuestionsFileSelect = function (e) {
+  var file = e.target.files && e.target.files[0];
+  if (!file) return;
+
+  var display = document.getElementById('pq-file-name-display');
+  if (display) display.textContent = 'Selected: ' + file.name + ' (' + (file.size / 1024).toFixed(1) + ' KB)';
+  LQ._selectedPqFile = file;
+};
+
+LQ._submitPracticeQuestionsBulkUpload = async function (e) {
+  e.preventDefault();
+  var btn = document.getElementById('pq-bulk-submit-btn');
+  var errEl = document.getElementById('pq-bulk-error');
+
+  if (!LQ._selectedPqFile) {
+    if (errEl) { errEl.textContent = 'Please select a CSV or XLSX file to upload.'; errEl.style.display = 'block'; }
+    return;
+  }
+
+  if (errEl) errEl.style.display = 'none';
+  if (btn) { btn.disabled = true; btn.textContent = 'Uploading...'; }
+
+  var formData = new FormData();
+  formData.append('file', LQ._selectedPqFile);
+
+  try {
+    var resp = await fetch('/api/admin/practice-questions/import', {
+      method: 'POST',
+      credentials: 'include',
+      body: formData
+    });
+    var data = await resp.json();
+
+    if (resp.ok) {
+      if (data.practiceFailedRows && data.practiceFailedRows.length > 0) {
+        LQ.toast('Imported ' + data.practiceSuccessCount + ' questions. ' + data.practiceFailedRows.length + ' failed. Downloading failed rows...');
+        var csvHeaders = 'List,Group,Question,Option A,Option B,Option C,Option D,Answer Key,Category,Reason\n';
+        var csvRows = data.practiceFailedRows.map(function (row) {
+          return [
+            '"' + (row.List || '').toString().replace(/"/g, '""') + '"',
+            '"' + (row.Group || '').toString().replace(/"/g, '""') + '"',
+            '"' + (row.Question || '').toString().replace(/"/g, '""') + '"',
+            '"' + (row['Option A'] || '').toString().replace(/"/g, '""') + '"',
+            '"' + (row['Option B'] || '').toString().replace(/"/g, '""') + '"',
+            '"' + (row['Option C'] || '').toString().replace(/"/g, '""') + '"',
+            '"' + (row['Option D'] || '').toString().replace(/"/g, '""') + '"',
+            '"' + (row['Answer Key'] || '').toString().replace(/"/g, '""') + '"',
+            '"' + (row.Category || '').toString().replace(/"/g, '""') + '"',
+            '"' + (row.Reason || '').toString().replace(/"/g, '""') + '"'
+          ].join(',');
+        }).join('\n');
+        
+        var blob = new Blob([csvHeaders + csvRows], { type: 'text/csv;charset=utf-8;' });
+        var link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.setAttribute('download', 'Failed_PracticeQuestions.csv');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } else {
+        LQ.toast('Practice questions import successful!');
+      }
+      LQ.closeAdminDrawer();
+      if (typeof LQ._loadAdminPracticeQuestions === 'function') LQ._loadAdminPracticeQuestions();
+    } else {
+      if (errEl) { errEl.textContent = data.error || 'Failed to import practice questions.'; errEl.style.display = 'block'; }
+    }
+  } catch (err) {
+    if (errEl) { errEl.textContent = 'Network error. Please try again.'; errEl.style.display = 'block'; }
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Upload & Save'; }
   }
 };
 

@@ -15,10 +15,7 @@ window.LQ = window.LQ || {};
     await LQ.loadOfficialTestCards();
     await LQ.loadPracticeAssessmentCards();
 
-    const defaultTab =
-      fetchedOfficialTests && fetchedOfficialTests.length > 0
-        ? "test"
-        : activeTab || "test";
+    const defaultTab = activeTab || (fetchedOfficialTests && fetchedOfficialTests.length > 0 ? "test" : "practice");
     LQ.switchAssessmentTab(defaultTab);
   };
 
@@ -637,58 +634,201 @@ window.LQ = window.LQ || {};
     LQ.renderAssessmentSessionScreen();
   };
 
-  function syncLiveProgress() {
-    if (!activeSession || !activeSession.isOfficial) return;
+  async function syncLiveProgress() {
+    if (!activeSession) return;
     try {
-      fetch("/api/cms/tests/progress", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      if (LQ.AssessmentDB && LQ.AssessmentDB.saveAttempt) {
+        await LQ.AssessmentDB.saveAttempt({
+          id: activeSession.assessment.id,
           testId: activeSession.assessment.id,
-          testTitle: activeSession.assessment.title,
-          userName: activeSession.candidate.name,
-          userEmail: activeSession.candidate.email,
+          startTimeMs: activeSession.startTimeMs,
+          durationSeconds: activeSession.durationSeconds,
           userAnswers: activeSession.userAnswers,
           currentIndex: activeSession.currentIndex,
-        }),
-      });
+          status: 'in_progress'
+        });
+      }
     } catch (e) {}
   }
 
   LQ.openCreateAssessmentModal = async function () {
-    await LQ.tensesReady;
     const modal = document.getElementById("modal-create-assessment");
-    const container = document.getElementById("asm-modal-groups-list");
-    if (!modal || !container) return;
+    if (!modal) return;
 
-    const modules = LQ.TENSES_MODULES || [
-      { id: "sentence-repeating", title: "Sentence Repeating" },
-      { id: "short-stories", title: "Short Stories" },
-      { id: "grammar", title: "Grammar" },
-      { id: "sentence-reading", title: "Sentence Reading" },
-      { id: "passage-comprehension", title: "Passage Comprehension" },
-      { id: "essay-writing", title: "Essay Writing" },
-      { id: "jumbled-sentences", title: "Jumbled Sentences" },
-      { id: "story-retelling", title: "Story Retelling" },
-      { id: "just-a-minute", title: "Just a Minute" },
-    ];
+    try {
+      await LQ.wordListsReady;
+    } catch (e) {}
 
-    container.innerHTML = modules
-      .map(
-        (m) =>
-          '<label class="asm-chk-item">' +
-          '<input type="checkbox" name="asm_groups" value="' +
-          m.id +
-          '" checked>' +
-          "<span>" +
-          LQ.esc(m.title) +
-          "</span>" +
-          "</label>",
-      )
-      .join("");
+    // Set unique default title by default
+    const titleInp = document.getElementById("asm-title");
+    if (titleInp) {
+      const nowStr = new Date().toLocaleDateString() + " " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+      const randSuffix = Math.random().toString(36).substring(2, 5).toUpperCase();
+      titleInp.value = "Practice - " + nowStr + " - " + randSuffix;
+    }
+
+    const listTrigger = document.getElementById("asm-pq-list-dropdown-trigger");
+    const listMenu = document.getElementById("asm-pq-list-dropdown-menu");
+    const groupTrigger = document.getElementById("asm-pq-group-dropdown-trigger");
+    const groupMenu = document.getElementById("asm-pq-group-dropdown-menu");
+
+    if (listTrigger && listMenu) {
+      listTrigger.onclick = function (e) {
+        e.stopPropagation();
+        const isShown = listMenu.style.display === "block";
+        closeAllAsmDropdowns();
+        if (!isShown) listMenu.style.display = "block";
+      };
+    }
+
+    if (groupTrigger && groupMenu) {
+      groupTrigger.onclick = function (e) {
+        e.stopPropagation();
+        const isShown = groupMenu.style.display === "block";
+        closeAllAsmDropdowns();
+        if (!isShown) groupMenu.style.display = "block";
+      };
+    }
+
+    document.addEventListener("click", closeAllAsmDropdowns);
+
+    const lists = (LQ.WORD_LISTS && LQ.WORD_LISTS.lists) ? LQ.WORD_LISTS.lists : [];
+    if (listMenu && lists.length > 0) {
+      listMenu.innerHTML = lists.map(l => `
+        <div class="pq-dropdown-item asm-pq-list-item" onclick="LQ.selectAsmListOption('${l.id}', '${l.title.replace(/'/g, "\\'")}')" style="padding: 10px 12px; font-size: 13px; cursor: pointer; border-radius: 4px; color: var(--ink); font-weight: 500; transition: background 0.1s;">
+          ${l.title}
+        </div>
+      `).join("");
+      
+      LQ.selectAsmListOption(lists[0].id, lists[0].title);
+    }
 
     modal.classList.remove("hidden");
   };
+
+  function closeAllAsmDropdowns() {
+    const listMenu = document.getElementById("asm-pq-list-dropdown-menu");
+    const groupMenu = document.getElementById("asm-pq-group-dropdown-menu");
+    if (listMenu) listMenu.style.display = "none";
+    if (groupMenu) groupMenu.style.display = "none";
+  }
+
+  LQ.selectAsmListOption = function (listId, listTitle) {
+    LQ._selectedAsmListId = listId;
+    const labelEl = document.getElementById("asm-pq-list-dropdown-label");
+    if (labelEl) labelEl.textContent = listTitle;
+    
+    const listMenu = document.getElementById("asm-pq-list-dropdown-menu");
+    if (listMenu) {
+      listMenu.querySelectorAll(".asm-pq-list-item").forEach(item => {
+        const text = item.textContent.trim();
+        item.style.backgroundColor = (text === listTitle) ? "rgba(245,166,35,0.08)" : "transparent";
+      });
+    }
+    
+    populateAsmUserGroups();
+  };
+
+  function populateAsmUserGroups() {
+    const groupMenu = document.getElementById("asm-pq-group-dropdown-menu");
+    if (!groupMenu || !LQ._selectedAsmListId) return;
+
+    const lists = (LQ.WORD_LISTS && LQ.WORD_LISTS.lists) ? LQ.WORD_LISTS.lists : [];
+    const lst = lists.find(l => l.id === LQ._selectedAsmListId);
+    const groups = lst ? (lst.groups || []) : [];
+
+    LQ._selectedAsmGroupIds = [];
+
+    if (!groups.length) {
+      groupMenu.innerHTML = '<div style="padding: 12px; font-size: 13px; color: #64748b; text-align: center;">No groups in this list</div>';
+      updateAsmGroupTriggerLabel();
+      return;
+    }
+
+    const selectAllHtml = `
+      <div class="pq-dropdown-item" onclick="LQ.toggleAsmGroupSelectAll(event)" style="padding: 10px 12px; font-size: 13px; cursor: pointer; border-radius: 4px; color: var(--ink); font-weight: 700; transition: background 0.1s; display: flex; align-items: center; gap: 8px;">
+        <input type="checkbox" id="asm-pq-group-select-all-chk" style="cursor: pointer;" onclick="event.stopPropagation(); LQ.toggleAsmGroupSelectAll(event)">
+        <span>Select All</span>
+      </div>
+    `;
+
+    const itemsHtml = groups.map(g => `
+      <div class="pq-dropdown-item asm-pq-group-item" data-group-id="${g.id}" onclick="LQ.toggleAsmGroupOption(event, '${g.id}')" style="padding: 10px 12px; font-size: 13px; cursor: pointer; border-radius: 4px; color: var(--ink); font-weight: 500; transition: background 0.1s; display: flex; align-items: center; gap: 8px;">
+        <input type="checkbox" class="asm-pq-group-chk" value="${g.id}" style="cursor: pointer;" onclick="event.stopPropagation(); LQ.toggleAsmGroupOption(event, '${g.id}')">
+        <span>${g.title}</span>
+      </div>
+    `).join("");
+
+    groupMenu.innerHTML = selectAllHtml + itemsHtml;
+    
+    // Default to Select All
+    LQ.toggleAsmGroupSelectAll({ stopPropagation: () => {} });
+  }
+
+  LQ.toggleAsmGroupSelectAll = function (e) {
+    if (e && e.stopPropagation) e.stopPropagation();
+    const chk = document.getElementById("asm-pq-group-select-all-chk");
+    if (!chk) return;
+    
+    const isChecked = !chk.checked;
+    chk.checked = isChecked;
+
+    const chks = document.querySelectorAll(".asm-pq-group-chk");
+    LQ._selectedAsmGroupIds = [];
+    chks.forEach(c => {
+      c.checked = isChecked;
+      if (isChecked) {
+        LQ._selectedAsmGroupIds.push(c.value);
+      }
+    });
+
+    updateAsmGroupTriggerLabel();
+  };
+
+  LQ.toggleAsmGroupOption = function (e, groupId) {
+    if (e && e.stopPropagation) e.stopPropagation();
+    
+    const chks = document.querySelectorAll(".asm-pq-group-chk");
+    const targetChk = Array.from(chks).find(c => c.value === groupId);
+    if (!targetChk) return;
+    
+    if (e.target !== targetChk) {
+      targetChk.checked = !targetChk.checked;
+    }
+
+    LQ._selectedAsmGroupIds = [];
+    chks.forEach(c => {
+      if (c.checked) {
+        LQ._selectedAsmGroupIds.push(c.value);
+      }
+    });
+
+    const allChk = document.getElementById("asm-pq-group-select-all-chk");
+    if (allChk) {
+      allChk.checked = (LQ._selectedAsmGroupIds.length === chks.length);
+    }
+
+    updateAsmGroupTriggerLabel();
+  };
+
+  function updateAsmGroupTriggerLabel() {
+    const labelEl = document.getElementById("asm-pq-group-dropdown-label");
+    if (!labelEl) return;
+
+    if (!LQ._selectedAsmGroupIds || LQ._selectedAsmGroupIds.length === 0) {
+      labelEl.textContent = "Select Group(s)";
+    } else {
+      const lists = (LQ.WORD_LISTS && LQ.WORD_LISTS.lists) ? LQ.WORD_LISTS.lists : [];
+      const lst = lists.find(l => l.id === LQ._selectedAsmListId);
+      const groups = lst ? (lst.groups || []) : [];
+      
+      if (LQ._selectedAsmGroupIds.length === groups.length) {
+        labelEl.textContent = `All Groups Selected (${groups.length})`;
+      } else {
+        labelEl.textContent = `${LQ._selectedAsmGroupIds.length} Group(s) Selected`;
+      }
+    }
+  }
 
   LQ.closeCreateAssessmentModal = function () {
     const modal = document.getElementById("modal-create-assessment");
@@ -697,15 +837,9 @@ window.LQ = window.LQ || {};
 
   LQ.createPracticeAssessment = async function (e) {
     if (e) e.preventDefault();
-    await LQ.tensesReady;
 
-    const checkedInputs = document.querySelectorAll(
-      'input[name="asm_groups"]:checked',
-    );
-    const selectedGroupIds = Array.from(checkedInputs).map((el) => el.value);
-
-    if (!selectedGroupIds.length) {
-      LQ.toast("Please select at least one question group");
+    if (!LQ._selectedAsmListId || !LQ._selectedAsmGroupIds || !LQ._selectedAsmGroupIds.length) {
+      LQ.toast("Please select a list and at least one group");
       return;
     }
 
@@ -713,78 +847,75 @@ window.LQ = window.LQ || {};
     const durInp = document.getElementById("asm-duration");
     const titleInp = document.getElementById("asm-title");
 
-    const questionCount = Math.max(
-      1,
-      parseInt((qCountInp && qCountInp.value) || "10", 10),
-    );
-    const durationMinutes =
-      durInp && durInp.value ? parseInt(durInp.value, 10) : null;
-    const title =
-      (titleInp && titleInp.value.trim()) || "Custom Practice Assessment";
+    const questionCount = Math.max(1, parseInt((qCountInp && qCountInp.value) || "10", 10));
+    const durationMinutes = durInp && durInp.value ? parseInt(durInp.value, 10) : null;
+    const title = (titleInp && titleInp.value.trim()) || "Custom Practice Assessment";
 
-    // Gather questions from selected groups
-    const pool = [];
-    selectedGroupIds.forEach((grpId) => {
-      const items = (LQ.TENSES_CONTENT && LQ.TENSES_CONTENT[grpId]) || [];
-      const mod = (LQ.TENSES_MODULES || []).find((m) => m.id === grpId);
-      const groupTitle = mod ? mod.title : grpId;
-
-      items.forEach((item) => {
-        pool.push({
-          groupId: grpId,
-          groupTitle: groupTitle,
-          rawItem: item,
-        });
-      });
-    });
+    // Fetch practice questions from DB
+    let pool = [];
+    try {
+      const url = "/api/practice-questions/pool?listId=" + encodeURIComponent(LQ._selectedAsmListId) + "&groupIds=" + encodeURIComponent(LQ._selectedAsmGroupIds.join(","));
+      const resp = await fetch(url, { credentials: "include" });
+      const data = await resp.json();
+      if (data.ok && data.questions) {
+        pool = data.questions;
+      }
+    } catch (err) {
+      console.error("Failed to load practice questions pool", err);
+    }
 
     if (!pool.length) {
-      LQ.toast("No questions available in the selected groups");
+      LQ.toast("No practice questions found for the selected group(s).");
       return;
     }
 
-    // Shuffle and pick questionCount questions
+    // Shuffle and pick questionCount
     const shuffled = pool.sort(() => 0.5 - Math.random());
     const selectedQuestions = shuffled
       .slice(0, Math.min(questionCount, shuffled.length))
       .map((q, idx) => {
-        const raw = q.rawItem;
-        let text = raw.text || raw.title || raw.story || raw.passage || "";
-        let options = raw.options || null;
-        let answerIndex = raw.answer !== undefined ? raw.answer : null;
-
-        // Handle nested questions in story/passage if available
-        if (raw.questions && raw.questions.length) {
-          const nestedQ = raw.questions[0];
-          text = (raw.title ? raw.title + ": " : "") + (nestedQ.q || text);
-          options = nestedQ.options || options;
-          answerIndex =
-            nestedQ.answer !== undefined ? nestedQ.answer : answerIndex;
+        let correctAnswerIndex = null;
+        let correctAnswerIndices = [];
+        
+        if (q.type === "mcq") {
+          correctAnswerIndex = q.options.indexOf(q.correctAnswer);
+          if (correctAnswerIndex === -1) correctAnswerIndex = 0;
+        } else if (q.type === "mcq_multi") {
+          const answers = q.correctAnswer.split(",").map(s => s.trim());
+          correctAnswerIndices = answers.map(ans => q.options.indexOf(ans)).filter(i => i >= 0);
         }
 
         return {
           id: "q_" + idx,
+          dbId: q._id,
           groupId: q.groupId,
-          groupTitle: q.groupTitle,
-          text: text,
-          options: options,
-          correctAnswerIndex: answerIndex,
+          groupTitle: q.groupId,
+          text: q.title,
+          type: q.type === "fib" ? "fill_blank" : q.type === "mcq_multi" ? "mcq_multi" : "mcq",
+          options: q.options && q.options.length ? q.options : null,
+          correctAnswerIndex: correctAnswerIndex,
+          correctAnswerIndices: correctAnswerIndices,
+          correctAnswers: q.type === "fib" ? [q.correctAnswer] : null,
+          correctAnswerText: q.type === "fib" ? q.correctAnswer : "",
           userAnswerIndex: null,
           userTextAnswer: "",
         };
       });
 
     const asmId = "asm_" + Date.now();
-    const groupNames = selectedGroupIds.map((id) => {
-      const m = (LQ.TENSES_MODULES || []).find((x) => x.id === id);
-      return m ? m.title : id;
+    const groupNames = LQ._selectedAsmGroupIds.map(id => {
+      const lists = (LQ.WORD_LISTS && LQ.WORD_LISTS.lists) ? LQ.WORD_LISTS.lists : [];
+      const lst = lists.find(l => l.id === LQ._selectedAsmListId);
+      const groups = lst ? (lst.groups || []) : [];
+      const g = groups.find(x => x.id === id);
+      return g ? g.title : id;
     });
 
     const newAssessment = {
       id: asmId,
       type: "practice",
       title: title,
-      groupIds: selectedGroupIds,
+      groupIds: LQ._selectedAsmGroupIds,
       groupNames: groupNames,
       totalQuestions: selectedQuestions.length,
       durationMinutes: durationMinutes,
@@ -798,7 +929,6 @@ window.LQ = window.LQ || {};
     LQ.closeCreateAssessmentModal();
     LQ.toast("Practice Assessment created!", true);
 
-    // Land on main assessment page
     goTo("assessment");
     LQ.switchAssessmentTab("practice");
   };
@@ -876,7 +1006,9 @@ window.LQ = window.LQ || {};
         id: id,
         testId: id,
         startTimeMs: Date.now(),
-        durationSeconds: item.durationMinutes ? item.durationMinutes * 60 : 15 * 60,
+        durationSeconds: item.durationMinutes ? item.durationMinutes * 60 : 0,
+        currentIndex: 0,
+        userAnswers: {},
         status: 'in_progress'
       };
       try {
@@ -888,8 +1020,8 @@ window.LQ = window.LQ || {};
 
     activeSession = {
       assessment: item,
-      currentIndex: 0,
-      userAnswers: item.userAnswers || {},
+      currentIndex: timerRecord.currentIndex || 0,
+      userAnswers: timerRecord.userAnswers || item.userAnswers || {},
       startTimeMs: timerRecord.startTimeMs,
       durationSeconds: timerRecord.durationSeconds,
     };
@@ -920,8 +1052,16 @@ window.LQ = window.LQ || {};
       const timerEl = document.getElementById("asm-session-timer");
       if (!timerEl) return;
 
+      if (!activeSession.durationSeconds) {
+        timerEl.style.display = "none";
+        if (LQ._asmTimerId) {
+          clearInterval(LQ._asmTimerId);
+          LQ._asmTimerId = null;
+        }
+        return;
+      }
+
       if (!activeSession.startTimeMs) activeSession.startTimeMs = Date.now();
-      if (!activeSession.durationSeconds) activeSession.durationSeconds = 15 * 60;
 
       const elapsedSec = Math.floor((Date.now() - activeSession.startTimeMs) / 1000);
       const rem = Math.max(0, activeSession.durationSeconds - elapsedSec);
@@ -976,18 +1116,21 @@ window.LQ = window.LQ || {};
         "Question " + (idx + 1) + " of " + asm.totalQuestions;
 
     if (timerEl) {
-      if (!activeSession.startTimeMs) activeSession.startTimeMs = Date.now();
-      if (!activeSession.durationSeconds) activeSession.durationSeconds = 15 * 60;
-      const elapsedSec = Math.floor((Date.now() - activeSession.startTimeMs) / 1000);
-      const rem = Math.max(0, activeSession.durationSeconds - elapsedSec);
-      const m = Math.floor(rem / 60);
-      const s = rem % 60;
-      const isUrgent = rem <= 60;
-      timerEl.style.display = "inline-flex";
-      timerEl.style.background = isUrgent ? "#fee2e2" : "#fef3c7";
-      timerEl.style.color = isUrgent ? "#dc2626" : "#b45309";
-      timerEl.style.borderColor = isUrgent ? "#fecdd3" : "#fde68a";
-      timerEl.innerHTML = "⏱️ " + m + ":" + (s < 10 ? "0" : "") + s;
+      if (activeSession.durationSeconds) {
+        if (!activeSession.startTimeMs) activeSession.startTimeMs = Date.now();
+        const elapsedSec = Math.floor((Date.now() - activeSession.startTimeMs) / 1000);
+        const rem = Math.max(0, activeSession.durationSeconds - elapsedSec);
+        const m = Math.floor(rem / 60);
+        const s = rem % 60;
+        const isUrgent = rem <= 60;
+        timerEl.style.display = "inline-flex";
+        timerEl.style.background = isUrgent ? "#fee2e2" : "#fef3c7";
+        timerEl.style.color = isUrgent ? "#dc2626" : "#b45309";
+        timerEl.style.borderColor = isUrgent ? "#fecdd3" : "#fde68a";
+        timerEl.innerHTML = "⏱️ " + m + ":" + (s < 10 ? "0" : "") + s;
+      } else {
+        timerEl.style.display = "none";
+      }
     }
 
     if (btnPrev) btnPrev.style.display = idx === 0 ? "none" : "inline-flex";
@@ -1167,91 +1310,72 @@ window.LQ = window.LQ || {};
     clearInterval(timerInterval);
 
     const asm = activeSession.assessment;
+    
+    // Evaluate results from MongoDB server
     let correctCount = 0;
     let wrongCount = 0;
-    const groupStats = {};
+    let percentage = 0;
+    let groupStats = {};
+    let evaluatedQuestions = asm.questions;
 
-    asm.questions.forEach((q, idx) => {
-      const userAns = activeSession.userAnswers[idx];
-      let isCorrect = false;
-
-      const grpId = q.groupId || "official";
-      const grpTitle = q.groupTitle || asm.title;
-
-      if (!groupStats[grpId]) {
-        groupStats[grpId] = {
-          groupId: grpId,
-          groupTitle: grpTitle,
-          total: 0,
-          correct: 0,
-          wrong: 0,
-        };
+    try {
+      const evalResp = await fetch("/api/assessment/evaluate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          questions: asm.questions,
+          userAnswers: activeSession.userAnswers
+        })
+      });
+      const evalData = await evalResp.json();
+      if (evalData.ok) {
+        correctCount = evalData.correctCount;
+        wrongCount = evalData.wrongCount;
+        percentage = evalData.percentage;
+        groupStats = evalData.groupStats;
+        evaluatedQuestions = evalData.questions;
       }
-
-      groupStats[grpId].total++;
-
-      if (q.type === "mcq_multi") {
-        const expectedIndices = (q.correctAnswerIndices || []).slice().sort();
-        const userIndices = Array.isArray(userAns)
-          ? userAns.slice().sort()
-          : [];
-        isCorrect =
-          expectedIndices.length > 0 &&
-          expectedIndices.length === userIndices.length &&
-          expectedIndices.every((v, i) => v === userIndices[i]);
-      } else if (
-        q.type === "mcq" ||
-        q.type === "true_false" ||
-        (q.options && q.options.length && q.correctAnswerIndex !== null)
-      ) {
-        isCorrect = userAns === q.correctAnswerIndex;
-      } else if (q.type === "fill_blank") {
-        if (q.correctAnswers && q.correctAnswers.length > 1) {
-          const userBlankArr = Array.isArray(userAns) ? userAns : [];
-          isCorrect = q.correctAnswers.every((expected, bIdx) => {
-            const expStr = (expected || "").trim().toLowerCase();
-            const actStr = (userBlankArr[bIdx] || "").trim().toLowerCase();
-            return expStr.length > 0 && expStr === actStr;
-          });
-        } else {
-          const expected = (
-            q.correctAnswers ? q.correctAnswers[0] : q.correctAnswerText || ""
-          )
-            .trim()
-            .toLowerCase();
-          const actual =
-            typeof userAns === "string" ? userAns.trim().toLowerCase() : "";
+    } catch (e) {
+      console.warn("Failed to evaluate assessment on backend. Performing fallback client evaluation.", e);
+      evaluatedQuestions.forEach((q, idx) => {
+        const userAns = activeSession.userAnswers[idx];
+        let isCorrect = false;
+        const grpId = q.groupId || "official";
+        if (!groupStats[grpId]) {
+          groupStats[grpId] = { groupId: grpId, groupTitle: q.groupTitle || grpId, total: 0, correct: 0, wrong: 0 };
+        }
+        groupStats[grpId].total++;
+        
+        if (q.type === "mcq_multi") {
+          const expectedIndices = (q.correctAnswerIndices || []).slice().sort();
+          const userIndices = Array.isArray(userAns) ? userAns.slice().sort() : [];
+          isCorrect = expectedIndices.length > 0 && expectedIndices.length === userIndices.length && expectedIndices.every((v, i) => v === userIndices[i]);
+        } else if (q.type === "mcq" || (q.options && q.options.length && q.correctAnswerIndex !== null)) {
+          isCorrect = userAns === q.correctAnswerIndex;
+        } else if (q.type === "fill_blank") {
+          const expected = (q.correctAnswers ? q.correctAnswers[0] : q.correctAnswerText || "").trim().toLowerCase();
+          const actual = typeof userAns === "string" ? userAns.trim().toLowerCase() : "";
           isCorrect = expected.length > 0 && expected === actual;
         }
-      } else {
-        isCorrect = typeof userAns === "string" && userAns.trim().length >= 3;
-      }
-
-      q.userAnswer = userAns;
-      q.isCorrect = isCorrect;
-
-      if (isCorrect) {
-        correctCount++;
-        groupStats[grpId].correct++;
-      } else {
-        wrongCount++;
-        groupStats[grpId].wrong++;
-      }
-    });
-
-    // Compute accuracy percentages for groups
-    Object.keys(groupStats).forEach((gId) => {
-      const g = groupStats[gId];
-      g.percentage =
-        g.total > 0 ? formatScoreNum((g.correct / g.total) * 100) : 0;
-    });
-
-    const percentage =
-      asm.totalQuestions > 0
-        ? formatScoreNum((correctCount / asm.totalQuestions) * 100)
-        : 0;
+        q.userAnswer = userAns;
+        q.isCorrect = isCorrect;
+        if (isCorrect) {
+          correctCount++;
+          groupStats[grpId].correct++;
+        } else {
+          wrongCount++;
+          groupStats[grpId].wrong++;
+        }
+      });
+      Object.keys(groupStats).forEach((gId) => {
+        const g = groupStats[gId];
+        g.percentage = g.total > 0 ? formatScoreNum((g.correct / g.total) * 100) : 0;
+      });
+      percentage = asm.totalQuestions > 0 ? formatScoreNum((correctCount / asm.totalQuestions) * 100) : 0;
+    }
 
     asm.status = "completed";
+    asm.questions = evaluatedQuestions;
     asm.userAnswers = activeSession.userAnswers;
     asm.correctCount = correctCount;
     asm.wrongCount = wrongCount;
@@ -1259,26 +1383,7 @@ window.LQ = window.LQ || {};
     asm.groupStats = groupStats;
     asm.completedAt = Date.now();
 
-    if (activeSession.isOfficial && activeSession.candidate) {
-      try {
-        await fetch("/api/cms/tests/submit", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            testId: asm.id,
-            testTitle: asm.title,
-            userName: activeSession.candidate.name,
-            userEmail: activeSession.candidate.email,
-            totalQuestions: asm.totalQuestions,
-            correctCount: correctCount,
-            wrongCount: wrongCount,
-            percentage: percentage,
-            questions: asm.questions,
-            userAnswers: activeSession.userAnswers,
-          }),
-        });
-      } catch (e) {}
-    }
+    // Store assessment results locally only
 
     if (activeSession && activeSession.assessment) {
       try {

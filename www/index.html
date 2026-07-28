@@ -1306,6 +1306,7 @@ body.native-app .desktop-only-ui{display:none!important}
         <div class="screen" id="screen-admin-profile"><div id="admin-profile-wrap"></div></div>
         <div class="screen" id="screen-change-password"><div id="change-password-wrap"></div></div>
         <div class="screen" id="screen-admin-questions"><div id="admin-questions-wrap" class="admin-fixed-layout-screen"></div></div>
+        <div class="screen" id="screen-admin-practice-questions"><div id="admin-practice-questions-wrap" class="admin-fixed-layout-screen"></div></div>
         <div class="screen" id="screen-admin-tenses"><div id="admin-tenses-wrap" class="admin-fixed-layout-screen"></div></div>
         <div class="screen" id="screen-admin-words"><div id="admin-words-wrap" class="admin-fixed-layout-screen"></div></div>
         <div class="screen" id="screen-admin-word-lists"><div id="admin-word-lists-wrap" class="admin-fixed-layout-screen"></div></div>
@@ -1790,47 +1791,6 @@ body.native-app .desktop-only-ui{display:none!important}
               <span>🔊</span><span>Hear the word</span>
             </button>
           </div>
-        <!-- ══ ASSESSMENT SCREEN ══ -->
-        <div class="screen" id="screen-assessment">
-          <div class="portal-header">
-            <div class="portal-breadcrumb">Dashboard › <strong>Assessment</strong></div>
-            <div class="portal-header-row" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
-              <div>
-                <h1 class="portal-title">Skill Assessment & Official Tests</h1>
-                <p class="portal-tagline">Practice custom evaluations or attend scheduled server assessments</p>
-              </div>
-              <button type="button" class="btn primary" onclick="LQ.openCreateAssessmentModal()" style="background:#2563eb;color:#fff;padding:8px 16px;border-radius:8px;font-weight:600;">+ Create Practice Assessment</button>
-            </div>
-            
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;border-bottom:1px solid #e2e8f0;padding-bottom:8px;flex-wrap:wrap;gap:10px;">
-              <div style="display:flex;gap:8px;">
-                <button type="button" class="tab-btn active" id="tab-btn-practice" onclick="LQ.switchAssessmentTab('practice')">📝 Practice Assessments</button>
-                <button type="button" class="tab-btn" id="tab-btn-test" onclick="LQ.switchAssessmentTab('test')">🎯 Official Server Tests</button>
-              </div>
-              <div style="display:flex;align-items:center;gap:6px;">
-                <span style="font-size:12px;font-weight:600;color:var(--text-muted, #64748b);">Filter:</span>
-                <button type="button" class="btn filter-btn active" id="filter-btn-new" onclick="LQ.setAssessmentFilter('new')" style="padding:4px 10px;font-size:12px;">New</button>
-                <button type="button" class="btn filter-btn" id="filter-btn-completed" onclick="LQ.setAssessmentFilter('completed')" style="padding:4px 10px;font-size:12px;">Completed</button>
-                <button type="button" class="btn filter-btn" id="filter-btn-all" onclick="LQ.setAssessmentFilter('all')" style="padding:4px 10px;font-size:12px;">All</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="screen-panel">
-            <!-- PRACTICE VIEW -->
-            <div id="assessment-practice-view">
-              <div id="assessment-list-grid" class="asm-grid" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(300px, 1fr));gap:16px;"></div>
-              <div id="assessment-empty-state" class="muted hidden" style="text-align:center;padding:40px;">No practice assessments found.</div>
-            </div>
-
-            <!-- OFFICIAL TEST VIEW -->
-            <div id="assessment-test-view" class="hidden">
-              <div id="official-test-list-grid" class="asm-grid" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(300px, 1fr));gap:16px;"></div>
-              <div id="official-test-empty-state" class="muted hidden" style="text-align:center;padding:40px;">No official tests available right now.</div>
-            </div>
-          </div>
-        </div>
-
       </div><!-- app-inner -->
 
       <!-- ══ DAILY WORD PANEL (slide-up sheet) ══ -->
@@ -1993,14 +1953,29 @@ body.native-app .desktop-only-ui{display:none!important}
 <!-- ══ CREATE PRACTICE ASSESSMENT MODAL ══ -->
 <div id="modal-create-assessment" class="modal hidden">
   <div class="modal-backdrop" onclick="LQ.closeCreateAssessmentModal()"></div>
-  <div class="modal-card">
+  <div class="modal-card" style="overflow-y: visible;">
     <h2>Create Practice Assessment</h2>
     <form id="form-create-assessment" onsubmit="LQ.createPracticeAssessment(event)">
       <label>Assessment Title</label>
-      <input type="text" id="asm-title" class="inp" placeholder="e.g. Tenses Weekly Practice" value="Custom Practice Assessment" required>
+      <input type="text" id="asm-title" class="inp" placeholder="e.g. Synonym Practice" value="Custom Practice Assessment" required style="margin-bottom: 16px;">
 
-      <label>Select Groups to Include</label>
-      <div id="asm-modal-groups-list" class="asm-modal-groups-grid"></div>
+      <label style="display:block; font-size: 13px; font-weight: 700; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">Choose List</label>
+      <div class="custom-dropdown-wrapper" style="position: relative; margin-bottom: 20px;">
+        <button type="button" id="asm-pq-list-dropdown-trigger" class="inp" style="width: 100%; text-align: left; background: #fff; border: 1px solid #cbd5e1; color: var(--ink); padding: 12px; border-radius: var(--r-md); font-family: var(--body); font-size: 14px; outline: none; box-sizing: border-box; cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+          <span id="asm-pq-list-dropdown-label">Select List</span>
+          <span style="font-size: 10px; opacity: 0.7;">▼</span>
+        </button>
+        <div id="asm-pq-list-dropdown-menu" style="display: none; position: absolute; top: 100%; left: 0; right: 0; max-height: 200px; overflow-y: auto; border: 1px solid #cbd5e1; border-radius: var(--r-md); background: #fff; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.08); padding: 4px; box-sizing: border-box;"></div>
+      </div>
+      
+      <label style="display:block; font-size: 13px; font-weight: 700; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">Choose Synonym Group(s)</label>
+      <div class="custom-dropdown-wrapper" style="position: relative; margin-bottom: 20px;">
+        <button type="button" id="asm-pq-group-dropdown-trigger" class="inp" style="width: 100%; text-align: left; background: #fff; border: 1px solid #cbd5e1; color: var(--ink); padding: 12px; border-radius: var(--r-md); font-family: var(--body); font-size: 14px; outline: none; box-sizing: border-box; cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+          <span id="asm-pq-group-dropdown-label">Select Group(s)</span>
+          <span style="font-size: 10px; opacity: 0.7;">▼</span>
+        </button>
+        <div id="asm-pq-group-dropdown-menu" style="display: none; position: absolute; top: 100%; left: 0; right: 0; max-height: 200px; overflow-y: auto; border: 1px solid #cbd5e1; border-radius: var(--r-md); background: #fff; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.08); padding: 4px; box-sizing: border-box;"></div>
+      </div>
 
       <label>Number of Questions</label>
       <input type="number" id="asm-q-count" class="inp" min="1" max="50" value="10" required>

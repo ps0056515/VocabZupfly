@@ -2,7 +2,7 @@ window.LQ = window.LQ || {};
 
 (function () {
   const DB_NAME = 'VocabZupfly_AssessmentDB';
-  const DB_VERSION = 1;
+  const DB_VERSION = 2;
 
   let dbPromise = null;
 

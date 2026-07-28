@@ -2,6 +2,8 @@ const express = require('express');
 const Word = require('../models/Word');
 const WordList = require('../models/WordList');
 const TenseContent = require('../models/TenseContent');
+const PracticeQuestion = require('../models/PracticeQuestion');
+const AssessmentResult = require('../models/AssessmentResult');
 const { authenticate } = require('../middleware/auth');
 
 const router = express.Router();
@@ -63,6 +65,236 @@ router.get('/tenses-content', async function (req, res) {
   } catch (err) {
     console.error('[Student API] Get tenses content error:', err);
     res.status(500).json({ error: 'Failed to load tenses content' });
+  }
+});
+
+/**
+ * GET /api/practice-questions/pool — Retrieve practice questions pool for student practice
+ */
+router.get('/practice-questions/pool', async function (req, res) {
+  try {
+    var query = {};
+    if (req.query.listId) query.listId = req.query.listId;
+    if (req.query.groupIds) {
+      query.groupId = { $in: req.query.groupIds.split(',') };
+    }
+    const questions = await PracticeQuestion.find(query).lean();
+    res.json({ ok: true, questions: questions });
+  } catch (err) {
+    console.error('[Student API] Get practice questions pool error:', err);
+    res.status(500).json({ error: 'Failed to retrieve questions.' });
+  }
+});
+
+/**
+ * GET /api/assessment/session/:assessmentId — Get in-progress assessment result or state
+ */
+router.get('/assessment/session/:assessmentId', async function (req, res) {
+  try {
+    const result = await AssessmentResult.findOne({
+      userEmail: req.user.email,
+      assessmentId: req.params.assessmentId
+    }).lean();
+    res.json({ ok: true, result: result });
+  } catch (err) {
+    console.error('[Student API] Get assessment session error:', err);
+    res.status(500).json({ error: 'Failed to retrieve assessment session.' });
+  }
+});
+
+/**
+ * POST /api/assessment/start — Initialize or retrieve an assessment session in MongoDB
+ */
+router.post('/assessment/start', async function (req, res) {
+  try {
+    const { assessmentId, title, type, totalQuestions, questions } = req.body;
+    let result = await AssessmentResult.findOne({
+      userEmail: req.user.email,
+      assessmentId: assessmentId
+    });
+
+    if (!result) {
+      result = await AssessmentResult.create({
+        userEmail: req.user.email,
+        userName: req.user.name,
+        assessmentId: assessmentId,
+        title: title,
+        type: type || 'practice',
+        totalQuestions: totalQuestions,
+        questions: questions || [],
+        userAnswers: {},
+        status: 'in_progress',
+        startTimeMs: Date.now(),
+        currentIndex: 0
+      });
+    }
+
+    res.json({ ok: true, result: result });
+  } catch (err) {
+    console.error('[Student API] Start assessment error:', err);
+    res.status(500).json({ error: 'Failed to start assessment session.' });
+  }
+});
+
+/**
+ * POST /api/assessment/save-progress — Sync user answers and index to MongoDB
+ */
+router.post('/assessment/save-progress', async function (req, res) {
+  try {
+    const { assessmentId, userAnswers, currentIndex } = req.body;
+    const result = await AssessmentResult.findOneAndUpdate(
+      { userEmail: req.user.email, assessmentId: assessmentId },
+      { $set: { userAnswers: userAnswers, currentIndex: currentIndex } },
+      { new: true }
+    );
+    res.json({ ok: true, result: result });
+  } catch (err) {
+    console.error('[Student API] Save progress error:', err);
+    res.status(500).json({ error: 'Failed to save progress.' });
+  }
+});
+
+/**
+ * POST /api/assessment/submit — Complete assessment session in MongoDB
+ */
+router.post('/assessment/submit', async function (req, res) {
+  try {
+    const {
+      assessmentId,
+      correctCount,
+      wrongCount,
+      percentage,
+      questions,
+      userAnswers
+    } = req.body;
+
+    const result = await AssessmentResult.findOneAndUpdate(
+      { userEmail: req.user.email, assessmentId: assessmentId },
+      {
+        $set: {
+          correctCount: correctCount,
+          wrongCount: wrongCount,
+          percentage: percentage,
+          questions: questions,
+          userAnswers: userAnswers,
+          status: 'completed',
+          completedAt: new Date()
+        }
+      },
+      { new: true, upsert: true }
+    );
+
+    res.json({ ok: true, resultId: result._id });
+  } catch (err) {
+    console.error('[Student API] Submit assessment error:', err);
+    res.status(500).json({ error: 'Failed to submit assessment.' });
+  }
+});
+
+/**
+ * GET /api/assessment/list — List all assessment sessions for the student
+ */
+router.get('/assessment/list', async function (req, res) {
+  try {
+    const list = await AssessmentResult.find({ userEmail: req.user.email })
+      .sort({ completedAt: -1, startTimeMs: -1 })
+      .lean();
+    res.json({ ok: true, list: list });
+  } catch (err) {
+    console.error('[Student API] Get assessment list error:', err);
+    res.status(500).json({ error: 'Failed to retrieve assessments.' });
+  }
+});
+
+/**
+ * POST /api/assessment/evaluate — Perform server-side evaluation of student answers
+ */
+router.post('/assessment/evaluate', async function (req, res) {
+  try {
+    const { questions, userAnswers } = req.body;
+    let correctCount = 0;
+    let wrongCount = 0;
+    const groupStats = {};
+    const evaluatedQuestions = [];
+
+    for (let idx = 0; idx < questions.length; idx++) {
+      const q = questions[idx];
+      const userAns = userAnswers[idx];
+      let isCorrect = false;
+
+      const grpId = q.groupId || "official";
+      const grpTitle = q.groupTitle || grpId;
+
+      if (!groupStats[grpId]) {
+        groupStats[grpId] = {
+          groupId: grpId,
+          groupTitle: grpTitle,
+          total: 0,
+          correct: 0,
+          wrong: 0,
+        };
+      }
+      groupStats[grpId].total++;
+
+      // Fetch correct answers from MongoDB database
+      let dbQ = null;
+      if (q.dbId) {
+        dbQ = await PracticeQuestion.findById(q.dbId).lean();
+      }
+
+      const qType = dbQ ? dbQ.type : (q.type === 'fill_blank' ? 'fib' : q.type);
+      const qOptions = dbQ ? dbQ.options : q.options;
+      const dbCorrectAnswer = dbQ ? dbQ.correctAnswer : (q.correctAnswerText || '');
+
+      if (qType === 'mcq_multi') {
+        const expectedAnswers = dbCorrectAnswer.split(',').map(s => s.trim());
+        const expectedIndices = expectedAnswers.map(ans => qOptions.indexOf(ans)).filter(i => i >= 0).sort();
+        const userIndices = Array.isArray(userAns) ? userAns.slice().sort() : [];
+        isCorrect = expectedIndices.length > 0 &&
+                    expectedIndices.length === userIndices.length &&
+                    expectedIndices.every((v, i) => v === userIndices[i]);
+      } else if (qType === 'mcq') {
+        const expectedIdx = qOptions.indexOf(dbCorrectAnswer);
+        isCorrect = userAns === expectedIdx;
+      } else if (qType === 'fib') {
+        const expected = dbCorrectAnswer.trim().toLowerCase();
+        const actual = typeof userAns === 'string' ? userAns.trim().toLowerCase() : '';
+        isCorrect = expected.length > 0 && expected === actual;
+      }
+
+      q.userAnswer = userAns;
+      q.isCorrect = isCorrect;
+
+      if (isCorrect) {
+        correctCount++;
+        groupStats[grpId].correct++;
+      } else {
+        wrongCount++;
+        groupStats[grpId].wrong++;
+      }
+
+      evaluatedQuestions.push(q);
+    }
+
+    // Compute accuracy percentages
+    Object.keys(groupStats).forEach((gId) => {
+      const g = groupStats[gId];
+      g.percentage = g.total > 0 ? Number(((g.correct / g.total) * 100).toFixed(2)) : 0;
+    });
+
+    const percentage = questions.length > 0 ? Number(((correctCount / questions.length) * 100).toFixed(2)) : 0;
+
+    res.json({
+      ok: true,
+      correctCount: correctCount,
+      wrongCount: wrongCount,
+      percentage: percentage,
+      groupStats: groupStats,
+      questions: evaluatedQuestions
+    });
+  } catch (err) {
+    console.error('[Student API] Evaluation error:', err);
+    res.status(500).json({ error: 'Failed to evaluate assessment.' });
   }
 });
 

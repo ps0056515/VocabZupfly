@@ -31,6 +31,7 @@ LQ.SCREEN_META = {
   'admin-admins': { title: 'Admins', parent: 'home', nav: 'admin-admins', hint: 'Manage organization administrators.' },
   'admin-orgs': { title: 'Organizations', parent: 'home', nav: 'admin-orgs', hint: 'View organization details.' },
   'admin-questions': { title: 'Questions', parent: 'home', nav: 'admin-questions', hint: 'Manage question bank, categories & evaluations.' },
+  'admin-practice-questions': { title: 'Practice Questions', parent: 'home', nav: 'admin-practice-questions', hint: 'Manage practice questions.' },
   'admin-tenses': { title: 'Tenses', parent: 'home', nav: 'admin-tenses', hint: 'Manage tenses groups.' },
   'admin-words': { title: 'Words', parent: 'home', nav: 'admin-words', hint: 'Manage vocabulary words database.' },
   'admin-word-lists': { title: 'Word Lists', parent: 'home', nav: 'admin-word-lists', hint: 'Manage vocabulary lists.' },
@@ -301,6 +302,7 @@ LQ.setupRoleNavigation = function (user) {
         '<p class="desktop-rail-label" style="margin-top:0">Management</p>' +
         '<button type="button" class="desktop-rail-item" id="desktop-nav-admin-students" onclick="goTo(\'admin-students\')"><span class="rail-icon">👩‍🎓</span> Students</button>' +
         '<button type="button" class="desktop-rail-item" id="desktop-nav-admin-questions" onclick="goTo(\'admin-questions\')"><span class="rail-icon">❓</span> Questions</button>' +
+        '<button type="button" class="desktop-rail-item" id="desktop-nav-admin-practice-questions" onclick="goTo(\'admin-practice-questions\')"><span class="rail-icon">📝</span> Practice Qs</button>' +
         '<button type="button" class="desktop-rail-item" id="desktop-nav-admin-tenses" onclick="goTo(\'admin-tenses\')"><span class="rail-icon">🕒</span> Tenses</button>' +
         '<button type="button" class="desktop-rail-item" id="desktop-nav-admin-words" onclick="goTo(\'admin-words\')"><span class="rail-icon">📝</span> Words</button>' +
         '<button type="button" class="desktop-rail-item" id="desktop-nav-admin-word-lists" onclick="goTo(\'admin-word-lists\')"><span class="rail-icon">📋</span> Word Lists</button>' +
