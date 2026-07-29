@@ -1306,6 +1306,7 @@ body.native-app .desktop-only-ui{display:none!important}
         <div class="screen" id="screen-admin-profile"><div id="admin-profile-wrap"></div></div>
         <div class="screen" id="screen-change-password"><div id="change-password-wrap"></div></div>
         <div class="screen" id="screen-admin-questions"><div id="admin-questions-wrap" class="admin-fixed-layout-screen"></div></div>
+        <div class="screen" id="screen-admin-tests"><div id="admin-tests-wrap" class="admin-fixed-layout-screen"></div></div>
         <div class="screen" id="screen-admin-practice-questions"><div id="admin-practice-questions-wrap" class="admin-fixed-layout-screen"></div></div>
         <div class="screen" id="screen-admin-tenses"><div id="admin-tenses-wrap" class="admin-fixed-layout-screen"></div></div>
         <div class="screen" id="screen-admin-words"><div id="admin-words-wrap" class="admin-fixed-layout-screen"></div></div>
@@ -1366,8 +1367,11 @@ body.native-app .desktop-only-ui{display:none!important}
                 <h1 class="portal-title">Assessment</h1>
                 <p class="portal-tagline">Custom practice evaluations &amp; official tests</p>
               </div>
-              <div class="portal-header-actions">
-                <button type="button" class="btn primary" onclick="LQ.openCreateAssessmentModal()">+ Create Practice Assessment</button>
+              <div class="portal-header-actions" style="display:flex;gap:12px;align-items:center">
+                <button type="button" class="btn primary" id="btn-create-practice-asm" onclick="LQ.openCreateAssessmentModal()">+ Create Practice Assessment</button>
+                <div class="asm-search-wrap" style="display:none;align-items:center;width:240px">
+                  <input type="text" id="asm-search-input" placeholder="Search tests..." style="width:100%;height:38px;padding:0 12px;font-size:13px;border:1px solid #cbd5e1;border-radius:8px" oninput="LQ.onAssessmentSearchInput()">
+                </div>
               </div>
             </div>
             <div class="asm-tab-row">
@@ -1419,6 +1423,7 @@ body.native-app .desktop-only-ui{display:none!important}
                 <h3>No Tests Available</h3>
                 <p>No official tests available at the moment. Check back soon!</p>
               </div>
+              <div id="official-test-pagination" class="admin-pagination" style="margin-top:20px;display:flex;justify-content:center;gap:4px"></div>
             </div>
           </div>
         </div>

@@ -5,6 +5,8 @@ window.LQ = window.LQ || {};
   let activeFilter = "new";
   let activeSession = null;
   let timerInterval = null;
+  let testPage = 1;
+  let testSearch = "";
 
   function formatScoreNum(num) {
     if (num === null || num === undefined || isNaN(num)) return 0;
@@ -25,6 +27,8 @@ window.LQ = window.LQ || {};
     const btnTest = document.getElementById("tab-btn-test");
     const viewPractice = document.getElementById("assessment-practice-view");
     const viewTest = document.getElementById("assessment-test-view");
+    const btnCreatePractice = document.getElementById("btn-create-practice-asm");
+    const searchWrap = document.querySelector(".asm-search-wrap");
 
     if (btnPractice)
       btnPractice.classList.toggle("active", activeTab === "practice");
@@ -32,6 +36,13 @@ window.LQ = window.LQ || {};
     if (viewPractice)
       viewPractice.classList.toggle("hidden", activeTab !== "practice");
     if (viewTest) viewTest.classList.toggle("hidden", activeTab !== "test");
+
+    if (btnCreatePractice) {
+      btnCreatePractice.style.display = activeTab === "practice" ? "inline-flex" : "none";
+    }
+    if (searchWrap) {
+      searchWrap.style.display = activeTab === "test" ? "flex" : "none";
+    }
 
     if (activeTab === "practice") {
       LQ.loadPracticeAssessmentCards();
@@ -209,98 +220,50 @@ window.LQ = window.LQ || {};
   LQ.loadOfficialTestCards = async function () {
     const listWrap = document.getElementById("official-test-list-grid");
     const emptyState = document.getElementById("official-test-empty-state");
+    const pagWrap = document.getElementById("official-test-pagination");
     if (!listWrap) return;
 
-    let officialTests = [];
+    var params = 'page=' + testPage + '&limit=10&status=' + activeFilter;
+    if (testSearch) params += '&search=' + encodeURIComponent(testSearch);
+
+    let displayTests = [];
+    let totalPages = 1;
+    let currentPage = 1;
+
     try {
-      const res = await fetch("/api/cms/tests?t=" + Date.now(), {
+      const res = await fetch("/api/student/tests?" + params, {
+        credentials: "include",
         cache: "no-store",
       });
       if (res.ok) {
         const data = await res.json();
-        officialTests = data.tests || [];
+        displayTests = data.tests || [];
+        totalPages = data.pages || 1;
+        currentPage = data.page || 1;
       }
     } catch (e) {
-      console.warn("Could not fetch server official tests", e);
+      console.warn("Could not fetch server assigned tests", e);
     }
-    fetchedOfficialTests = officialTests;
+    // Update global fetchedOfficialTests
+    fetchedOfficialTests = displayTests;
 
-    let profile = null;
-    try {
-      profile = JSON.parse(localStorage.getItem("lq_user_profile") || "null");
-    } catch (e) {}
-
-    let userResults = [];
-    if (profile && profile.email) {
-      try {
-        const resRes = await fetch(
-          "/api/cms/tests/results?email=" +
-            encodeURIComponent(profile.email) +
-            "&t=" +
-            Date.now(),
-          { cache: "no-store" },
-        );
-        if (resRes.ok) {
-          const rData = await resRes.json();
-          userResults = rData.results || [];
-        }
-      } catch (e) {}
-    }
-
-    const localCompleted = await LQ.AssessmentDB.getAllAssessments();
     const now = Date.now();
-
-    let displayTests = officialTests.filter((item) => {
-      const startMs = parseLocalDatetimeMs(item.startTime);
-      const endMs = parseLocalDatetimeMs(item.endTime);
-      const isDone =
-        userResults.some(
-          (r) =>
-            String(r.testId) === String(item.id) && r.status === "completed",
-        ) ||
-        localCompleted.some(
-          (c) => String(c.id) === String(item.id) && c.status === "completed",
-        );
-
-      if (activeFilter === "new") {
-        // Show all non-completed official tests
-        return !isDone;
-      } else if (activeFilter === "completed") {
-        // Show all completed official tests
-        return isDone;
-      }
-      return true;
-    });
 
     if (!displayTests.length) {
       listWrap.innerHTML = "";
       if (emptyState) emptyState.classList.remove("hidden");
+      if (pagWrap) pagWrap.innerHTML = "";
       return;
     }
     if (emptyState) emptyState.classList.add("hidden");
 
     listWrap.innerHTML = displayTests
       .map((item) => {
-        const startMs = parseLocalDatetimeMs(item.startTime);
-        const endMs = parseLocalDatetimeMs(item.endTime);
+        const startMs = item.startTime ? new Date(item.startTime).getTime() : 0;
+        const endMs = item.endTime ? new Date(item.endTime).getTime() : 0;
         const isUpcoming = now < startMs;
         const isExpired = now > endMs;
-
-        const isDone =
-          userResults.some(
-            (r) => r.testId === item.id && r.status === "completed",
-          ) ||
-          localCompleted.some(
-            (c) => c.id === item.id && c.status === "completed",
-          );
-
-        const completedResult =
-          userResults.find(
-            (r) => r.testId === item.id && r.status === "completed",
-          ) ||
-          localCompleted.find(
-            (c) => c.id === item.id && c.status === "completed",
-          );
+        const isDone = item.isCompleted;
 
         const startStr = item.startTime
           ? new Date(item.startTime).toLocaleString(undefined, {
@@ -314,10 +277,11 @@ window.LQ = window.LQ || {};
               timeStyle: "short",
             })
           : "—";
-        const durTag = item.durationMinutes
-          ? "<span>⏱️ " + item.durationMinutes + " mins</span>"
+        const totalDurMins = Math.ceil((item.totalDurationSec || 0) / 60);
+        const durTag = totalDurMins
+          ? "<span>⏱️ " + totalDurMins + " mins</span>"
           : "";
-        const qCount = (item.questions || []).length;
+        const qCount = item.totalQuestions || 0;
 
         let statusText = "⚡ Active Test";
         if (isDone) {
@@ -329,8 +293,8 @@ window.LQ = window.LQ || {};
         }
 
         let scoreBadge = "";
-        if (isDone && completedResult) {
-          const pctNum = formatScoreNum(completedResult.percentage);
+        if (isDone && item.completedResult) {
+          const pctNum = formatScoreNum(item.completedResult.percentage);
           const themeClass =
             pctNum > 60 ? "green" : pctNum > 30 ? "amber" : "coral";
           scoreBadge =
@@ -340,9 +304,9 @@ window.LQ = window.LQ || {};
             "Score: <strong>" +
             pctNum +
             "%</strong> (" +
-            (completedResult.correctCount || 0) +
+            (item.completedResult.correctCount || 0) +
             "/" +
-            (completedResult.totalQuestions || qCount) +
+            (item.completedResult.totalQuestions || qCount) +
             " Correct)" +
             "</div>";
         }
@@ -402,24 +366,71 @@ window.LQ = window.LQ || {};
         );
       })
       .join("");
+
+    // Render pagination controls
+    if (pagWrap) {
+      if (totalPages <= 1) {
+        pagWrap.innerHTML = "";
+      } else {
+        var btns = "";
+        for (var p = 1; p <= totalPages; p++) {
+          btns += '<button type="button" class="admin-btn admin-btn-sm' + (p === currentPage ? ' admin-btn-primary' : '') + '" onclick="LQ.switchTestPage(' + p + ')">' + p + '</button>';
+        }
+        pagWrap.innerHTML = btns;
+      }
+    }
+  };
+
+  LQ.switchTestPage = function (p) {
+    testPage = p;
+    LQ.loadOfficialTestCards();
+  };
+
+  LQ.onAssessmentSearchInput = function () {
+    const val = (document.getElementById('asm-search-input') || {}).value || '';
+    if (val.trim().length > 0 && val.trim().length < 3) return;
+    testSearch = val;
+    testPage = 1;
+    if (activeTab === 'test') {
+      LQ.loadOfficialTestCards();
+    } else {
+      // (Optional: search practice assessments locally)
+      const listWrap = document.getElementById("assessment-list-grid");
+      if (listWrap) {
+        LQ.AssessmentDB.getAllAssessments().then(function (items) {
+          const filtered = items.filter(function (item) {
+            return (item.title || '').toLowerCase().includes(val.toLowerCase());
+          });
+          LQ.renderAssessmentCards(filtered);
+        });
+      }
+    }
   };
 
   LQ.openTestInstructionModal = async function (testId) {
     pendingOfficialTestId = testId;
-    let test = (fetchedOfficialTests || []).find(
-      (t) => String(t.id) === String(testId),
-    );
+    let test = null;
+    try {
+      const res = await fetch("/api/student/tests/" + testId, {
+        credentials: "include",
+        cache: "no-store",
+      });
+      if (res.ok) {
+        const data = await res.json();
+        test = data.test;
+      }
+    } catch (e) {
+      console.warn("Could not fetch test details", e);
+    }
+
     if (!test) {
+      // Fallback to cms
       try {
-        const res = await fetch("/api/cms/tests?t=" + Date.now(), {
-          cache: "no-store",
-        });
+        const res = await fetch("/api/cms/tests?t=" + Date.now(), { cache: "no-store" });
         if (res.ok) {
           const data = await res.json();
-          fetchedOfficialTests = data.tests || [];
-          test = fetchedOfficialTests.find(
-            (t) => String(t.id) === String(testId),
-          );
+          var cmsTests = data.tests || [];
+          test = cmsTests.find((t) => String(t.id) === String(testId));
         }
       } catch (e) {}
     }
@@ -432,6 +443,37 @@ window.LQ = window.LQ || {};
         durationMinutes: 20,
         questions: [],
       };
+    } else {
+      if (test._id && !test.id) test.id = test._id;
+      if (test.sections && test.sections.length) {
+        var flatQuestions = [];
+        test.sections.forEach(function (sec) {
+          (sec.questions || []).forEach(function (q) {
+            flatQuestions.push({
+              id: q.questionId || q._id,
+              text: q.questionText,
+              type: q.type,
+              mcqType: q.mcqType,
+              options: q.options,
+              correctAnswerIndex: q.options ? q.options.indexOf(q.correctAnswer) : null,
+              correctAnswerText: q.correctAnswer || "",
+              groupTitle: sec.name
+            });
+          });
+        });
+        test.questions = flatQuestions;
+      }
+      if (test.totalDurationSec) {
+        test.durationMinutes = Math.ceil(test.totalDurationSec / 60);
+      }
+    }
+
+    // Cache in fetchedOfficialTests
+    var idx = (fetchedOfficialTests || []).findIndex(t => String(t.id) === String(testId));
+    if (idx !== -1) {
+      fetchedOfficialTests[idx] = test;
+    } else {
+      fetchedOfficialTests.push(test);
     }
 
     const modal = document.getElementById("modal-test-instruction");
@@ -555,15 +597,36 @@ window.LQ = window.LQ || {};
 
   LQ.startOfficialTestSession = async function (testId, candidate) {
     const test = (fetchedOfficialTests || []).find(
-      (t) => String(t.id) === String(testId),
+      (t) => String(t.id) === String(testId) || String(t._id) === String(testId),
     );
     if (!test) {
       LQ.toast("Test not found");
       return;
     }
 
+    if (test.sections && test.sections.length) {
+      var flatQuestions = [];
+      test.sections.forEach(function (sec) {
+        (sec.questions || []).forEach(function (q) {
+          flatQuestions.push({
+            id: q.questionId || q._id,
+            text: q.questionText,
+            type: q.type,
+            mcqType: q.mcqType,
+            options: q.options,
+            correctAnswerIndex: q.options ? q.options.indexOf(q.correctAnswer) : null,
+            correctAnswerText: q.correctAnswer || "",
+            groupTitle: sec.name
+          });
+        });
+      });
+      test.questions = flatQuestions;
+    }
+
     let calcSeconds = null;
-    if (test.durationMinutes) {
+    if (test.totalDurationSec) {
+      calcSeconds = test.totalDurationSec;
+    } else if (test.durationMinutes) {
       calcSeconds = parseInt(test.durationMinutes, 10) * 60;
     } else if (test.endTime) {
       const endMs = parseLocalDatetimeMs(test.endTime);
@@ -573,7 +636,7 @@ window.LQ = window.LQ || {};
       }
     }
     if (!calcSeconds || isNaN(calcSeconds) || calcSeconds <= 0) {
-      calcSeconds = 15 * 60; // 15-minute default timer if un-timed
+      calcSeconds = 15 * 60;
     }
 
     let timerRecord = null;

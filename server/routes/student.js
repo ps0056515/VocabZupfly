@@ -4,6 +4,7 @@ const WordList = require('../models/WordList');
 const TenseContent = require('../models/TenseContent');
 const PracticeQuestion = require('../models/PracticeQuestion');
 const AssessmentResult = require('../models/AssessmentResult');
+const Test = require('../models/Test');
 const { authenticate } = require('../middleware/auth');
 
 const router = express.Router();
@@ -295,6 +296,123 @@ router.post('/assessment/evaluate', async function (req, res) {
   } catch (err) {
     console.error('[Student API] Evaluation error:', err);
     res.status(500).json({ error: 'Failed to evaluate assessment.' });
+  }
+});
+
+
+/**
+ * GET /api/student/tests — Get the list of tests assigned to the student
+ */
+router.get('/student/tests', async function (req, res) {
+  try {
+    var conditions = [
+      { isAssigned: true },
+      { isDisabled: false },
+      { $or: [{ orgId: req.user.orgId }, { orgId: null }] }
+    ];
+
+    if (req.query.search) {
+      var search = req.query.search.trim();
+      if (search) {
+        var safeRegex = new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+        conditions.push({ title: safeRegex });
+      }
+    }
+
+    var filter = conditions.length > 1 ? { $and: conditions } : conditions[0];
+
+    // Find all matching tests
+    var tests = await Test.find(filter)
+      .select('-sections.questions.correctAnswer -sections.questions.correctAnswers -sections.questions.explanation')
+      .sort({ startTime: -1 })
+      .lean();
+
+    // Fetch user's completed results
+    var results = await AssessmentResult.find({
+      userEmail: req.user.email,
+      status: 'completed'
+    }).select('assessmentId correctCount totalQuestions percentage').lean();
+
+    var completedMap = {};
+    results.forEach(function (r) {
+      if (r.assessmentId) {
+        completedMap[r.assessmentId.toString()] = {
+          correctCount: r.correctCount,
+          totalQuestions: r.totalQuestions,
+          percentage: r.percentage
+        };
+      }
+    });
+
+    // Match and filter based on status
+    var list = tests.map(function (t) {
+      var resObj = completedMap[t._id.toString()] || null;
+      var isCompleted = !!resObj;
+      return {
+        id: t._id,
+        title: t.title,
+        description: t.description,
+        totalQuestions: t.totalQuestions,
+        totalMarks: t.totalMarks,
+        totalDurationSec: t.totalDurationSec,
+        startTime: t.startTime,
+        endTime: t.endTime,
+        isCompleted: isCompleted,
+        completedResult: resObj,
+        showResult: t.showResult,
+        showAnswer: t.showAnswer,
+        malpracticeLimit: t.malpracticeLimit,
+        sectionsCount: (t.sections || []).length
+      };
+    });
+
+    var status = req.query.status || 'new';
+    if (status === 'new') {
+      list = list.filter(function (t) { return !t.isCompleted; });
+    } else if (status === 'completed') {
+      list = list.filter(function (t) { return t.isCompleted; });
+    }
+
+    // Apply pagination
+    var page = Math.max(1, parseInt(req.query.page) || 1);
+    var limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
+    var skip = (page - 1) * limit;
+
+    var paginatedList = list.slice(skip, skip + limit);
+
+    res.json({
+      ok: true,
+      tests: paginatedList,
+      total: list.length,
+      page: page,
+      pages: Math.ceil(list.length / limit),
+    });
+  } catch (err) {
+    console.error('[Student API] Get assigned tests error:', err);
+    res.status(500).json({ error: 'Failed to retrieve assigned tests.' });
+  }
+});
+
+/**
+ * GET /api/student/tests/:id — Get details of a specific assigned test
+ */
+router.get('/student/tests/:id', async function (req, res) {
+  try {
+    var test = await Test.findOne({
+      _id: req.params.id,
+      isAssigned: true,
+      isDisabled: false,
+      $or: [{ orgId: req.user.orgId }, { orgId: null }]
+    })
+    .select('-sections.questions.correctAnswer -sections.questions.correctAnswers -sections.questions.explanation')
+    .lean();
+
+    if (!test) return res.status(404).json({ error: 'Test not found or not assigned.' });
+
+    res.json({ ok: true, test: test });
+  } catch (err) {
+    console.error('[Student API] Get test detail error:', err);
+    res.status(500).json({ error: 'Failed to retrieve test details.' });
   }
 });
 

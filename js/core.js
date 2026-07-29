@@ -225,6 +225,7 @@ LQ.goTo = function (screen, opts) {
     'admin-admins': () => LQ.renderAdminListPage && LQ.renderAdminListPage(),
     'admin-orgs': () => LQ.renderAdminOrgsPage && LQ.renderAdminOrgsPage(),
     'admin-questions': () => LQ.renderAdminQuestionsPage && LQ.renderAdminQuestionsPage(),
+    'admin-tests': () => LQ.renderAdminTestsPage && LQ.renderAdminTestsPage(),
     'admin-practice-questions': () => LQ.renderAdminPracticeQuestionsPage && LQ.renderAdminPracticeQuestionsPage(),
     'admin-tenses': () => LQ.renderAdminTensesPage && LQ.renderAdminTensesPage(),
     'admin-words': () => LQ.renderAdminWordsPage && LQ.renderAdminWordsPage(),

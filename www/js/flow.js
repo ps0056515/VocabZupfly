@@ -31,6 +31,7 @@ LQ.SCREEN_META = {
   'admin-admins': { title: 'Admins', parent: 'home', nav: 'admin-admins', hint: 'Manage organization administrators.' },
   'admin-orgs': { title: 'Organizations', parent: 'home', nav: 'admin-orgs', hint: 'View organization details.' },
   'admin-questions': { title: 'Questions', parent: 'home', nav: 'admin-questions', hint: 'Manage question bank, categories & evaluations.' },
+  'admin-tests': { title: 'Tests', parent: 'home', nav: 'admin-tests', hint: 'Create and manage assessment tests.' },
   'admin-practice-questions': { title: 'Practice Questions', parent: 'home', nav: 'admin-practice-questions', hint: 'Manage practice questions.' },
   'admin-tenses': { title: 'Tenses', parent: 'home', nav: 'admin-tenses', hint: 'Manage tenses groups.' },
   'admin-words': { title: 'Words', parent: 'home', nav: 'admin-words', hint: 'Manage vocabulary words database.' },
@@ -284,6 +285,7 @@ LQ.setupRoleNavigation = function (user) {
         '<button type="button" class="desktop-rail-item" id="desktop-nav-admin-admins" onclick="goTo(\'admin-admins\')"><span class="rail-icon">🛡️</span> Admins</button>' +
         '<button type="button" class="desktop-rail-item" id="desktop-nav-admin-students" onclick="goTo(\'admin-students\')"><span class="rail-icon">👩‍🎓</span> Students</button>' +
         '<button type="button" class="desktop-rail-item" id="desktop-nav-admin-questions" onclick="goTo(\'admin-questions\')"><span class="rail-icon">❓</span> Questions</button>' +
+        '<button type="button" class="desktop-rail-item" id="desktop-nav-admin-tests" onclick="goTo(\'admin-tests\')"><span class="rail-icon">📝</span> Tests</button>' +
         '<button type="button" class="desktop-rail-item" id="desktop-nav-cms" onclick="goTo(\'cms\')"><span class="rail-icon">⚙️</span> Content CMS</button>' +
       '</div>' +
       '<div class="desktop-rail-footer" style="flex-shrink:0;margin-top:auto;border-top:1px solid rgba(255,255,255,0.06);padding-top:8px;padding-bottom:4px">' +
@@ -302,6 +304,7 @@ LQ.setupRoleNavigation = function (user) {
         '<p class="desktop-rail-label" style="margin-top:0">Management</p>' +
         '<button type="button" class="desktop-rail-item" id="desktop-nav-admin-students" onclick="goTo(\'admin-students\')"><span class="rail-icon">👩‍🎓</span> Students</button>' +
         '<button type="button" class="desktop-rail-item" id="desktop-nav-admin-questions" onclick="goTo(\'admin-questions\')"><span class="rail-icon">❓</span> Questions</button>' +
+        '<button type="button" class="desktop-rail-item" id="desktop-nav-admin-tests" onclick="goTo(\'admin-tests\')"><span class="rail-icon">📝</span> Tests</button>' +
         '<button type="button" class="desktop-rail-item" id="desktop-nav-admin-practice-questions" onclick="goTo(\'admin-practice-questions\')"><span class="rail-icon">📝</span> Practice Qs</button>' +
         '<button type="button" class="desktop-rail-item" id="desktop-nav-admin-tenses" onclick="goTo(\'admin-tenses\')"><span class="rail-icon">🕒</span> Tenses</button>' +
         '<button type="button" class="desktop-rail-item" id="desktop-nav-admin-words" onclick="goTo(\'admin-words\')"><span class="rail-icon">📝</span> Words</button>' +

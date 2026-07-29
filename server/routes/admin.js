@@ -17,6 +17,7 @@ const Word = require('../models/Word');
 const WordList = require('../models/WordList');
 const TenseContent = require('../models/TenseContent');
 const PracticeQuestion = require('../models/PracticeQuestion');
+const Test = require('../models/Test');
 const { authenticate, requireRole } = require('../middleware/auth');
 
 const router = express.Router();
@@ -607,13 +608,33 @@ router.get('/questions', requireRole('admin', 'super_admin'), async function (re
     var conditions = [];
 
     if (req.user.role === 'admin') {
-      conditions.push({ orgId: req.user.orgId });
+      conditions.push({ $or: [{ orgId: req.user.orgId }, { orgId: null }] });
     }
 
     if (req.query.status === 'active') {
       conditions.push({ isActive: true });
     } else if (req.query.status === 'inactive') {
       conditions.push({ isActive: false });
+    }
+
+    if (req.query.type) {
+      conditions.push({ type: req.query.type });
+    }
+
+    if (req.query.category) {
+      conditions.push({ category: req.query.category });
+    }
+
+    if (req.query.tenseGroup) {
+      conditions.push({ tenseGroup: req.query.tenseGroup });
+    }
+
+    if (req.query.wordList) {
+      conditions.push({ wordList: req.query.wordList });
+    }
+
+    if (req.query.difficulty) {
+      conditions.push({ difficulty: req.query.difficulty });
     }
 
     if (req.query.search) {
@@ -662,22 +683,313 @@ router.post('/questions', requireRole('admin', 'super_admin'), async function (r
       return res.status(400).json({ error: 'Question text is required.' });
     }
 
+    var orgIdValue = null;
+    if (req.user.role === 'admin') {
+      orgIdValue = req.user.orgId;
+    } else {
+      var bodyOrgId = req.body.orgId;
+      if (bodyOrgId && bodyOrgId !== 'global') {
+        orgIdValue = bodyOrgId;
+      }
+    }
+
     var q = await Question.create({
       questionText: questionText,
       category: req.body.category || 'General',
       tenseGroup: req.body.tenseGroup || null,
+      wordList: req.body.wordList || null,
       difficulty: req.body.difficulty || 'medium',
+      type: req.body.type || 'mcq',
+      mcqType: req.body.mcqType || 'single',
+      marks: typeof req.body.marks === 'number' ? req.body.marks : 1,
+      duration: typeof req.body.duration === 'number' ? req.body.duration : 1,
+      durationType: ['seconds', 'minutes', 'hours'].indexOf(req.body.durationType) !== -1 ? req.body.durationType : 'minutes',
+      playLimit: typeof req.body.playLimit === 'number' ? req.body.playLimit : 1,
+      subQuestions: req.body.subQuestions || [],
       options: req.body.options || [],
       correctAnswer: req.body.correctAnswer || '',
+      correctAnswers: req.body.correctAnswers || [],
       explanation: req.body.explanation || '',
       createdBy: req.user.id,
-      orgId: req.user.role === 'admin' ? req.user.orgId : (req.body.orgId || req.user.orgId),
+      orgId: orgIdValue,
     });
 
     res.status(201).json({ ok: true, question: q });
   } catch (err) {
     console.error('[Admin] Create question error:', err);
     res.status(500).json({ error: 'Failed to create question.' });
+  }
+});
+
+/**
+ * GET /api/admin/questions/bulk/template — Download CSV bulk template for different question types
+ */
+router.get('/questions/bulk/template', requireRole('admin', 'super_admin'), function (req, res) {
+  var type = req.query.type || 'mcq';
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', 'attachment; filename=lexiquest_template_' + type + '.csv');
+
+  if (type === 'mcq') {
+    res.send(
+      'questionText,category,tenseGroup,wordList,difficulty,marks,duration,durationType,mcqType,optionA,optionB,optionC,optionD,optionE,optionF,correctAnswer,explanation\r\n' +
+      '"What is the capital of France?","General","","","easy",1,1,"minutes","single","Paris","London","Berlin","Rome","","","A","Paris is the capital of France."'
+    );
+  } else if (type === 'fib') {
+    res.send(
+      'questionText,category,tenseGroup,wordList,difficulty,marks,duration,durationType,correctAnswers,explanation\r\n' +
+      '"The sun rises in the ${blank} and sets in the ${blank}.","General","","","medium",2,2,"minutes","east,west","Sun rises in east and sets in west."'
+    );
+  } else if (type === 'speech') {
+    res.send(
+      'type,questionText,category,tenseGroup,wordList,difficulty,marks,duration,durationType,playLimit,explanation\r\n' +
+      '"listen_repeat","I would like to have a cup of tea.","General","","","medium",1,30,"seconds",1,"Listen and repeat the spoken sentence."'
+    );
+  } else {
+    res.status(400).send('Invalid template type');
+  }
+});
+
+/**
+ * POST /api/admin/questions/bulk — Process bulk upload questions via Excel/CSV
+ */
+router.post('/questions/bulk', requireRole('admin', 'super_admin'), upload.single('file'), async function (req, res) {
+  try {
+    var bulkType = req.body.type || 'mcq';
+    if (!req.file) {
+      return res.status(400).json({ error: 'Please upload an Excel or CSV file.' });
+    }
+
+    var workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
+    var sheetName = workbook.SheetNames[0];
+    var sheet = workbook.Sheets[sheetName];
+    var rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+    if (!rows.length) {
+      return res.status(400).json({ error: 'The uploaded file has no data rows.' });
+    }
+
+    var saved = [];
+    var failed = [];
+
+    var orgIdValue = null; // Always save bulk questions as global (null) by default
+
+    for (var i = 0; i < rows.length; i++) {
+      var row = rows[i];
+      var errs = [];
+
+      var questionText = (row.questionText || '').toString().trim();
+      var category = (row.category || 'General').toString().trim();
+      var tenseGroup = (row.tenseGroup || '').toString().trim() || null;
+      var wordList = (row.wordList || '').toString().trim() || null;
+      var difficulty = (row.difficulty || 'medium').toString().trim().toLowerCase();
+      var marks = parseInt(row.marks, 10);
+      if (isNaN(marks) || marks < 1) marks = 1;
+      
+      var duration = parseInt(row.duration, 10);
+      if (isNaN(duration) || duration < 1) {
+        errs.push('Duration is required and must be a positive number.');
+      }
+      var durationType = (row.durationType || 'minutes').toString().trim().toLowerCase();
+      if (['seconds', 'minutes', 'hours'].indexOf(durationType) === -1) {
+        errs.push('Duration type is required and must be one of: seconds, minutes, hours.');
+      }
+      
+      var explanation = (row.explanation || '').toString().trim();
+
+      if (!questionText) {
+        errs.push('Question text is required.');
+      }
+
+      if (['easy', 'medium', 'hard'].indexOf(difficulty) === -1) {
+        difficulty = 'medium';
+      }
+
+      var qType = bulkType;
+      var mcqType = 'single';
+      var options = [];
+      var correctAnswer = '';
+      var correctAnswers = [];
+      var playLimit = 1;
+
+      if (bulkType === 'mcq') {
+        qType = 'mcq';
+        mcqType = (row.mcqType || 'single').toString().trim().toLowerCase();
+        if (['single', 'multiple'].indexOf(mcqType) === -1) mcqType = 'single';
+
+        var optA = (row.optionA || '').toString().trim();
+        var optB = (row.optionB || '').toString().trim();
+        var optC = (row.optionC || '').toString().trim();
+        var optD = (row.optionD || '').toString().trim();
+        var optE = (row.optionE || '').toString().trim();
+        var optF = (row.optionF || '').toString().trim();
+
+        if (optA) options.push(optA);
+        if (optB) options.push(optB);
+        if (optC) options.push(optC);
+        if (optD) options.push(optD);
+        if (optE) options.push(optE);
+        if (optF) options.push(optF);
+
+        if (options.length < 2) {
+          errs.push('At least optionA and optionB are required.');
+        }
+
+        var correctRaw = (row.correctAnswer || '').toString().trim();
+        if (!correctRaw) {
+          errs.push('correctAnswer is required (e.g. A or A,B).');
+        } else {
+          correctAnswers = correctRaw.split(',').map(function(s) { return s.trim().toUpperCase(); });
+          correctAnswers.forEach(function(ans) {
+            var code = ans.charCodeAt(0);
+            var optIdx = code - 65;
+            if (optIdx < 0 || optIdx >= options.length) {
+              errs.push('Invalid correctAnswer letter: "' + ans + '". Must be within the defined options.');
+            }
+          });
+          correctAnswer = correctAnswers.join(',');
+        }
+      } else if (bulkType === 'fib') {
+        qType = 'fib';
+        var blanksCount = (questionText.match(/\$\{blank\}/g) || []).length;
+        if (blanksCount === 0) {
+          errs.push('Question text must contain at least one ${blank} token.');
+        }
+
+        var ansRaw = (row.correctAnswers || '').toString().trim();
+        if (!ansRaw) {
+          errs.push('correctAnswers is required (comma-separated).');
+        } else {
+          correctAnswers = ansRaw.split(',').map(function(s) { return s.trim(); });
+          if (correctAnswers.length !== blanksCount) {
+            errs.push('Blanks count (' + blanksCount + ') does not match correctAnswers list count (' + correctAnswers.length + ').');
+          }
+          correctAnswer = correctAnswers.join(',');
+        }
+      } else if (bulkType === 'speech') {
+        var rowType = (row.type || 'listen_repeat').toString().trim().toLowerCase();
+        if (['reading_listening', 'listen_repeat', 'jumbled_sentence', 'story_retelling'].indexOf(rowType) === -1) {
+          rowType = 'listen_repeat';
+        }
+        qType = rowType;
+        playLimit = parseInt(row.playLimit, 10);
+        if (isNaN(playLimit) || playLimit < 1) playLimit = 1;
+      }
+
+      if (errs.length) {
+        row.failedComment = errs.join(' ');
+        failed.push(row);
+      } else {
+        try {
+          var q = await Question.create({
+            type: qType,
+            mcqType: mcqType,
+            questionText: questionText,
+            category: category,
+            tenseGroup: tenseGroup,
+            wordList: wordList,
+            difficulty: difficulty,
+            marks: marks,
+            duration: duration,
+            durationType: durationType,
+            playLimit: playLimit,
+            options: options,
+            correctAnswer: correctAnswer,
+            correctAnswers: correctAnswers,
+            explanation: explanation,
+            createdBy: req.user.id,
+            orgId: orgIdValue
+          });
+          saved.push(q);
+        } catch (dbErr) {
+          row.failedComment = 'Database error: ' + dbErr.message;
+          failed.push(row);
+        }
+      }
+    }
+
+    res.json({
+      ok: true,
+      savedCount: saved.length,
+      failedCount: failed.length,
+      failed: failed
+    });
+  } catch (err) {
+    console.error('[Admin] Questions bulk upload error:', err);
+    res.status(500).json({ error: 'Failed to process bulk upload.' });
+  }
+});
+
+/**
+ * GET /api/admin/questions/:id — Get details of a single question
+ */
+router.get('/questions/:id', requireRole('admin', 'super_admin'), async function (req, res) {
+  try {
+    var q = await Question.findById(req.params.id);
+    if (!q) {
+      return res.status(404).json({ error: 'Question not found.' });
+    }
+    if (req.user.role === 'admin' && q.orgId && q.orgId.toString() !== req.user.orgId.toString()) {
+      return res.status(403).json({ error: 'Unauthorized to access this question.' });
+    }
+    res.json({ ok: true, question: q });
+  } catch (err) {
+    console.error('[Admin] Get question error:', err);
+    res.status(500).json({ error: 'Failed to fetch question details.' });
+  }
+});
+
+/**
+ * PUT /api/admin/questions/:id — Update details of a single question
+ */
+router.put('/questions/:id', requireRole('admin', 'super_admin'), async function (req, res) {
+  try {
+    var q = await Question.findById(req.params.id);
+    if (!q) {
+      return res.status(404).json({ error: 'Question not found.' });
+    }
+
+    if (req.user.role === 'admin' && q.orgId && q.orgId.toString() !== req.user.orgId.toString()) {
+      return res.status(403).json({ error: 'Unauthorized to update this question.' });
+    }
+
+    var questionText = (req.body.questionText || '').trim();
+    if (!questionText) {
+      return res.status(400).json({ error: 'Question text is required.' });
+    }
+
+    var orgIdValue = q.orgId;
+    if (req.user.role === 'super_admin') {
+      var bodyOrgId = req.body.orgId;
+      if (bodyOrgId === 'global' || !bodyOrgId) {
+        orgIdValue = null;
+      } else {
+        orgIdValue = bodyOrgId;
+      }
+    }
+
+    q.questionText = questionText;
+    q.category = req.body.category || 'General';
+    q.tenseGroup = req.body.tenseGroup || null;
+    q.wordList = req.body.wordList || null;
+    q.difficulty = req.body.difficulty || 'medium';
+    q.type = req.body.type || 'mcq';
+    q.mcqType = req.body.mcqType || 'single';
+    q.marks = typeof req.body.marks === 'number' ? req.body.marks : 1;
+    q.duration = typeof req.body.duration === 'number' ? req.body.duration : 1;
+    q.durationType = ['seconds', 'minutes', 'hours'].indexOf(req.body.durationType) !== -1 ? req.body.durationType : 'minutes';
+    q.playLimit = typeof req.body.playLimit === 'number' ? req.body.playLimit : 1;
+    q.subQuestions = req.body.subQuestions || [];
+    q.options = req.body.options || [];
+    q.correctAnswer = req.body.correctAnswer || '';
+    q.correctAnswers = req.body.correctAnswers || [];
+    q.explanation = req.body.explanation || '';
+    q.orgId = orgIdValue;
+
+    await q.save();
+    res.json({ ok: true, question: q });
+  } catch (err) {
+    console.error('[Admin] Update question error:', err);
+    res.status(500).json({ error: 'Failed to update question.' });
   }
 });
 
@@ -2057,6 +2369,367 @@ router.post('/practice-questions/import', requireRole('admin', 'super_admin'), u
   } catch (err) {
     console.error('[Admin] Bulk practice questions import error:', err);
     res.status(500).json({ error: 'Failed to process bulk upload.' });
+  }
+});
+
+
+/* ══════════════════════════════════════════════════
+   TEST MANAGEMENT
+   ══════════════════════════════════════════════════ */
+
+/**
+ * GET /api/admin/tests/check-title — Check if a test title is unique
+ */
+router.get('/tests/check-title', requireRole('admin', 'super_admin'), async function (req, res) {
+  try {
+    var title = (req.query.title || '').trim();
+    var excludeId = req.query.excludeId || null;
+    if (!title) return res.json({ ok: true, exists: false });
+
+    var filter = { title: new RegExp('^' + title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i') };
+    if (excludeId) filter._id = { $ne: excludeId };
+    var exists = await Test.findOne(filter).lean();
+    res.json({ ok: true, exists: !!exists });
+  } catch (err) {
+    console.error('[Admin] Check test title error:', err);
+    res.status(500).json({ error: 'Failed to check title.' });
+  }
+});
+
+/**
+ * GET /api/admin/tests — List tests with pagination, search, status, org filter
+ */
+router.get('/tests', requireRole('admin', 'super_admin'), async function (req, res) {
+  try {
+    var conditions = [];
+
+    if (req.user.role === 'admin') {
+      conditions.push({ $or: [{ orgId: req.user.orgId }, { orgId: null }] });
+    } else if (req.query.orgId && req.query.orgId !== 'all') {
+      conditions.push({ orgId: req.query.orgId });
+    }
+
+    if (req.query.status) {
+      var now = new Date();
+      if (req.query.status === 'draft') {
+        conditions.push({ isAssigned: false, isDisabled: false });
+      } else if (req.query.status === 'assigned') {
+        conditions.push({ isAssigned: true, isDisabled: false, startTime: { $gt: now } });
+      } else if (req.query.status === 'active') {
+        conditions.push({ isAssigned: true, isDisabled: false, startTime: { $lte: now }, endTime: { $gte: now } });
+      } else if (req.query.status === 'expired') {
+        conditions.push({ isAssigned: true, isDisabled: false, endTime: { $lt: now } });
+      } else if (req.query.status === 'disabled') {
+        conditions.push({ isDisabled: true });
+      }
+    }
+
+    if (req.query.search) {
+      var search = req.query.search.trim();
+      if (search) {
+        var safeRegex = new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+        conditions.push({ title: safeRegex });
+      }
+    }
+
+    var filter = conditions.length > 1 ? { $and: conditions } : (conditions.length === 1 ? conditions[0] : {});
+
+    var page = Math.max(1, parseInt(req.query.page) || 1);
+    var limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
+    var skip = (page - 1) * limit;
+
+    var total = await Test.countDocuments(filter);
+    var tests = await Test.find(filter)
+      .select('-sections.questions.correctAnswer -sections.questions.correctAnswers -sections.questions.explanation')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    res.json({
+      ok: true,
+      tests: tests,
+      total: total,
+      page: page,
+      pages: Math.ceil(total / limit),
+    });
+  } catch (err) {
+    console.error('[Admin] List tests error:', err);
+    res.status(500).json({ error: 'Failed to list tests.' });
+  }
+});
+
+/**
+ * POST /api/admin/tests — Create a new test
+ */
+router.post('/tests', requireRole('admin', 'super_admin'), async function (req, res) {
+  try {
+    var title = (req.body.title || '').trim();
+    if (!title) return res.status(400).json({ error: 'Test title is required.' });
+
+    var existing = await Test.findOne({ title: new RegExp('^' + title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i') });
+    if (existing) return res.status(400).json({ error: 'A test with this title already exists.' });
+
+    var sections = req.body.sections || [];
+    if (!sections.length) return res.status(400).json({ error: 'At least one section is required.' });
+
+    for (var si = 0; si < sections.length; si++) {
+      if (!sections[si].name || !sections[si].name.trim()) {
+        return res.status(400).json({ error: 'Section ' + (si + 1) + ' name is required.' });
+      }
+      if (!sections[si].questions || !sections[si].questions.length) {
+        return res.status(400).json({ error: 'Section "' + sections[si].name + '" must have at least one question.' });
+      }
+    }
+
+    var orgIdValue = null;
+    if (req.body.orgId && req.body.orgId !== 'global') {
+      orgIdValue = req.body.orgId;
+    }
+
+    var test = await Test.create({
+      title: title,
+      description: (req.body.description || '').trim(),
+      showResult: typeof req.body.showResult === 'boolean' ? req.body.showResult : true,
+      showAnswer: typeof req.body.showAnswer === 'boolean' ? req.body.showAnswer : true,
+      malpracticeLimit: typeof req.body.malpracticeLimit === 'number' ? Math.max(0, req.body.malpracticeLimit) : 3,
+      sections: sections,
+      createdBy: req.user.id,
+      orgId: orgIdValue,
+    });
+
+    res.status(201).json({ ok: true, test: test });
+  } catch (err) {
+    console.error('[Admin] Create test error:', err);
+    res.status(500).json({ error: 'Failed to create test.' });
+  }
+});
+
+/**
+ * GET /api/admin/tests/:id — Get single test details
+ */
+router.get('/tests/:id', requireRole('admin', 'super_admin'), async function (req, res) {
+  try {
+    var test = await Test.findById(req.params.id).lean();
+    if (!test) return res.status(404).json({ error: 'Test not found.' });
+    res.json({ ok: true, test: test });
+  } catch (err) {
+    console.error('[Admin] Get test error:', err);
+    res.status(500).json({ error: 'Failed to fetch test.' });
+  }
+});
+
+/**
+ * PUT /api/admin/tests/:id — Edit a test (only if not assigned or before start)
+ */
+router.put('/tests/:id', requireRole('admin', 'super_admin'), async function (req, res) {
+  try {
+    var test = await Test.findById(req.params.id);
+    if (!test) return res.status(404).json({ error: 'Test not found.' });
+
+    if (test.isAssigned && test.startTime && new Date() >= test.startTime) {
+      return res.status(400).json({ error: 'Cannot edit test after its start time.' });
+    }
+
+    var title = (req.body.title || '').trim();
+    if (!title) return res.status(400).json({ error: 'Test title is required.' });
+
+    var dup = await Test.findOne({
+      title: new RegExp('^' + title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i'),
+      _id: { $ne: test._id }
+    });
+    if (dup) return res.status(400).json({ error: 'A test with this title already exists.' });
+
+    var sections = req.body.sections || [];
+    if (!sections.length) return res.status(400).json({ error: 'At least one section is required.' });
+
+    for (var si = 0; si < sections.length; si++) {
+      if (!sections[si].name || !sections[si].name.trim()) {
+        return res.status(400).json({ error: 'Section ' + (si + 1) + ' name is required.' });
+      }
+      if (!sections[si].questions || !sections[si].questions.length) {
+        return res.status(400).json({ error: 'Section "' + sections[si].name + '" must have at least one question.' });
+      }
+    }
+
+    test.title = title;
+    test.description = (req.body.description || '').trim();
+    test.showResult = typeof req.body.showResult === 'boolean' ? req.body.showResult : true;
+    test.showAnswer = typeof req.body.showAnswer === 'boolean' ? req.body.showAnswer : true;
+    test.malpracticeLimit = typeof req.body.malpracticeLimit === 'number' ? Math.max(0, req.body.malpracticeLimit) : 3;
+    test.sections = sections;
+
+    if (req.body.orgId !== undefined) {
+      test.orgId = (req.body.orgId && req.body.orgId !== 'global') ? req.body.orgId : null;
+    }
+
+    await test.save();
+    res.json({ ok: true, test: test });
+  } catch (err) {
+    console.error('[Admin] Update test error:', err);
+    res.status(500).json({ error: 'Failed to update test.' });
+  }
+});
+
+/**
+ * DELETE /api/admin/tests/:id — Delete a test (only before start)
+ */
+router.delete('/tests/:id', requireRole('admin', 'super_admin'), async function (req, res) {
+  try {
+    var test = await Test.findById(req.params.id);
+    if (!test) return res.status(404).json({ error: 'Test not found.' });
+
+    if (test.isAssigned && test.startTime && new Date() >= test.startTime) {
+      return res.status(400).json({ error: 'Cannot delete test after its start time.' });
+    }
+
+    await Test.deleteOne({ _id: test._id });
+    res.json({ ok: true, message: 'Test deleted.' });
+  } catch (err) {
+    console.error('[Admin] Delete test error:', err);
+    res.status(500).json({ error: 'Failed to delete test.' });
+  }
+});
+
+/**
+ * POST /api/admin/tests/:id/clone — Clone a test with a new title
+ */
+router.post('/tests/:id/clone', requireRole('admin', 'super_admin'), async function (req, res) {
+  try {
+    var source = await Test.findById(req.params.id).lean();
+    if (!source) return res.status(404).json({ error: 'Source test not found.' });
+
+    var newTitle = (req.body.title || '').trim();
+    if (!newTitle) return res.status(400).json({ error: 'New test title is required.' });
+
+    var exists = await Test.findOne({ title: new RegExp('^' + newTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i') });
+    if (exists) return res.status(400).json({ error: 'A test with this title already exists.' });
+
+    delete source._id;
+    delete source.createdAt;
+    delete source.updatedAt;
+    delete source.__v;
+
+    source.title = newTitle;
+    source.startTime = null;
+    source.endTime = null;
+    source.isAssigned = false;
+    source.isDisabled = false;
+    source.createdBy = req.user.id;
+
+    // Generate new _ids for sections and questions
+    source.sections = (source.sections || []).map(function (sec) {
+      delete sec._id;
+      sec.questions = (sec.questions || []).map(function (q) {
+        delete q._id;
+        return q;
+      });
+      return sec;
+    });
+
+    var cloned = await Test.create(source);
+    res.status(201).json({ ok: true, test: cloned });
+  } catch (err) {
+    console.error('[Admin] Clone test error:', err);
+    res.status(500).json({ error: 'Failed to clone test.' });
+  }
+});
+
+/**
+ * PUT /api/admin/tests/:id/assign — Set start/end time (validates gap >= totalDuration)
+ */
+router.put('/tests/:id/assign', requireRole('admin', 'super_admin'), async function (req, res) {
+  try {
+    var test = await Test.findById(req.params.id);
+    if (!test) return res.status(404).json({ error: 'Test not found.' });
+
+    var startTime = req.body.startTime ? new Date(req.body.startTime) : null;
+    var endTime = req.body.endTime ? new Date(req.body.endTime) : null;
+
+    if (!startTime || !endTime) {
+      return res.status(400).json({ error: 'Both start time and end time are required.' });
+    }
+
+    if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
+      return res.status(400).json({ error: 'Invalid date format.' });
+    }
+
+    if (endTime <= startTime) {
+      return res.status(400).json({ error: 'End time must be after start time.' });
+    }
+
+    var gapSec = Math.floor((endTime.getTime() - startTime.getTime()) / 1000);
+    if (test.totalDurationSec > 0 && gapSec < test.totalDurationSec) {
+      var minMins = Math.ceil(test.totalDurationSec / 60);
+      return res.status(400).json({
+        error: 'The time window (' + Math.floor(gapSec / 60) + ' mins) must be at least the total test duration (' + minMins + ' mins).'
+      });
+    }
+
+    test.startTime = startTime;
+    test.endTime = endTime;
+    test.isAssigned = true;
+
+    await test.save();
+    res.json({ ok: true, test: test });
+  } catch (err) {
+    console.error('[Admin] Assign test error:', err);
+    res.status(500).json({ error: 'Failed to assign test.' });
+  }
+});
+
+/**
+ * PUT /api/admin/tests/:id/config — Update showResult / showAnswer (anytime)
+ */
+router.put('/tests/:id/config', requireRole('admin', 'super_admin'), async function (req, res) {
+  try {
+    var test = await Test.findById(req.params.id);
+    if (!test) return res.status(404).json({ error: 'Test not found.' });
+
+    if (typeof req.body.showResult === 'boolean') test.showResult = req.body.showResult;
+    if (typeof req.body.showAnswer === 'boolean') test.showAnswer = req.body.showAnswer;
+    if (typeof req.body.malpracticeLimit === 'number') test.malpracticeLimit = Math.max(0, req.body.malpracticeLimit);
+
+    await test.save();
+    res.json({ ok: true, test: test });
+  } catch (err) {
+    console.error('[Admin] Config test error:', err);
+    res.status(500).json({ error: 'Failed to update test config.' });
+  }
+});
+
+/**
+ * PUT /api/admin/tests/:id/disable — Toggle disable (re-enable clears times if passed)
+ */
+router.put('/tests/:id/disable', requireRole('admin', 'super_admin'), async function (req, res) {
+  try {
+    var test = await Test.findById(req.params.id);
+    if (!test) return res.status(404).json({ error: 'Test not found.' });
+
+    var wantDisabled = typeof req.body.isDisabled === 'boolean' ? req.body.isDisabled : !test.isDisabled;
+
+    if (wantDisabled) {
+      // Disabling: only allowed before start time
+      if (test.isAssigned && test.startTime && new Date() >= test.startTime) {
+        return res.status(400).json({ error: 'Cannot disable a test after its start time.' });
+      }
+      test.isDisabled = true;
+    } else {
+      // Re-enabling: if start/end time already passed, clear them
+      var now = new Date();
+      if (test.startTime && now >= test.startTime) {
+        test.startTime = null;
+        test.endTime = null;
+        test.isAssigned = false;
+      }
+      test.isDisabled = false;
+    }
+
+    await test.save();
+    res.json({ ok: true, test: test, message: test.isDisabled ? 'Test disabled.' : 'Test enabled.' });
+  } catch (err) {
+    console.error('[Admin] Disable test error:', err);
+    res.status(500).json({ error: 'Failed to update test status.' });
   }
 });
 
