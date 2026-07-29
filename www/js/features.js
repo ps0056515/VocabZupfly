@@ -371,7 +371,7 @@ LQ.renderSettings = function () {
     (allOn ? 'Open' : 'Linear') +
     '</span><span class="settings-stat-lbl">Lesson unlock</span></div>' +
     '</div></div></section>' +
-    (LQ.Config.showCmsLink
+    ((LQ.Config && LQ.Config.showCmsLink)
       ? '<section class="settings-card">' +
         '<div class="settings-card-head"><h3>Content manager (CMS)</h3>' +
         '<p>Business team: add or edit words, GRE lists, dictionary lists, and examples.</p></div>' +
@@ -403,7 +403,7 @@ LQ.renderSettings = function () {
     '<p>Notifications, cloud sync, and tutor mode.</p></div>' +
     '<div class="settings-card-body settings-action-stack">' +
     '<p class="settings-text" style="margin:0">AI Tutor: <strong>' +
-    (LQ.Config.tutorEndpoint || LQ.Config.aiEndpoint ? 'API + fallback' : 'Built-in') +
+    ((LQ.Config && (LQ.Config.tutorEndpoint || LQ.Config.aiEndpoint)) ? 'API + fallback' : 'Built-in') +
     '</strong></p>' +
     '<button type="button" class="portal-btn portal-btn-secondary show" onclick="LQ.toggleNotif()">' +
     'Notifications: ' +

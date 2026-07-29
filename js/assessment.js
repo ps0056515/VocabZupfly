@@ -2552,20 +2552,36 @@ window.LQ = window.LQ || {};
     }
 
     // 3. Move to next question or submit final
-    if (idx < asm.totalQuestions - 1) {
-      if (LQ._asmTimerId) {
-        clearInterval(LQ._asmTimerId);
-        LQ._asmTimerId = null;
+    try {
+      if (idx < asm.totalQuestions - 1) {
+        if (LQ._asmTimerId) {
+          clearInterval(LQ._asmTimerId);
+          LQ._asmTimerId = null;
+        }
+        activeSession.currentIndex = idx + 1;
+        LQ.renderSessionQuestion();
+        LQ.startSessionTimer();
+      } else {
+        // Last question of last section: Submit final assessment
+        await LQ.submitAssessmentSession();
       }
-      activeSession.currentIndex = idx + 1;
-      LQ.renderSessionQuestion();
-      LQ.startSessionTimer();
-      LQ.hideLoader();
-    } else {
-      // Last question of last section: Submit final assessment
-      LQ.submitAssessmentSession();
+    } catch (err) {
+      console.error("Transition to next question failed:", err);
+    } finally {
       LQ.hideLoader();
     }
+  };
+
+  LQ.resetAssessmentState = function () {
+    activeSession = null;
+    if (LQ._asmTimerId) {
+      clearInterval(LQ._asmTimerId);
+      LQ._asmTimerId = null;
+    }
+    try {
+      sessionStorage.removeItem("currentAssessmentId");
+      sessionStorage.removeItem("lastTestResult");
+    } catch (e) {}
   };
 
   LQ.saveInlineBlankAnswer = function (blankIdx, value) {

@@ -63,7 +63,7 @@ body.web-desktop .app-main {
 
 body.web-desktop .app-inner {
   flex: 1;
-  height: auto;
+  height: 100% !important;
   min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
@@ -253,4 +253,134 @@ body.web-desktop .tutor-chips,
 body.web-desktop .tutor-input-row {
   padding-left: 48px;
   padding-right: 48px;
+}
+
+body.web-desktop .app-inner::-webkit-scrollbar {
+  display: block !important;
+  width: 8px !important;
+}
+body.web-desktop .app-inner::-webkit-scrollbar-track {
+  background: #f8fafc !important;
+}
+body.web-desktop .app-inner::-webkit-scrollbar-thumb {
+  background: #cbd5e1 !important;
+  border-radius: 4px !important;
+}
+body.web-desktop .app-inner::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8 !important;
+}
+body.web-desktop .app-inner {
+  scrollbar-width: thin !important;
+  scrollbar-color: #cbd5e1 #f8fafc !important;
+}
+
+/* ── Static Header & Internal Scroll System ── */
+body.web-desktop .app-inner {
+  overflow: hidden !important;
+}
+
+body.web-desktop .app-inner > .screen.active {
+  flex: 1;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden !important;
+}
+
+/* Hide duplicate back button on desktop */
+body.web-desktop .flow-back-btn {
+  display: none !important;
+}
+
+/* Scrollable page body regions */
+body.web-desktop #screen-home .student-dash-body {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  padding: 32px 48px 48px;
+}
+body.web-desktop #screen-home .portal-header.student-dash-header {
+  flex-shrink: 0;
+  background: #fff;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+body.web-desktop #screen-vocab .home-body.air-body {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+body.web-desktop #screen-learn #learn-wrap {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  padding: 20px 48px 48px;
+}
+
+body.web-desktop #screen-revise #revise-wrap {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  padding: 20px 48px 48px;
+}
+
+body.web-desktop #screen-flashcard .fc-scroll-container {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  padding: 0 48px 48px;
+}
+
+body.web-desktop #screen-quiz .quiz-session {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  padding-bottom: 48px;
+}
+
+body.web-desktop #screen-wordbank #wb-list {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  padding: 20px 48px 48px;
+}
+
+body.web-desktop #screen-spelling .spell-screen-wrap {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  padding: 20px 48px 48px;
+}
+
+body.web-desktop #screen-drill #drill-wrap {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  padding: 20px 48px 48px;
+}
+
+body.web-desktop #screen-leagues #league-wrap {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  padding: 20px 48px 48px;
+}
+
+body.web-desktop #screen-settings #settings-wrap {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+body.portal-theme .settings-card {
+  flex-shrink: 0 !important;
+  margin-bottom: 20px;
+}
+
+body.web-desktop #screen-progress #prog-section {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  padding: 20px 48px 48px;
 }

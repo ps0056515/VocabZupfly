@@ -148,6 +148,7 @@ LQ.Auth = (function () {
       // Ignore network errors during logout
     }
     LQ.Store.dispatch({ type: 'CLEAR_USER' });
+    if (LQ.resetAssessmentState) LQ.resetAssessmentState();
     if (LQ.IDB) await LQ.IDB.clear();
     showLoginScreen();
   }
