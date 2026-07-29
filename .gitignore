@@ -9,5 +9,6 @@ android/local.properties
 .capacitor/
 official-tests.json
 official-test-results.json
+practice-questions.json
 data/practice-questions.json
 www/data/practice-questions.json
