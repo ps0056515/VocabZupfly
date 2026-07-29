@@ -6444,10 +6444,6 @@ LQ.openTestConfigDrawer = async function (id) {
           '<div class="admin-form-field">' +
             '<label style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="cfg-show-answer" ' + (t.showAnswer ? 'checked' : '') + ' /> Show Answers to Student</label>' +
           '</div>' +
-          '<div class="admin-form-field">' +
-            '<label>Malpractice Limit</label>' +
-            '<input type="number" id="cfg-malpractice-limit" min="0" value="' + (t.malpracticeLimit || 0) + '" />' +
-          '</div>' +
         '</div>' +
         '<div id="cfg-error" style="display:none;color:#dc2626;margin-top:8px;font-size:13px;font-weight:600"></div>' +
         '<div class="admin-form-actions" style="margin-top:16px">' +
@@ -6467,8 +6463,6 @@ LQ._submitTestConfig = async function (id) {
   var btn = document.getElementById('cfg-btn');
   var showResult = !!(document.getElementById('cfg-show-result') || {}).checked;
   var showAnswer = !!(document.getElementById('cfg-show-answer') || {}).checked;
-  var malpracticeLimit = parseInt((document.getElementById('cfg-malpractice-limit') || {}).value, 10);
-  if (isNaN(malpracticeLimit) || malpracticeLimit < 0) malpracticeLimit = 3;
 
   if (errEl) errEl.style.display = 'none';
   if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
@@ -6478,7 +6472,7 @@ LQ._submitTestConfig = async function (id) {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
-      body: JSON.stringify({ showResult: showResult, showAnswer: showAnswer, malpracticeLimit: malpracticeLimit }),
+      body: JSON.stringify({ showResult: showResult, showAnswer: showAnswer }),
     });
     var data = await resp.json();
     if (resp.ok && data.ok) {

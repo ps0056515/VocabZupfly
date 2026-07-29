@@ -327,16 +327,16 @@ router.get('/student/tests', async function (req, res) {
       .sort({ startTime: -1 })
       .lean();
 
-    // Fetch user's completed results
+    // Fetch user's test attempt states
     var results = await AssessmentResult.find({
-      userEmail: req.user.email,
-      status: 'completed'
-    }).select('assessmentId correctCount totalQuestions percentage').lean();
+      userEmail: req.user.email
+    }).select('assessmentId correctCount totalQuestions percentage status').lean();
 
-    var completedMap = {};
+    var attemptMap = {};
     results.forEach(function (r) {
       if (r.assessmentId) {
-        completedMap[r.assessmentId.toString()] = {
+        attemptMap[r.assessmentId.toString()] = {
+          status: r.status,
           correctCount: r.correctCount,
           totalQuestions: r.totalQuestions,
           percentage: r.percentage
@@ -346,8 +346,9 @@ router.get('/student/tests', async function (req, res) {
 
     // Match and filter based on status
     var list = tests.map(function (t) {
-      var resObj = completedMap[t._id.toString()] || null;
-      var isCompleted = !!resObj;
+      var attObj = attemptMap[t._id.toString()] || null;
+      var isCompleted = attObj ? attObj.status === 'completed' : false;
+      var isInProgress = attObj ? attObj.status === 'in_progress' : false;
       return {
         id: t._id,
         title: t.title,
@@ -358,7 +359,8 @@ router.get('/student/tests', async function (req, res) {
         startTime: t.startTime,
         endTime: t.endTime,
         isCompleted: isCompleted,
-        completedResult: resObj,
+        isInProgress: isInProgress,
+        completedResult: isCompleted ? attObj : null,
         showResult: t.showResult,
         showAnswer: t.showAnswer,
         malpracticeLimit: t.malpracticeLimit,
@@ -413,6 +415,283 @@ router.get('/student/tests/:id', async function (req, res) {
   } catch (err) {
     console.error('[Student API] Get test detail error:', err);
     res.status(500).json({ error: 'Failed to retrieve test details.' });
+  }
+});
+
+
+/**
+ * POST /api/student/tests/:id/start — Mark student test attempt as in_progress
+ */
+router.post('/student/tests/:id/start', async function (req, res) {
+  try {
+    var test = await Test.findOne({
+      _id: req.params.id,
+      isAssigned: true,
+      isDisabled: false,
+      $or: [{ orgId: req.user.orgId }, { orgId: null }]
+    }).lean();
+
+    if (!test) return res.status(404).json({ error: 'Test not found or not active.' });
+
+    var now = new Date();
+    if (test.endTime && now > test.endTime) {
+      return res.status(400).json({ error: 'This test availability window has expired.' });
+    }
+
+    // Find existing attempt
+    var attempt = await AssessmentResult.findOne({
+      userEmail: req.user.email,
+      assessmentId: test._id.toString()
+    });
+
+    if (attempt) {
+      if (attempt.status === 'completed') {
+        return res.status(400).json({ error: 'You have already completed this test.' });
+      }
+      // Rejoining: return existing attempt details
+      return res.json({ ok: true, attempt: attempt });
+    }
+
+    // Create new in_progress attempt
+    var durationSec = test.totalDurationSec || (15 * 60);
+
+    attempt = await AssessmentResult.create({
+      userEmail: req.user.email,
+      userName: req.user.name || req.user.email.split('@')[0],
+      assessmentId: test._id.toString(),
+      title: test.title,
+      type: 'test',
+      totalQuestions: test.totalQuestions || 0,
+      status: 'in_progress',
+      startTimeMs: Date.now(),
+      durationSeconds: durationSec,
+      orgId: test.orgId,
+      malpracticeCount: 0,
+      userAnswers: {},
+      currentIndex: 0
+    });
+
+    res.json({ ok: true, attempt: attempt });
+  } catch (err) {
+    console.error('[Student API] Start test error:', err);
+    res.status(500).json({ error: 'Failed to start test.' });
+  }
+});
+
+/**
+ * POST /api/student/tests/:id/malpractice — Increment malpractice count for active test
+ */
+router.post('/student/tests/:id/malpractice', async function (req, res) {
+  try {
+    var test = await Test.findById(req.params.id).lean();
+    if (!test) return res.status(404).json({ error: 'Test not found.' });
+
+    var attempt = await AssessmentResult.findOne({
+      userEmail: req.user.email,
+      assessmentId: req.params.id,
+      status: 'in_progress'
+    });
+
+    if (!attempt) return res.status(400).json({ error: 'No active session found.' });
+
+    attempt.malpracticeCount = (attempt.malpracticeCount || 0) + 1;
+    await attempt.save();
+
+    var limitReached = attempt.malpracticeCount >= (test.malpracticeLimit || 3);
+    res.json({
+      ok: true,
+      malpracticeCount: attempt.malpracticeCount,
+      limitReached: limitReached
+    });
+  } catch (err) {
+    console.error('[Student API] Malpractice update error:', err);
+    res.status(500).json({ error: 'Failed to update malpractice status.' });
+  }
+});
+
+/**
+ * GET /api/student/tests/:id/session — Get active test attempt state
+ */
+router.get('/student/tests/:id/session', async function (req, res) {
+  try {
+    var attempt = await AssessmentResult.findOne({
+      userEmail: req.user.email,
+      assessmentId: req.params.id
+    }).lean();
+
+    res.json({ ok: true, attempt: attempt });
+  } catch (err) {
+    console.error('[Student API] Get test session error:', err);
+    res.status(500).json({ error: 'Failed to fetch session.' });
+  }
+});
+
+/**
+ * POST /api/student/tests/:id/submit — Securely evaluate and submit a test attempt
+ */
+router.post('/student/tests/:id/submit', async function (req, res) {
+  try {
+    var test = await Test.findById(req.params.id);
+    if (!test) return res.status(404).json({ error: 'Test not found.' });
+
+    var attempt = await AssessmentResult.findOne({
+      userEmail: req.user.email,
+      assessmentId: req.params.id
+    });
+
+    if (!attempt) return res.status(400).json({ error: 'Attempt session not found.' });
+    if (attempt.status === 'completed') {
+      return res.json({ ok: true, alreadySubmitted: true });
+    }
+
+    var userAnswers = req.body.userAnswers || {};
+    var correctCount = 0;
+    var wrongCount = 0;
+    var evaluatedQuestions = [];
+
+    // Flatten all test snapshot questions for server-side grading
+    var flatQuestions = [];
+    (test.sections || []).forEach(function (sec) {
+      (sec.questions || []).forEach(function (q) {
+        var qCopy = JSON.parse(JSON.stringify(q));
+        qCopy.groupTitle = sec.name;
+        flatQuestions.push(qCopy);
+      });
+    });
+
+    flatQuestions.forEach(function (q, idx) {
+      var userAns = userAnswers[idx];
+      var isCorrect = false;
+
+      var gradedSubQs = undefined;
+
+      // Handle grading based on question type
+      if (q.type === 'mcq') {
+        var expectedIdx = q.options.indexOf(q.correctAnswer);
+        isCorrect = userAns === expectedIdx;
+      } else if (q.type === 'mcq_multi' || q.mcqType === 'multiple') {
+        var expectedAnswers = (q.correctAnswer || '').split(',').map(s => s.trim());
+        var expectedIndices = expectedAnswers.map(ans => q.options.indexOf(ans)).filter(i => i >= 0).sort();
+        var userIndices = Array.isArray(userAns) ? userAns.slice().sort() : [];
+        isCorrect = expectedIndices.length > 0 &&
+                    expectedIndices.length === userIndices.length &&
+                    expectedIndices.every((v, i) => v === userIndices[i]);
+      } else if (q.type === 'fill_blank' && q.correctAnswers && q.correctAnswers.length > 1) {
+        var expectedArr = q.correctAnswers.map(s => (s || '').trim().toLowerCase());
+        var userArr = Array.isArray(userAns) ? userAns.map(s => (s || '').trim().toLowerCase()) : [];
+        isCorrect = expectedArr.length > 0 &&
+                    expectedArr.length === userArr.length &&
+                    expectedArr.every((v, i) => v === userArr[i]);
+      } else if (q.type === 'passage') {
+        var subAnswers = userAns || {};
+        var subQuestions = q.subQuestions || [];
+        var allSubCorrect = true;
+        
+        gradedSubQs = subQuestions.map(function(sq, sqIdx) {
+          var sqUserAns = subAnswers[sqIdx];
+          var sqIsCorrect = false;
+          
+          if (sq.options && sq.options.length) {
+            var expectedIdx = sq.options.indexOf(sq.correctAnswer);
+            sqIsCorrect = sqUserAns === expectedIdx;
+          } else if (Array.isArray(sq.correctAnswers) && sq.correctAnswers.length > 1) {
+            var expectedArr = sq.correctAnswers.map(s => (s || '').trim().toLowerCase());
+            var userArr = Array.isArray(sqUserAns) ? sqUserAns.map(s => (s || '').trim().toLowerCase()) : [];
+            sqIsCorrect = expectedArr.length > 0 &&
+                          expectedArr.length === userArr.length &&
+                          expectedArr.every((v, i) => v === userArr[i]);
+          } else {
+            var expected = (sq.correctAnswer || (sq.correctAnswers ? sq.correctAnswers[0] : '') || '').trim().toLowerCase();
+            var actual = typeof sqUserAns === 'string' ? sqUserAns.trim().toLowerCase() : '';
+            sqIsCorrect = expected.length > 0 && expected === actual;
+          }
+          
+          if (!sqIsCorrect) allSubCorrect = false;
+          
+          return {
+            questionText: sq.questionText || sq.text,
+            options: sq.options,
+            correctAnswer: sq.correctAnswer,
+            correctAnswers: sq.correctAnswers,
+            userAnswer: sqUserAns,
+            isCorrect: sqIsCorrect
+          };
+        });
+        isCorrect = allSubCorrect;
+      } else {
+        // Single blanks, speaking, listening, etc.
+        var expected = (q.correctAnswer || (q.correctAnswers ? q.correctAnswers[0] : '') || '').trim().toLowerCase();
+        var actual = typeof userAns === 'string' ? userAns.trim().toLowerCase() : '';
+        isCorrect = expected.length > 0 && expected === actual;
+      }
+
+      var qGraded = {
+        questionId: q.questionId || q._id,
+        questionText: q.questionText,
+        type: q.type,
+        options: q.options,
+        correctAnswer: q.correctAnswer,
+        correctAnswers: q.correctAnswers,
+        explanation: q.explanation,
+        marks: q.marks,
+        userAnswer: userAns,
+        isCorrect: isCorrect,
+        groupTitle: q.groupTitle,
+        subQuestions: gradedSubQs
+      };
+
+      if (isCorrect) correctCount++;
+      else wrongCount++;
+
+      evaluatedQuestions.push(qGraded);
+    });
+
+    var percentage = flatQuestions.length > 0 ? Number(((correctCount / flatQuestions.length) * 100).toFixed(2)) : 0;
+
+    attempt.status = 'completed';
+    attempt.completedAt = new Date();
+    attempt.userAnswers = userAnswers;
+    attempt.correctCount = correctCount;
+    attempt.wrongCount = wrongCount;
+    attempt.percentage = percentage;
+    attempt.questions = evaluatedQuestions;
+
+    await attempt.save();
+
+    // Prepare response payload based on security config
+    var response = {
+      ok: true,
+      showResult: test.showResult,
+      showAnswer: test.showAnswer
+    };
+
+    if (test.showResult) {
+      response.percentage = percentage;
+      response.correctCount = correctCount;
+      response.wrongCount = wrongCount;
+      response.totalQuestions = flatQuestions.length;
+
+      if (test.showAnswer) {
+        response.questions = evaluatedQuestions;
+      } else {
+        // Strip correct answers if showAnswer is false
+        response.questions = evaluatedQuestions.map(function (eq) {
+          return {
+            questionId: eq.questionId,
+            questionText: eq.questionText,
+            type: eq.type,
+            options: eq.options,
+            userAnswer: eq.userAnswer
+            // Omit correct answers & correctness status
+          };
+        });
+      }
+    }
+
+    res.json(response);
+  } catch (err) {
+    console.error('[Student API] Submit test error:', err);
+    res.status(500).json({ error: 'Failed to submit test.' });
   }
 });
 

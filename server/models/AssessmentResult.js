@@ -62,6 +62,15 @@ const AssessmentResultSchema = new mongoose.Schema({
   },
   completedAt: {
     type: Date
+  },
+  malpracticeCount: {
+    type: Number,
+    default: 0
+  },
+  orgId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Organization',
+    default: null
   }
 });
 
