@@ -2,7 +2,7 @@ window.LQ = window.LQ || {};
 
 (function () {
   const DB_NAME = 'VocabZupfly_AssessmentDB';
-  const DB_VERSION = 2;
+  const DB_VERSION = 3;
 
   let dbPromise = null;
 
@@ -24,6 +24,10 @@ window.LQ = window.LQ || {};
         if (!db.objectStoreNames.contains('attempts')) {
           const attStore = db.createObjectStore('attempts', { keyPath: 'id' });
           attStore.createIndex('assessmentId', 'assessmentId', { unique: false });
+        }
+        if (!db.objectStoreNames.contains('temp_media')) {
+          const mediaStore = db.createObjectStore('temp_media', { keyPath: 'key' });
+          mediaStore.createIndex('userTest', 'userTest', { unique: false });
         }
       };
       req.onsuccess = function (e) {
@@ -111,6 +115,50 @@ window.LQ = window.LQ || {};
         const req = store.get(id);
         req.onsuccess = () => resolve(req.result || null);
         req.onerror = () => reject(req.error);
+      });
+    },
+
+    async saveTempMedia(key, userTestPrefix, data) {
+      const db = await openDB();
+      if (!db) return null;
+      return new Promise((resolve) => {
+        const tx = db.transaction('temp_media', 'readwrite');
+        const store = tx.objectStore('temp_media');
+        store.put({ key: key, userTest: userTestPrefix, data: data, timestamp: Date.now() });
+        tx.oncomplete = () => resolve(true);
+        tx.onerror = () => resolve(false);
+      });
+    },
+
+    async getTempMedia(key) {
+      const db = await openDB();
+      if (!db) return null;
+      return new Promise((resolve) => {
+        const tx = db.transaction('temp_media', 'readonly');
+        const store = tx.objectStore('temp_media');
+        const req = store.get(key);
+        req.onsuccess = () => resolve(req.result ? req.result.data : null);
+        req.onerror = () => resolve(null);
+      });
+    },
+
+    async deleteTempMediaForUserTest(userTestPrefix) {
+      const db = await openDB();
+      if (!db) return false;
+      return new Promise((resolve) => {
+        const tx = db.transaction('temp_media', 'readwrite');
+        const store = tx.objectStore('temp_media');
+        const index = store.index('userTest');
+        const req = index.openCursor(IDBKeyRange.only(userTestPrefix));
+        req.onsuccess = function (e) {
+          const cursor = e.target.result;
+          if (cursor) {
+            cursor.delete();
+            cursor.continue();
+          }
+        };
+        tx.oncomplete = () => resolve(true);
+        tx.onerror = () => resolve(false);
       });
     }
   };

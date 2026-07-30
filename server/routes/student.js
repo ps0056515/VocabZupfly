@@ -6,6 +6,7 @@ const PracticeQuestion = require('../models/PracticeQuestion');
 const AssessmentResult = require('../models/AssessmentResult');
 const Test = require('../models/Test');
 const { authenticate } = require('../middleware/auth');
+const { evaluateQuestion, evaluateTest } = require('../services/evaluationService');
 
 const router = express.Router();
 
@@ -221,52 +222,39 @@ router.post('/assessment/evaluate', async function (req, res) {
     for (let idx = 0; idx < questions.length; idx++) {
       const q = questions[idx];
       const userAns = userAnswers[idx];
-      let isCorrect = false;
 
-      const grpId = q.groupId || "official";
+      const grpId = q.groupId || 'official';
       const grpTitle = q.groupTitle || grpId;
 
       if (!groupStats[grpId]) {
-        groupStats[grpId] = {
-          groupId: grpId,
-          groupTitle: grpTitle,
-          total: 0,
-          correct: 0,
-          wrong: 0,
-        };
+        groupStats[grpId] = { groupId: grpId, groupTitle: grpTitle, total: 0, correct: 0, wrong: 0 };
       }
       groupStats[grpId].total++;
 
-      // Fetch correct answers from MongoDB database
-      let dbQ = null;
+      // Fetch correct answers from MongoDB database if available
+      let gradeQ = q;
       if (q.dbId) {
-        dbQ = await PracticeQuestion.findById(q.dbId).lean();
+        const dbQ = await PracticeQuestion.findById(q.dbId).lean();
+        if (dbQ) {
+          gradeQ = Object.assign({}, q, {
+            type: dbQ.type || q.type,
+            options: dbQ.options || q.options,
+            correctAnswer: dbQ.correctAnswer || q.correctAnswer || q.correctAnswerText || '',
+            correctAnswers: dbQ.correctAnswers || q.correctAnswers,
+            mcqType: dbQ.mcqType || q.mcqType,
+            subQuestions: dbQ.subQuestions || q.subQuestions
+          });
+        }
       }
 
-      const qType = dbQ ? dbQ.type : (q.type === 'fill_blank' ? 'fib' : q.type);
-      const qOptions = dbQ ? dbQ.options : q.options;
-      const dbCorrectAnswer = dbQ ? dbQ.correctAnswer : (q.correctAnswerText || '');
-
-      if (qType === 'mcq_multi') {
-        const expectedAnswers = dbCorrectAnswer.split(',').map(s => s.trim());
-        const expectedIndices = expectedAnswers.map(ans => qOptions.indexOf(ans)).filter(i => i >= 0).sort();
-        const userIndices = Array.isArray(userAns) ? userAns.slice().sort() : [];
-        isCorrect = expectedIndices.length > 0 &&
-                    expectedIndices.length === userIndices.length &&
-                    expectedIndices.every((v, i) => v === userIndices[i]);
-      } else if (qType === 'mcq') {
-        const expectedIdx = qOptions.indexOf(dbCorrectAnswer);
-        isCorrect = userAns === expectedIdx;
-      } else if (qType === 'fib') {
-        const expected = dbCorrectAnswer.trim().toLowerCase();
-        const actual = typeof userAns === 'string' ? userAns.trim().toLowerCase() : '';
-        isCorrect = expected.length > 0 && expected === actual;
-      }
+      const result = evaluateQuestion(gradeQ, userAns);
 
       q.userAnswer = userAns;
-      q.isCorrect = isCorrect;
+      q.isCorrect = result.isCorrect;
+      q.earnedMarks = result.earnedMarks;
+      if (result.gradedSubQs) q.subQuestions = result.gradedSubQs;
 
-      if (isCorrect) {
+      if (result.isCorrect) {
         correctCount++;
         groupStats[grpId].correct++;
       } else {
@@ -278,7 +266,7 @@ router.post('/assessment/evaluate', async function (req, res) {
     }
 
     // Compute accuracy percentages
-    Object.keys(groupStats).forEach((gId) => {
+    Object.keys(groupStats).forEach(function (gId) {
       const g = groupStats[gId];
       g.percentage = g.total > 0 ? Number(((g.correct / g.total) * 100).toFixed(2)) : 0;
     });
@@ -364,6 +352,7 @@ router.get('/student/tests', async function (req, res) {
         showResult: t.showResult,
         showAnswer: t.showAnswer,
         malpracticeLimit: t.malpracticeLimit,
+        passPercentage: t.passPercentage !== undefined ? t.passPercentage : 30,
         sectionsCount: (t.sections || []).length
       };
     });
@@ -545,116 +534,19 @@ router.post('/student/tests/:id/submit', async function (req, res) {
     }
 
     var userAnswers = req.body.userAnswers || {};
-    var correctCount = 0;
-    var wrongCount = 0;
-    var evaluatedQuestions = [];
 
-    // Flatten all test snapshot questions for server-side grading
-    var flatQuestions = [];
-    (test.sections || []).forEach(function (sec) {
-      (sec.questions || []).forEach(function (q) {
-        var qCopy = JSON.parse(JSON.stringify(q));
-        qCopy.groupTitle = sec.name;
-        flatQuestions.push(qCopy);
-      });
-    });
-
-    flatQuestions.forEach(function (q, idx) {
-      var userAns = userAnswers[idx];
-      var isCorrect = false;
-
-      var gradedSubQs = undefined;
-
-      // Handle grading based on question type
-      if (q.type === 'mcq') {
-        var expectedIdx = q.options.indexOf(q.correctAnswer);
-        isCorrect = userAns === expectedIdx;
-      } else if (q.type === 'mcq_multi' || q.mcqType === 'multiple') {
-        var expectedAnswers = (q.correctAnswer || '').split(',').map(s => s.trim());
-        var expectedIndices = expectedAnswers.map(ans => q.options.indexOf(ans)).filter(i => i >= 0).sort();
-        var userIndices = Array.isArray(userAns) ? userAns.slice().sort() : [];
-        isCorrect = expectedIndices.length > 0 &&
-                    expectedIndices.length === userIndices.length &&
-                    expectedIndices.every((v, i) => v === userIndices[i]);
-      } else if (q.type === 'fill_blank' && q.correctAnswers && q.correctAnswers.length > 1) {
-        var expectedArr = q.correctAnswers.map(s => (s || '').trim().toLowerCase());
-        var userArr = Array.isArray(userAns) ? userAns.map(s => (s || '').trim().toLowerCase()) : [];
-        isCorrect = expectedArr.length > 0 &&
-                    expectedArr.length === userArr.length &&
-                    expectedArr.every((v, i) => v === userArr[i]);
-      } else if (q.type === 'passage') {
-        var subAnswers = userAns || {};
-        var subQuestions = q.subQuestions || [];
-        var allSubCorrect = true;
-        
-        gradedSubQs = subQuestions.map(function(sq, sqIdx) {
-          var sqUserAns = subAnswers[sqIdx];
-          var sqIsCorrect = false;
-          
-          if (sq.options && sq.options.length) {
-            var expectedIdx = sq.options.indexOf(sq.correctAnswer);
-            sqIsCorrect = sqUserAns === expectedIdx;
-          } else if (Array.isArray(sq.correctAnswers) && sq.correctAnswers.length > 1) {
-            var expectedArr = sq.correctAnswers.map(s => (s || '').trim().toLowerCase());
-            var userArr = Array.isArray(sqUserAns) ? sqUserAns.map(s => (s || '').trim().toLowerCase()) : [];
-            sqIsCorrect = expectedArr.length > 0 &&
-                          expectedArr.length === userArr.length &&
-                          expectedArr.every((v, i) => v === userArr[i]);
-          } else {
-            var expected = (sq.correctAnswer || (sq.correctAnswers ? sq.correctAnswers[0] : '') || '').trim().toLowerCase();
-            var actual = typeof sqUserAns === 'string' ? sqUserAns.trim().toLowerCase() : '';
-            sqIsCorrect = expected.length > 0 && expected === actual;
-          }
-          
-          if (!sqIsCorrect) allSubCorrect = false;
-          
-          return {
-            questionText: sq.questionText || sq.text,
-            options: sq.options,
-            correctAnswer: sq.correctAnswer,
-            correctAnswers: sq.correctAnswers,
-            userAnswer: sqUserAns,
-            isCorrect: sqIsCorrect
-          };
-        });
-        isCorrect = allSubCorrect;
-      } else {
-        // Single blanks, speaking, listening, etc.
-        var expected = (q.correctAnswer || (q.correctAnswers ? q.correctAnswers[0] : '') || '').trim().toLowerCase();
-        var actual = typeof userAns === 'string' ? userAns.trim().toLowerCase() : '';
-        isCorrect = expected.length > 0 && expected === actual;
-      }
-
-      var qGraded = {
-        questionId: q.questionId || q._id,
-        questionText: q.questionText,
-        type: q.type,
-        options: q.options,
-        correctAnswer: q.correctAnswer,
-        correctAnswers: q.correctAnswers,
-        explanation: q.explanation,
-        marks: q.marks,
-        userAnswer: userAns,
-        isCorrect: isCorrect,
-        groupTitle: q.groupTitle,
-        subQuestions: gradedSubQs
-      };
-
-      if (isCorrect) correctCount++;
-      else wrongCount++;
-
-      evaluatedQuestions.push(qGraded);
-    });
-
-    var percentage = flatQuestions.length > 0 ? Number(((correctCount / flatQuestions.length) * 100).toFixed(2)) : 0;
+    // Use centralized evaluation service
+    var evalResult = evaluateTest(test.sections, userAnswers);
 
     attempt.status = 'completed';
     attempt.completedAt = new Date();
     attempt.userAnswers = userAnswers;
-    attempt.correctCount = correctCount;
-    attempt.wrongCount = wrongCount;
-    attempt.percentage = percentage;
-    attempt.questions = evaluatedQuestions;
+    attempt.correctCount = evalResult.correctCount;
+    attempt.wrongCount = evalResult.wrongCount;
+    attempt.percentage = evalResult.percentage;
+    attempt.totalMarks = evalResult.totalMarks;
+    attempt.earnedMarks = evalResult.earnedMarks;
+    attempt.questions = evalResult.evaluatedQuestions;
 
     await attempt.save();
 
@@ -666,23 +558,24 @@ router.post('/student/tests/:id/submit', async function (req, res) {
     };
 
     if (test.showResult) {
-      response.percentage = percentage;
-      response.correctCount = correctCount;
-      response.wrongCount = wrongCount;
-      response.totalQuestions = flatQuestions.length;
+      response.percentage = evalResult.percentage;
+      response.correctCount = evalResult.correctCount;
+      response.wrongCount = evalResult.wrongCount;
+      response.totalQuestions = evalResult.evaluatedQuestions.length;
+      response.totalMarks = evalResult.totalMarks;
+      response.earnedMarks = evalResult.earnedMarks;
 
       if (test.showAnswer) {
-        response.questions = evaluatedQuestions;
+        response.questions = evalResult.evaluatedQuestions;
       } else {
         // Strip correct answers if showAnswer is false
-        response.questions = evaluatedQuestions.map(function (eq) {
+        response.questions = evalResult.evaluatedQuestions.map(function (eq) {
           return {
             questionId: eq.questionId,
             questionText: eq.questionText,
             type: eq.type,
             options: eq.options,
             userAnswer: eq.userAnswer
-            // Omit correct answers & correctness status
           };
         });
       }

@@ -115,19 +115,27 @@ router.post('/login', async function (req, res) {
 /**
  * POST /api/auth/logout
  */
-router.post('/logout', authenticate, async function (req, res) {
+router.post('/logout', async function (req, res) {
   try {
-    // Clear refresh token in DB
-    await User.findByIdAndUpdate(req.user.id, { refreshToken: null });
+    const token = req.cookies && req.cookies.vz_access_token;
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, config.jwtSecret);
+        if (decoded && decoded.id) {
+          await User.findByIdAndUpdate(decoded.id, { refreshToken: null });
+        }
+      } catch (e) {}
+    }
 
-    // Clear cookies
     res.clearCookie('vz_access_token', { path: '/' });
     res.clearCookie('vz_refresh_token', { path: '/' });
 
     res.json({ ok: true });
   } catch (err) {
     console.error('[Auth] Logout error:', err);
-    res.status(500).json({ error: 'Server error.' });
+    res.clearCookie('vz_access_token', { path: '/' });
+    res.clearCookie('vz_refresh_token', { path: '/' });
+    res.json({ ok: true });
   }
 });
 

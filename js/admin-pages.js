@@ -5763,6 +5763,8 @@ LQ.openEditTestDrawer = async function (id) {
       if (sa) sa.checked = t.showAnswer !== false;
       var ml = document.getElementById('test-malpractice-limit');
       if (ml) ml.value = t.malpracticeLimit || 3;
+      var pp = document.getElementById('test-pass-percentage');
+      if (pp) pp.value = t.passPercentage !== undefined ? t.passPercentage : 30;
       LQ._renderTestSectionsUI();
     }, 100);
   } catch (err) {
@@ -5792,6 +5794,10 @@ LQ._renderTestFormDrawer = function (title) {
         '<div class="admin-form-field">' +
           '<label>Malpractice Limit <span class="req">*</span></label>' +
           '<input type="number" id="test-malpractice-limit" required min="0" value="3" />' +
+        '</div>' +
+        '<div class="admin-form-field">' +
+          '<label>Pass Percentage (%) <span class="req">*</span></label>' +
+          '<input type="number" id="test-pass-percentage" required min="0" max="100" value="30" />' +
         '</div>' +
       '</div>' +
 
@@ -6158,6 +6164,8 @@ LQ._submitTestForm = async function (e) {
   var showAnswer = !!(document.getElementById('test-show-answer') || {}).checked;
   var malpracticeLimit = parseInt((document.getElementById('test-malpractice-limit') || {}).value, 10);
   if (isNaN(malpracticeLimit) || malpracticeLimit < 0) malpracticeLimit = 3;
+  var passPercentage = parseFloat((document.getElementById('test-pass-percentage') || {}).value);
+  if (isNaN(passPercentage) || passPercentage < 0) passPercentage = 30;
 
   if (!title.trim()) {
     if (errEl) { errEl.textContent = 'Test title is required.'; errEl.style.display = 'block'; }
@@ -6188,6 +6196,7 @@ LQ._submitTestForm = async function (e) {
     showResult: showResult,
     showAnswer: showAnswer,
     malpracticeLimit: malpracticeLimit,
+    passPercentage: passPercentage,
     sections: LQ._testSections,
   };
 

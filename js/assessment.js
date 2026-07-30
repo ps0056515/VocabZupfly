@@ -7,6 +7,8 @@ window.LQ = window.LQ || {};
   let timerInterval = null;
   let testPage = 1;
   let testSearch = "";
+  let micPermissionGranted = false;
+  let permissionPromptActive = false;
 
   function formatScoreNum(num) {
     if (num === null || num === undefined || isNaN(num)) return 0;
@@ -616,6 +618,17 @@ window.LQ = window.LQ || {};
     }
     if (termsEl) termsEl.textContent = formattedInstructions;
 
+    // Show permission section if test has audio/mic question types
+    const permSection = document.getElementById("inst-permission-section");
+    if (permSection && test.questions) {
+      const audioTypes = ['listening', 'listen_repeat', 'audio', 'passage', 'jumbled_sentence', 'story_retelling', 'reading_listening'];
+      const hasAudioQ = test.questions.some(q => audioTypes.includes(q.type));
+      permSection.style.display = hasAudioQ ? 'block' : 'none';
+      const statusEl = document.getElementById("inst-permission-status");
+      if (statusEl) statusEl.innerHTML = micPermissionGranted ? '✅ Permissions granted' : '⚠️ Not yet granted';
+      if (statusEl) statusEl.style.color = micPermissionGranted ? '#16a34a' : '#92400e';
+    }
+
     if (modal) {
       modal.classList.remove("hidden");
       modal.style.display = "flex";
@@ -698,23 +711,34 @@ window.LQ = window.LQ || {};
       return;
     }
 
+    const actualTestId = test.id || test._id;
+
     if (test.sections && test.sections.length) {
       var flatQuestions = [];
       test.sections.forEach(function (sec, secIdx) {
         (sec.questions || []).forEach(function (q) {
+          const subQs = (q.subQuestions || []).map(sq => {
+            return {
+              ...sq,
+              correctAnswerIndex: sq.options ? getCorrectOptionIndex(sq.correctAnswer, sq.options) : null
+            };
+          });
+
           flatQuestions.push({
             id: q.questionId || q._id,
             text: q.questionText,
             type: q.type,
             mcqType: q.mcqType,
             options: q.options,
-            correctAnswerIndex: q.options ? q.options.indexOf(q.correctAnswer) : null,
+            correctAnswerIndex: q.options ? getCorrectOptionIndex(q.correctAnswer, q.options) : null,
             correctAnswerText: q.correctAnswer || "",
             groupTitle: sec.name,
             sectionIndex: secIdx,
             duration: q.duration !== undefined ? q.duration : 1,
             durationType: q.durationType || "minutes",
-            subQuestions: q.subQuestions || []
+            subQuestions: subQs,
+            playLimit: q.playLimit || 1,
+            marks: q.marks || 1
           });
         });
       });
@@ -740,7 +764,7 @@ window.LQ = window.LQ || {};
     // Restore attempt state from MongoDB server
     let serverAttempt = null;
     try {
-      const res = await fetch("/api/student/tests/" + test.id + "/session", { credentials: "include" });
+      const res = await fetch("/api/student/tests/" + actualTestId + "/session", { credentials: "include" });
       if (res.ok) {
         const data = await res.json();
         if (data.ok && data.attempt) {
@@ -785,6 +809,7 @@ window.LQ = window.LQ || {};
           id: q.id,
           text: q.text,
           type: q.type || "mcq",
+          mcqType: q.mcqType || "single",
           groupTitle: q.groupTitle || test.title,
           options:
             q.options || (q.type === "true_false" ? ["True", "False"] : []),
@@ -794,7 +819,9 @@ window.LQ = window.LQ || {};
           sectionIndex: q.sectionIndex !== undefined ? q.sectionIndex : 0,
           duration: q.duration !== undefined ? q.duration : 1,
           durationType: q.durationType || "minutes",
-          subQuestions: q.subQuestions || []
+          subQuestions: q.subQuestions || [],
+          playLimit: q.playLimit || 1,
+          marks: q.marks || 1
         })),
         userAnswers: savedAnswers,
       },
@@ -812,7 +839,20 @@ window.LQ = window.LQ || {};
     LQ.renderAssessmentSessionScreen();
   };
 
+  let _syncProgressTimer = null;
+  function debouncedSyncLiveProgress(delayMs) {
+    if (_syncProgressTimer) clearTimeout(_syncProgressTimer);
+    _syncProgressTimer = setTimeout(() => {
+      _syncProgressTimer = null;
+      syncLiveProgress();
+    }, delayMs || 600);
+  }
+
   async function syncLiveProgress() {
+    if (_syncProgressTimer) {
+      clearTimeout(_syncProgressTimer);
+      _syncProgressTimer = null;
+    }
     if (!activeSession) return;
     
     // 1. Sync to IndexDB local storage
@@ -1350,8 +1390,124 @@ window.LQ = window.LQ || {};
     }
   };
 
-  let speechRecognitionObj = null;
   let isRecordingAudio = false;
+  let speechRecognitionObj = null;
+  let timerSecondsElapsed = 0;
+
+  // Helper: resolve correct option index (handles A/B/C/D, text, or index)
+  function getCorrectOptionIndex(correctAns, options) {
+    if (!options || !options.length) return -1;
+    var str = (correctAns !== undefined && correctAns !== null) ? String(correctAns).trim() : '';
+    if (!str) return -1;
+    var directIdx = options.indexOf(str);
+    if (directIdx >= 0) return directIdx;
+    var upper = str.toUpperCase();
+    if (upper.length === 1 && upper >= 'A' && upper <= 'Z') {
+      var letterIdx = upper.charCodeAt(0) - 65;
+      if (letterIdx >= 0 && letterIdx < options.length) return letterIdx;
+    }
+    var numIdx = parseInt(str, 10);
+    if (!isNaN(numIdx) && numIdx >= 0 && numIdx < options.length) return numIdx;
+    return -1;
+  }
+
+  // Helper: get question type display label & color
+  function getQTypeBadge(qType) {
+    const map = {
+      'mcq': { label: 'MCQ', color: '#2563eb', bg: '#eff6ff' },
+      'mcq_multi': { label: 'MCQ Multi', color: '#7c3aed', bg: '#f5f3ff' },
+      'fib': { label: 'Fill in Blanks', color: '#d97706', bg: '#fffbeb' },
+      'fill_blank': { label: 'Fill in Blanks', color: '#d97706', bg: '#fffbeb' },
+      'passage': { label: 'Passage', color: '#059669', bg: '#ecfdf5' },
+      'jumbled_sentence': { label: 'Jumbled Sentence', color: '#dc2626', bg: '#fef2f2' },
+      'listen_repeat': { label: 'Listen & Repeat', color: '#0891b2', bg: '#ecfeff' },
+      'reading_listening': { label: 'Read Aloud', color: '#4f46e5', bg: '#eef2ff' },
+      'story_retelling': { label: 'Story Retelling', color: '#be185d', bg: '#fdf2f8' },
+      'listening': { label: 'Listening', color: '#0891b2', bg: '#ecfeff' },
+      'speaking': { label: 'Speaking', color: '#dc2626', bg: '#fef2f2' },
+      'speak': { label: 'Speaking', color: '#dc2626', bg: '#fef2f2' }
+    };
+    return map[qType] || { label: qType || 'Question', color: '#475569', bg: '#f1f5f9' };
+  }
+
+  // Helper: shuffle words for jumbled sentence
+  function shuffleWords(text) {
+    const words = (text || '').split(/\s+/).filter(Boolean);
+    for (let i = words.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const tmp = words[i]; words[i] = words[j]; words[j] = tmp;
+    }
+    return words.join(' ');
+  }
+
+  // Helper: get unique user + test prefix for storage isolation
+  function getUserTestPrefix(testId) {
+    const email = (activeSession && activeSession.candidate && activeSession.candidate.email)
+      ? activeSession.candidate.email
+      : (sessionStorage.getItem("userEmail") || localStorage.getItem("userEmail") || "user");
+    const tId = testId || (activeSession && activeSession.assessment ? activeSession.assessment.id : "test");
+    return (email + "_" + tId).toLowerCase();
+  }
+
+  // Helper: check if mic was already used for this question (scoped per user + test + question index)
+  function isMicUsed(qId) {
+    if (!activeSession) return false;
+    const prefix = getUserTestPrefix(activeSession.assessment.id);
+    const key = prefix + "_mic_used_" + activeSession.currentIndex;
+    try { return sessionStorage.getItem(key) === '1'; } catch(e) { return false; }
+  }
+  function markMicUsed(qId) {
+    if (!activeSession) return;
+    const prefix = getUserTestPrefix(activeSession.assessment.id);
+    const key = prefix + "_mic_used_" + activeSession.currentIndex;
+    if (LQ.AssessmentDB && LQ.AssessmentDB.saveTempMedia) {
+      LQ.AssessmentDB.saveTempMedia(key, prefix, true);
+    }
+    try { sessionStorage.setItem(key, '1'); } catch(e) {}
+  }
+
+  // Helper: get stored jumbled text for a question (scoped per user + test + question index)
+  function getJumbledText(qKey, originalText) {
+    const prefix = getUserTestPrefix();
+    const key = prefix + "_jumbled_" + qKey;
+    try {
+      const stored = sessionStorage.getItem(key);
+      if (stored) return stored;
+      const jumbled = shuffleWords(originalText);
+      if (LQ.AssessmentDB && LQ.AssessmentDB.saveTempMedia) {
+        LQ.AssessmentDB.saveTempMedia(key, prefix, jumbled);
+      }
+      sessionStorage.setItem(key, jumbled);
+      return jumbled;
+    } catch(e) { return shuffleWords(originalText); }
+  }
+
+  // Helper: purge temporary media session data for user + test from IndexedDB & sessionStorage
+  async function cleanupTempMediaSession(testId) {
+    const email = sessionStorage.getItem("userEmail") || localStorage.getItem("userEmail") || "user";
+    const tId = testId || (activeSession && activeSession.assessment ? activeSession.assessment.id : "");
+    if (!tId) return;
+    const prefix = (email + "_" + tId).toLowerCase();
+
+    // 1. Purge from IndexedDB temp_media store
+    if (LQ.AssessmentDB && LQ.AssessmentDB.deleteTempMediaForUserTest) {
+      await LQ.AssessmentDB.deleteTempMediaForUserTest(prefix);
+    }
+
+    // 2. Purge matching keys from sessionStorage & localStorage
+    try {
+      [sessionStorage, localStorage].forEach(storage => {
+        const keysToRemove = [];
+        for (let i = 0; i < storage.length; i++) {
+          const k = storage.key(i);
+          if (k && k.toLowerCase().includes(prefix)) {
+            keysToRemove.push(k);
+          }
+        }
+        keysToRemove.forEach(k => storage.removeItem(k));
+      });
+    } catch(e) {}
+  }
 
   LQ.renderSessionQuestion = function () {
     if (!activeSession) return;
@@ -1367,7 +1523,7 @@ window.LQ = window.LQ || {};
     // Track attempts / question progression
     const attemptedCount = Object.keys(activeSession.userAnswers || {}).length;
     if (trackerEl) {
-      trackerEl.textContent = `Section ${q.sectionIndex + 1} · Q${idx + 1}/${asm.totalQuestions} · Attempted ${attemptedCount}/${asm.totalQuestions}`;
+      trackerEl.textContent = `Section ${(q.sectionIndex || 0) + 1} · Q${idx + 1}/${asm.totalQuestions} · Attempted ${attemptedCount}/${asm.totalQuestions}`;
     }
 
     // Initialize/reset question timer
@@ -1384,10 +1540,10 @@ window.LQ = window.LQ || {};
         }
         activeSession.questionRemainingSeconds = qSec;
         
-        const activeSec = q.sectionIndex;
+        const activeSec = q.sectionIndex || 0;
         if (activeSession.activeSectionIndexForTimer !== activeSec) {
           activeSession.activeSectionIndexForTimer = activeSec;
-          const sectionQs = asm.questions.filter(qi => qi.sectionIndex === activeSec);
+          const sectionQs = asm.questions.filter(qi => (qi.sectionIndex || 0) === activeSec);
           activeSession.sectionRemainingSeconds = sectionQs.reduce((acc, qi) => {
             let qiSec = 60;
             if (qi.duration !== undefined) {
@@ -1404,211 +1560,310 @@ window.LQ = window.LQ || {};
 
     if (!bodyEl || !q) return;
 
-    // Split Layout Markup
-    let promptHtml = "";
-    let workspaceHtml = "";
     const currentAnswer = activeSession.userAnswers[idx];
+    const qType = q.type || 'mcq';
+    const badge = getQTypeBadge(qType);
+    const marksLabel = q.marks ? `${q.marks} mark${q.marks > 1 ? 's' : ''}` : '';
 
-    // 1. Prompt Side (Left Panel)
-    const isAudioType = q.type === "listening" || q.type === "listen_repeat" || q.type === "audio";
-    const isFib = q.type === "fill_blank" || q.type === "fib";
-    const isPassage = q.type === "passage";
+    // Common header for question type badge + marks + question number
+    const headerHtml = `
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+        <span style="background:${badge.bg};color:${badge.color};font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:0.5px;border:1px solid ${badge.color}20;">${badge.label}</span>
+        <span style="font-size:12px;font-weight:700;color:#0f172a;background:#f1f5f9;padding:3px 10px;border-radius:20px;">Q${idx + 1} of ${asm.totalQuestions}</span>
+        ${marksLabel ? `<span style="font-size:11px;font-weight:600;color:#64748b;margin-left:auto;">📊 ${marksLabel}</span>` : ''}
+      </div>
+    `;
 
+    // Determine question type categories
+    const isFib = qType === 'fill_blank' || qType === 'fib';
+    const isPassage = qType === 'passage';
+    const isJumbled = qType === 'jumbled_sentence';
+    const isListenRepeat = qType === 'listen_repeat';
+    const isReadAloud = qType === 'reading_listening';
+    const isStoryRetelling = qType === 'story_retelling';
+    const isAudioType = qType === 'listening' || qType === 'audio';
+    const isSpeakType = qType === 'speak' || qType === 'speaking';
+    const needsMic = isJumbled || isListenRepeat || isReadAloud || isStoryRetelling || isSpeakType;
+    const needsAudio = isAudioType || isListenRepeat || isPassage || isStoryRetelling;
+
+    let promptHtml = '';
+    let workspaceHtml = '';
+
+    // ═══════════════════════════════════════════
+    // FIB — Full-width layout
+    // ═══════════════════════════════════════════
     if (isFib) {
-      // Fill in the Blanks: Full screen width, replace both ${blank} and underscores with inline inputs
       let textWithInputs = q.text;
       let blankIdx = 0;
-      const ansArr = Array.isArray(currentAnswer) ? currentAnswer : (typeof currentAnswer === "string" ? [currentAnswer] : []);
+      const ansArr = Array.isArray(currentAnswer) ? currentAnswer : (typeof currentAnswer === 'string' ? [currentAnswer] : []);
 
       textWithInputs = textWithInputs.replace(/\$\{blank\}|_{3,}/g, function() {
-        const val = ansArr[blankIdx] || "";
-        const inputHtml = `<input type="text" class="asm-fib-input" data-blank-idx="${blankIdx}" value="${LQ.esc(val)}" oninput="LQ.saveInlineBlankAnswer(${blankIdx}, this.value)" style="border:none;border-bottom:2px solid #2563eb;outline:none;padding:2px 6px;font-size:15px;font-weight:700;color:#1e3a8a;width:130px;text-align:center;background:#eff6ff;border-radius:4px;margin:0 4px;" />`;
+        const val = ansArr[blankIdx] || '';
+        const html = `<input type="text" class="asm-fib-input" data-blank-idx="${blankIdx}" value="${LQ.esc(val)}" oninput="LQ.saveInlineBlankAnswer(${blankIdx}, this.value)" style="border:none;border-bottom:2px solid #2563eb;outline:none;padding:4px 8px;font-size:15px;font-weight:700;color:#1e3a8a;width:140px;text-align:center;background:#eff6ff;border-radius:6px;margin:0 4px;transition:border-color 0.2s;" onfocus="this.style.borderColor='#1d4ed8'" onblur="this.style.borderColor='#2563eb'" />`;
         blankIdx++;
-        return inputHtml;
+        return html;
       });
 
       if (blankIdx === 0) {
-        const val = typeof currentAnswer === "string" ? currentAnswer : (ansArr[0] || "");
-        textWithInputs += ` <input type="text" class="asm-fib-input" data-blank-idx="0" value="${LQ.esc(val)}" oninput="LQ.saveInlineBlankAnswer(0, this.value)" style="border:none;border-bottom:2px solid #2563eb;outline:none;padding:2px 6px;font-size:15px;font-weight:700;color:#1e3a8a;width:150px;text-align:center;background:#eff6ff;border-radius:4px;margin:0 4px;" />`;
+        const val = typeof currentAnswer === 'string' ? currentAnswer : (ansArr[0] || '');
+        textWithInputs += ` <input type="text" class="asm-fib-input" data-blank-idx="0" value="${LQ.esc(val)}" oninput="LQ.saveInlineBlankAnswer(0, this.value)" style="border:none;border-bottom:2px solid #2563eb;outline:none;padding:4px 8px;font-size:15px;font-weight:700;color:#1e3a8a;width:160px;text-align:center;background:#eff6ff;border-radius:6px;margin:0 4px;" />`;
       }
 
       bodyEl.innerHTML = `
-        <div style="width:100%;height:100%;padding:32px;overflow-y:auto;background:#fff;line-height:2.4;font-size:16px;">
-          <span style="font-size:11px;font-weight:700;color:#2563eb;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:12px;">Fill in the Blanks</span>
+        <div style="width:100%;height:100%;padding:28px 32px;overflow-y:auto;background:linear-gradient(135deg,#fff 0%,#f8fafc 100%);line-height:2.4;font-size:16px;">
+          ${headerHtml}
           <h3 style="margin:0;font-size:16px;color:#0f172a;line-height:2.4;font-weight:500;">${textWithInputs}</h3>
         </div>
       `;
-      return; // Skip normal split rendering
+      LQ.renderAsmSidebarContent();
+      return;
     }
 
-    if (isAudioType) {
-      // Audio Question: Hide text, show play button
-      const playId = `audio_play_${q.id}`;
-      let playLimit = q.maxPlays || 2;
-      let playedCount = parseInt(sessionStorage.getItem(`played_${q.id}`) || "0");
-      
+    // ═══════════════════════════════════════════
+    // LEFT PANEL — Build prompt based on type
+    // ═══════════════════════════════════════════
+    const playLimit = q.playLimit || q.maxPlays || 1;
+    const prefix = getUserTestPrefix(activeSession.assessment.id);
+    const qKey = prefix + '_q_' + idx;
+    const playKey = prefix + '_played_' + idx;
+
+    let playedCount = 0;
+    try {
+      playedCount = parseInt(sessionStorage.getItem(playKey) || '0', 10);
+    } catch(e) { playedCount = 0; }
+    
+    const playRemaining = Math.max(0, playLimit - playedCount);
+    const playDisabled = playRemaining <= 0;
+
+    if (isPassage) {
+      // Passage: Audio playback for passage text
       promptHtml = `
-        <div class="asm-split-left" style="align-items:center;justify-content:center;">
-          <div style="font-size:48px;margin-bottom:16px;">🎧</div>
-          <h3 style="margin:0 0 8px;font-size:16px;color:#0f172a;">Listen Carefully</h3>
-          <p style="color:#64748b;font-size:13px;text-align:center;margin-bottom:20px;">Click the button below to listen to the audio passage.</p>
-          <button type="button" id="btn-play-audio" class="btn primary" onclick="LQ.playQuestionAudio('${q.id}', '${LQ.esc(q.correctAnswerText || q.text)}')" style="background:#2563eb;color:#fff;font-weight:600;padding:12px 24px;border-radius:8px;display:flex;align-items:center;gap:8px;">
-            <span>🔊 Play Audio</span>
-            <span style="font-size:11px;background:rgba(255,255,255,0.2);padding:2px 6px;border-radius:4px;">Remaining: ${Math.max(0, playLimit - playedCount)}</span>
-          </button>
+        <div class="asm-split-left" style="align-items:flex-start;justify-content:flex-start;text-align:left;">
+          ${headerHtml}
+          <div style="font-size:48px;margin-bottom:12px;text-align:center;width:100%;">📖</div>
+          <h3 style="margin:0 0 8px;font-size:17px;color:#0f172a;font-weight:700;width:100%;text-align:center;">Listen to the Passage</h3>
+          <p style="color:#64748b;font-size:13px;margin-bottom:20px;text-align:center;width:100%;">Click play to listen to the passage audio. Answer the sub-questions on the right.</p>
+          <div style="display:flex;justify-content:center;width:100%;">
+            <button type="button" id="btn-play-audio" class="btn primary" onclick="LQ.playQuestionAudio('${qKey}', '${LQ.esc(q.text)}')" ${playDisabled ? 'disabled' : ''} style="background:${playDisabled ? '#94a3b8' : '#2563eb'};color:#fff;font-weight:600;padding:12px 28px;border-radius:10px;display:flex;align-items:center;gap:8px;border:none;cursor:${playDisabled ? 'not-allowed' : 'pointer'};font-size:14px;box-shadow:0 2px 8px rgba(37,99,235,0.25);transition:all 0.2s;">
+              <span>🔊 Play Passage</span>
+              <span style="font-size:11px;background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:6px;">Plays left: ${playRemaining}</span>
+            </button>
+          </div>
         </div>
       `;
-    } else if (isPassage) {
-      // Passage Question: Read passage text as AUDIO on the left panel
-      const playId = `audio_play_${q.id}`;
-      let playLimit = q.maxPlays || 2;
-      let playedCount = parseInt(sessionStorage.getItem(`played_${q.id}`) || "0");
-
+    } else if (isJumbled) {
+      // Jumbled: Show scrambled words only, NOT the original text
+      const jumbledText = getJumbledText(qKey, q.correctAnswerText || q.text);
       promptHtml = `
-        <div class="asm-split-left" style="align-items:center;justify-content:center;">
-          <div style="font-size:48px;margin-bottom:16px;">🎧</div>
-          <h3 style="margin:0 0 8px;font-size:16px;color:#0f172a;">Listen to the Passage</h3>
-          <p style="color:#64748b;font-size:13px;text-align:center;margin-bottom:20px;">Click the button below to listen to the passage passage passage.</p>
-          <button type="button" id="btn-play-audio" class="btn primary" onclick="LQ.playQuestionAudio('${q.id}', '${LQ.esc(q.text)}')" style="background:#2563eb;color:#fff;font-weight:600;padding:12px 24px;border-radius:8px;display:flex;align-items:center;gap:8px;">
-            <span>🔊 Play Passage Audio</span>
-            <span style="font-size:11px;background:rgba(255,255,255,0.2);padding:2px 6px;border-radius:4px;">Remaining: ${Math.max(0, playLimit - playedCount)}</span>
-          </button>
+        <div class="asm-split-left" style="justify-content:flex-start;align-items:stretch;">
+          ${headerHtml}
+          <div style="font-size:40px;margin-bottom:12px;text-align:center;">🔀</div>
+          <h3 style="margin:0 0 8px;font-size:15px;color:#0f172a;font-weight:700;text-align:center;">Rearrange & Speak</h3>
+          <p style="color:#64748b;font-size:12px;text-align:center;margin-bottom:16px;">Rearrange the jumbled words below into the correct sentence, then record your answer.</p>
+          <div style="background:#fffbeb;border:2px dashed #f59e0b;border-radius:12px;padding:20px;text-align:center;">
+            <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;">
+              ${jumbledText.split(/\s+/).map(w => `<span style="background:#fef3c7;color:#92400e;padding:6px 14px;border-radius:8px;font-weight:600;font-size:15px;border:1px solid #fde68a;">${LQ.esc(w)}</span>`).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+    } else if (isListenRepeat || isStoryRetelling) {
+      // Listen & Repeat / Story Retelling: Audio on the left
+      const audioText = q.correctAnswerText || q.text;
+      promptHtml = `
+        <div class="asm-split-left" style="align-items:flex-start;justify-content:flex-start;text-align:left;">
+          ${headerHtml}
+          <div style="font-size:48px;margin-bottom:12px;text-align:center;width:100%;">🎧</div>
+          <h3 style="margin:0 0 8px;font-size:17px;color:#0f172a;font-weight:700;width:100%;text-align:center;">${isStoryRetelling ? 'Listen to the Story' : 'Listen Carefully'}</h3>
+          <p style="color:#64748b;font-size:13px;margin-bottom:20px;text-align:center;width:100%;">${isStoryRetelling ? 'Listen to the story, then retell it in your own words.' : 'Listen to the audio, then repeat exactly what you heard.'}</p>
+          <div style="display:flex;justify-content:center;width:100%;">
+            <button type="button" id="btn-play-audio" class="btn primary" onclick="LQ.playQuestionAudio('${qKey}', '${LQ.esc(audioText)}')" ${playDisabled ? 'disabled' : ''} style="background:${playDisabled ? '#94a3b8' : '#0891b2'};color:#fff;font-weight:600;padding:12px 28px;border-radius:10px;display:flex;align-items:center;gap:8px;border:none;cursor:${playDisabled ? 'not-allowed' : 'pointer'};font-size:14px;box-shadow:0 2px 8px rgba(8,145,178,0.25);">
+              <span>🔊 Play Audio</span>
+              <span style="font-size:11px;background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:6px;">Plays left: ${playRemaining}</span>
+            </button>
+          </div>
+        </div>
+      `;
+    } else if (isReadAloud) {
+      // Reading: Show text on left for student to read aloud
+      promptHtml = `
+        <div class="asm-split-left" style="justify-content:flex-start;align-items:stretch;">
+          ${headerHtml}
+          <div style="font-size:40px;margin-bottom:8px;text-align:center;">📖</div>
+          <h3 style="margin:0 0 8px;font-size:15px;color:#0f172a;font-weight:700;text-align:center;">Read Aloud</h3>
+          <p style="color:#64748b;font-size:12px;text-align:center;margin-bottom:16px;">Read the following text aloud and record your voice.</p>
+          <div style="background:#eef2ff;border:1px solid #c7d2fe;border-radius:12px;padding:20px;font-size:16px;color:#1e293b;line-height:1.8;font-weight:500;">
+            ${LQ.esc(q.text)}
+          </div>
+        </div>
+      `;
+    } else if (isAudioType) {
+      // Generic Audio: Listen then answer
+      promptHtml = `
+        <div class="asm-split-left" style="align-items:flex-start;justify-content:flex-start;text-align:left;">
+          ${headerHtml}
+          <div style="font-size:48px;margin-bottom:12px;text-align:center;width:100%;">🎧</div>
+          <h3 style="margin:0 0 8px;font-size:17px;color:#0f172a;font-weight:700;width:100%;text-align:center;">Listen Carefully</h3>
+          <p style="color:#64748b;font-size:13px;margin-bottom:20px;text-align:center;width:100%;">Click play to listen to the audio passage.</p>
+          <div style="display:flex;justify-content:center;width:100%;">
+            <button type="button" id="btn-play-audio" class="btn primary" onclick="LQ.playQuestionAudio('${qKey}', '${LQ.esc(q.correctAnswerText || q.text)}')" ${playDisabled ? 'disabled' : ''} style="background:${playDisabled ? '#94a3b8' : '#2563eb'};color:#fff;font-weight:600;padding:12px 28px;border-radius:10px;display:flex;align-items:center;gap:8px;border:none;cursor:${playDisabled ? 'not-allowed' : 'pointer'};font-size:14px;box-shadow:0 2px 8px rgba(37,99,235,0.25);">
+              <span>🔊 Play Audio</span>
+              <span style="font-size:11px;background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:6px;">Plays left: ${playRemaining}</span>
+            </button>
+          </div>
         </div>
       `;
     } else {
-      // Normal Question: Show text prompt
+      // MCQ / Text: Show question text
       promptHtml = `
-        <div class="asm-split-left">
-          <span style="font-size:11px;font-weight:700;color:#2563eb;text-transform:uppercase;letter-spacing:0.5px;">Question Prompt</span>
-          <h3 style="margin:0;font-size:16px;color:#0f172a;line-height:1.5;">${LQ.esc(q.text)}</h3>
+        <div class="asm-split-left" style="justify-content:flex-start;align-items:stretch;">
+          ${headerHtml}
+          <h3 style="margin:0;font-size:17px;color:#0f172a;line-height:1.6;font-weight:600;">${LQ.esc(q.text)}</h3>
         </div>
       `;
     }
 
-    // 2. Workspace Side (Right Panel)
-    const isSpeakType = q.type === "speak" || q.type === "listen_repeat" || q.type === "speaking";
+    // ═══════════════════════════════════════════
+    // RIGHT PANEL — Build workspace based on type
+    // ═══════════════════════════════════════════
+    const micAlreadyUsed = isMicUsed(q.id);
 
-    if (isSpeakType) {
-      // Speaking Question: Microphone recording with speech-to-text
+    if (needsMic) {
+      // Mic-based question types: single attempt enforcement
+      const micDisabled = micAlreadyUsed && !isRecordingAudio;
+      const micBtnLabel = micAlreadyUsed ? '✅ Recording Complete' : (isRecordingAudio ? '⏹️ Stop Recording' : '🎤 Start Recording');
+      const micBtnBg = micAlreadyUsed ? '#16a34a' : (isRecordingAudio ? '#dc2626' : '#2563eb');
+
       workspaceHtml = `
-        <div class="asm-split-right" style="justify-content:center;align-items:stretch;width:100%;max-width:none;gap:12px;">
-          <div style="font-size:12px;font-weight:700;color:#ef4444;text-transform:uppercase;">Record Your Response</div>
+        <div class="asm-split-right" style="justify-content:center;align-items:stretch;width:100%;max-width:none;gap:14px;">
+          <div style="font-size:12px;font-weight:700;color:${isRecordingAudio ? '#dc2626' : '#475569'};text-transform:uppercase;letter-spacing:0.5px;text-align:center;">
+            ${isRecordingAudio ? '🔴 Recording in Progress...' : (micAlreadyUsed ? '✅ Recording Submitted' : '🎤 Record Your Response')}
+          </div>
           
-          <div style="display:flex;align-items:center;justify-content:center;margin:8px 0;">
-            <div id="mic-animation" class="hidden" style="width:70px;height:70px;border-radius:50%;background:rgba(239,68,68,0.2);display:flex;align-items:center;justify-content:center;animation:pulse 1.5s infinite;">
-              <span style="font-size:32px;">🎙️</span>
+          <div style="display:flex;align-items:center;justify-content:center;margin:4px 0;">
+            <div id="mic-animation" class="${isRecordingAudio ? '' : 'hidden'}" style="width:80px;height:80px;border-radius:50%;background:rgba(239,68,68,0.15);display:flex;align-items:center;justify-content:center;animation:pulse 1.5s infinite;">
+              <span style="font-size:36px;">🎙️</span>
             </div>
           </div>
           
-          <textarea id="asm-text-ans" class="inp" rows="4" readonly style="width:100%;background:#fff;border:1px solid #cbd5e1;padding:12px;border-radius:8px;font-size:13px;resize:none;" placeholder="Your spoken text will appear here...">${LQ.esc(typeof currentAnswer === "string" ? currentAnswer : "")}</textarea>
+          <textarea id="asm-text-ans" class="inp" rows="4" readonly style="width:100%;background:#fff;border:1px solid ${micAlreadyUsed ? '#bbf7d0' : '#cbd5e1'};padding:14px;border-radius:10px;font-size:14px;resize:none;color:#1e293b;${micAlreadyUsed ? 'background:#f0fdf4;' : ''}" placeholder="Your spoken text will appear here...">${LQ.esc(typeof currentAnswer === 'string' ? currentAnswer : '')}</textarea>
           
-          <button type="button" id="btn-mic-toggle" class="btn" onclick="LQ.toggleSpeechRecognition()" style="background:#dc2626;color:#fff;font-weight:600;padding:10px 20px;border-radius:8px;border:none;width:100%;">🎤 Start Recording</button>
+          <button type="button" id="btn-mic-toggle" class="btn" onclick="LQ.toggleSpeechRecognition()" ${micDisabled ? 'disabled' : ''} style="background:${micBtnBg};color:#fff;font-weight:600;padding:12px 20px;border-radius:10px;border:none;width:100%;font-size:14px;cursor:${micDisabled ? 'not-allowed' : 'pointer'};opacity:${micDisabled ? '0.7' : '1'};transition:all 0.2s;">${micBtnLabel}</button>
           
-          <div id="speech-fallback-msg" class="hidden" style="font-size:11px;color:#64748b;text-align:center;">Speech recognition fallback: You may type directly in the box below if speech recognition is not supported.</div>
+          ${micAlreadyUsed ? '<div style="font-size:11px;color:#16a34a;text-align:center;font-weight:600;">✅ Recording submitted. Only one attempt is allowed per question.</div>' : '<div style="font-size:11px;color:#94a3b8;text-align:center;">⚠️ You have only one recording attempt per question.</div>'}
+          
+          <div id="speech-fallback-msg" class="hidden" style="font-size:11px;color:#64748b;text-align:center;">Speech recognition not supported. You may type directly above.</div>
         </div>
       `;
     } else if (isPassage) {
-      // Passage Question: Loop over subQuestions and render sequential input elements
+      // Passage: subquestions on right
       const subAnswers = currentAnswer || {};
       workspaceHtml = `
-        <div class="asm-split-right" style="justify-content:flex-start;align-items:stretch;gap:16px;overflow-y:auto;max-height:100%;width:100%;max-width:none;">
-          <div style="font-size:13px;font-weight:700;color:#1e3a8a;border-bottom:1px solid #e2e8f0;padding-bottom:8px;">📝 Sub-Questions (Answer all)</div>
+        <div class="asm-split-right" style="justify-content:flex-start;align-items:stretch;gap:14px;overflow-y:auto;max-height:100%;width:100%;max-width:none;">
+          <div style="font-size:13px;font-weight:700;color:#1e3a8a;border-bottom:2px solid #eff6ff;padding-bottom:8px;">📝 Sub-Questions (Answer all)</div>
       `;
       (q.subQuestions || []).forEach((sq, sqIdx) => {
         const sqAns = subAnswers[sqIdx];
+        const sqText = sq.questionText || sq.text || '';
+        const sqType = (sq.type || sq.questionType || '').toLowerCase();
+        const isExplicitMcq = sqType === 'mcq' || sqType === 'mcq_single' || sqType === 'mcq_multi' || sqType === 'single' || sqType === 'multiple';
+        const isExplicitFib = sqType === 'fib' || sqType === 'fill_blank' || sqType === 'fill_in_blank' || sqType === 'fill_in_the_blank';
+        const hasRealOptions = sq.options && sq.options.length > 0 && sq.options.some(opt => typeof opt === 'string' && opt.trim().length > 0);
+
+        const isSubqMcq = isExplicitMcq || (hasRealOptions && !isExplicitFib);
+        const isSubqFib = !isSubqMcq && (isExplicitFib || sqText.includes('${blank}') || sqText.includes('___') || sqText.includes('[blank]'));
+
         workspaceHtml += `
-          <div class="asm-passage-subq" style="background:#f8fafc;padding:16px;border-radius:10px;border:1px solid #e2e8f0;margin-bottom:12px;display:flex;flex-direction:column;gap:8px;">
-            <div style="font-weight:700;font-size:13px;color:#334155;">Q${sqIdx + 1}. ${LQ.esc(sq.questionText || sq.text)}</div>
+          <div class="asm-passage-subq" style="background:#fff;padding:16px;border-radius:12px;border:1px solid #e2e8f0;margin-bottom:8px;display:flex;flex-direction:column;gap:8px;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
         `;
-        
-        const isSqFib = sq.type === "fib" || sq.type === "fill_blank" || sq.text.includes("${blank}") || sq.text.includes("___");
-        
-        if (sq.options && sq.options.length) {
+
+        if (isSubqMcq) {
           workspaceHtml += `
-            <div style="display:flex;flex-direction:column;gap:8px;">
-              ${sq.options.map((opt, oIdx) => {
-                const isSelected = sqAns === oIdx;
-                return `
-                  <button type="button" class="asm-opt-btn ${isSelected ? "selected" : ""}" onclick="LQ.selectPassageSubAnswer(${idx}, ${sqIdx}, ${oIdx})" style="display:flex;align-items:center;gap:12px;width:100%;padding:10px 14px;border-radius:8px;border:1px solid #cbd5e1;background:#fff;text-align:left;cursor:pointer;font-size:13px;">
-                    <span class="asm-opt-radio-icon" style="width:16px;height:16px;border-radius:50%;border:2px solid ${isSelected ? '#2563eb' : '#cbd5e1'};background:${isSelected ? '#2563eb' : 'transparent'};display:inline-block;flex-shrink:0;"></span>
-                    <span>${LQ.esc(opt)}</span>
-                  </button>
-                `;
-              }).join("")}
-            </div>
+            <div style="font-weight:700;font-size:13px;color:#334155;margin-bottom:4px;">Q${sqIdx + 1}. ${LQ.esc(sqText)}</div>
+            <div style="display:flex;flex-direction:column;gap:6px;">
           `;
-        } else if (isSqFib) {
-          let sqText = sq.text;
-          let sqBlankIdx = 0;
-          const sqAnsArr = Array.isArray(sqAns) ? sqAns : (typeof sqAns === "string" ? [sqAns] : []);
-          
-          sqText = sqText.replace(/\$\{blank\}|_{3,}/g, function() {
-            const val = sqAnsArr[sqBlankIdx] || "";
-            const inputHtml = `<input type="text" class="asm-fib-input" data-sq-idx="${sqIdx}" data-blank-idx="${sqBlankIdx}" value="${LQ.esc(val)}" oninput="LQ.savePassageSubFibAnswer(${idx}, ${sqIdx}, ${sqBlankIdx}, this.value)" style="border:none;border-bottom:2px solid #2563eb;outline:none;padding:2px 6px;font-size:13px;font-weight:700;color:#1e3a8a;width:100px;text-align:center;background:#eff6ff;border-radius:4px;margin:0 4px;" />`;
-            sqBlankIdx++;
-            return inputHtml;
+          sq.options.forEach((opt, oIdx) => {
+            const isSelected = sqAns === oIdx;
+            workspaceHtml += `
+              <button type="button" class="asm-opt-btn ${isSelected ? 'selected' : ''}" onclick="LQ.selectPassageSubAnswer(${idx}, ${sqIdx}, ${oIdx})" style="display:flex;align-items:center;gap:10px;width:100%;padding:10px 14px;border-radius:8px;border:1px solid ${isSelected ? '#2563eb' : '#e2e8f0'};background:${isSelected ? '#eff6ff' : '#fff'};text-align:left;cursor:pointer;font-size:13px;transition:all 0.15s;">
+                <span style="width:18px;height:18px;border-radius:50%;border:2px solid ${isSelected ? '#2563eb' : '#cbd5e1'};background:${isSelected ? '#2563eb' : 'transparent'};display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">${isSelected ? '<span style="width:6px;height:6px;border-radius:50%;background:#fff;display:block;"></span>' : ''}</span>
+                <span style="color:${isSelected ? '#1e40af' : '#334155'};">${LQ.esc(opt)}</span>
+              </button>
+            `;
           });
-          
+          workspaceHtml += `</div>`;
+        } else if (isSubqFib) {
+          let sqInputText = sqText;
+          let sqBlankIdx = 0;
+          const sqAnsArr = Array.isArray(sqAns) ? sqAns : (typeof sqAns === 'string' && sqAns !== '' ? [sqAns] : []);
+          sqInputText = sqInputText.replace(/\$\{blank\}|_{3,}|\[blank\]/gi, function() {
+            const val = sqAnsArr[sqBlankIdx] || '';
+            const inp = `<input type="text" class="asm-fib-input" value="${LQ.esc(val)}" oninput="LQ.savePassageSubFibAnswer(${idx}, ${sqIdx}, ${sqBlankIdx}, this.value)" style="border:none;border-bottom:2px solid #2563eb;outline:none;padding:3px 6px;font-size:14px;font-weight:700;color:#1e3a8a;width:120px;text-align:center;background:#eff6ff;border-radius:6px;margin:0 4px;" />`;
+            sqBlankIdx++;
+            return inp;
+          });
           if (sqBlankIdx === 0) {
-            const val = typeof sqAns === "string" ? sqAns : (sqAnsArr[0] || "");
-            sqText += ` <input type="text" class="asm-fib-input" data-sq-idx="${sqIdx}" data-blank-idx="0" value="${LQ.esc(val)}" oninput="LQ.savePassageSubFibAnswer(${idx}, ${sqIdx}, 0, this.value)" style="border:none;border-bottom:2px solid #2563eb;outline:none;padding:2px 6px;font-size:13px;font-weight:700;color:#1e3a8a;width:120px;text-align:center;background:#eff6ff;border-radius:4px;margin:0 4px;" />`;
+            const val = typeof sqAns === 'string' ? sqAns : (sqAnsArr[0] || '');
+            sqInputText += ` <input type="text" class="asm-fib-input" value="${LQ.esc(val)}" oninput="LQ.savePassageSubFibAnswer(${idx}, ${sqIdx}, 0, this.value)" style="border:none;border-bottom:2px solid #2563eb;outline:none;padding:3px 6px;font-size:14px;font-weight:700;color:#1e3a8a;width:130px;text-align:center;background:#eff6ff;border-radius:6px;margin:0 4px;" />`;
           }
-          
-          workspaceHtml += `
-            <div style="font-size:13px;color:#334155;line-height:2.0;">${sqText}</div>
-          `;
+          workspaceHtml += `<div style="font-size:14px;color:#334155;line-height:2.4;font-weight:500;"><strong>Q${sqIdx + 1}.</strong> ${sqInputText}</div>`;
         } else {
           workspaceHtml += `
-            <input type="text" class="inp" placeholder="Type your response..." value="${LQ.esc(sqAns || '')}" oninput="LQ.savePassageSubTextAnswer(${idx}, ${sqIdx}, this.value)" style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid #cbd5e1;background:#fff;font-size:13px;" />
+            <div style="font-weight:700;font-size:13px;color:#334155;margin-bottom:4px;">Q${sqIdx + 1}. ${LQ.esc(sqText)}</div>
+            <input type="text" class="inp" placeholder="Type your answer..." value="${LQ.esc(typeof sqAns === 'string' ? sqAns : (Array.isArray(sqAns) ? sqAns.join(' ') : ''))}" oninput="LQ.savePassageSubTextAnswer(${idx}, ${sqIdx}, this.value)" style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;font-size:13px;" />
           `;
         }
         workspaceHtml += `</div>`;
       });
       workspaceHtml += `</div>`;
-    } else if (q.type === "mcq_multi") {
+    } else if (qType === 'mcq_multi' || (qType === 'mcq' && q.mcqType === 'multiple')) {
       const selectedArr = Array.isArray(currentAnswer) ? currentAnswer : [];
       workspaceHtml = `
-        <div class="asm-split-right" style="justify-content:flex-start;align-items:stretch;gap:12px;">
-          <div style="font-size:13px;font-weight:600;color:#64748b;margin-bottom:4px;">Select all correct options that apply:</div>
+        <div class="asm-split-right" style="justify-content:flex-start;align-items:stretch;gap:10px;">
+          <div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:2px;">Select all correct options:</div>
           <div class="asm-options-list" style="display:flex;flex-direction:column;gap:8px;">
             ${(q.options || []).map((opt, oIdx) => {
               const isSelected = selectedArr.includes(oIdx);
               const prefix = String.fromCharCode(65 + oIdx);
               return `
-                <button type="button" class="asm-opt-btn ${isSelected ? "selected" : ""}" onclick="LQ.toggleMultiSessionAnswer(${oIdx})" style="display:flex;align-items:center;gap:12px;width:100%;padding:10px 14px;border-radius:8px;border:1px solid #cbd5e1;background:#fff;text-align:left;cursor:pointer;">
-                  <span class="asm-opt-checkbox-icon" style="width:16px;height:16px;border-radius:4px;border:2px solid ${isSelected ? '#2563eb' : '#cbd5e1'};background:${isSelected ? '#2563eb' : 'transparent'};display:inline-block;flex-shrink:0;position:relative;margin-right:4px;">
-                    ${isSelected ? '<span style="position:absolute;top:1px;left:4px;width:4px;height:8px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg);display:block;"></span>' : ''}
+                <button type="button" class="asm-opt-btn ${isSelected ? 'selected' : ''}" onclick="LQ.toggleMultiSessionAnswer(${oIdx})" style="display:flex;align-items:center;gap:12px;width:100%;padding:12px 16px;border-radius:10px;border:1.5px solid ${isSelected ? '#2563eb' : '#e2e8f0'};background:${isSelected ? '#eff6ff' : '#fff'};text-align:left;cursor:pointer;transition:all 0.15s;font-size:14px;">
+                  <span style="width:18px;height:18px;border-radius:4px;border:2px solid ${isSelected ? '#2563eb' : '#cbd5e1'};background:${isSelected ? '#2563eb' : 'transparent'};display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    ${isSelected ? '<span style="color:#fff;font-size:11px;font-weight:900;">✓</span>' : ''}
                   </span>
-                  <span>${LQ.esc(opt)}</span>
+                  <span style="font-weight:600;color:#64748b;min-width:18px;">${prefix}.</span>
+                  <span style="color:${isSelected ? '#1e40af' : '#1e293b'};">${LQ.esc(opt)}</span>
                 </button>
               `;
-            }).join("")}
+            }).join('')}
           </div>
         </div>
       `;
     } else if (q.options && q.options.length) {
+      // MCQ Single
       workspaceHtml = `
-        <div class="asm-split-right" style="justify-content:flex-start;align-items:stretch;gap:12px;">
+        <div class="asm-split-right" style="justify-content:flex-start;align-items:stretch;gap:10px;">
+          <div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:2px;">Choose one answer:</div>
           <div class="asm-options-list" style="display:flex;flex-direction:column;gap:8px;">
             ${q.options.map((opt, oIdx) => {
               const isSelected = currentAnswer === oIdx;
               const prefix = String.fromCharCode(65 + oIdx);
               return `
-                <button type="button" class="asm-opt-btn ${isSelected ? "selected" : ""}" onclick="LQ.selectSessionAnswer(${oIdx})" style="display:flex;align-items:center;gap:12px;width:100%;padding:10px 14px;border-radius:8px;border:1px solid #cbd5e1;background:#fff;text-align:left;cursor:pointer;">
-                  <span class="asm-opt-radio-icon" style="width:16px;height:16px;border-radius:50%;border:2px solid ${isSelected ? '#2563eb' : '#cbd5e1'};background:${isSelected ? '#2563eb' : 'transparent'};display:inline-block;flex-shrink:0;margin-right:4px;"></span>
-                  <span>${LQ.esc(opt)}</span>
+                <button type="button" class="asm-opt-btn ${isSelected ? 'selected' : ''}" onclick="LQ.selectSessionAnswer(${oIdx})" style="display:flex;align-items:center;gap:12px;width:100%;padding:12px 16px;border-radius:10px;border:1.5px solid ${isSelected ? '#2563eb' : '#e2e8f0'};background:${isSelected ? '#eff6ff' : '#fff'};text-align:left;cursor:pointer;transition:all 0.15s;font-size:14px;">
+                  <span style="width:18px;height:18px;border-radius:50%;border:2px solid ${isSelected ? '#2563eb' : '#cbd5e1'};background:${isSelected ? '#2563eb' : 'transparent'};display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">${isSelected ? '<span style="width:6px;height:6px;border-radius:50%;background:#fff;display:block;"></span>' : ''}</span>
+                  <span style="font-weight:600;color:#64748b;min-width:18px;">${prefix}.</span>
+                  <span style="color:${isSelected ? '#1e40af' : '#1e293b'};">${LQ.esc(opt)}</span>
                 </button>
               `;
-            }).join("")}
+            }).join('')}
           </div>
         </div>
       `;
     } else {
-      // Text response / FIB fallback
+      // Text response fallback
       workspaceHtml = `
-        <div class="asm-split-right" style="justify-content:center;align-items:stretch;gap:12px;">
-          <div style="font-size:12px;font-weight:700;color:#64748b;">Type your response:</div>
-          <textarea id="asm-text-ans" class="inp" rows="4" placeholder="Type your response here..." oninput="LQ.saveSessionTextAnswer(this.value)" style="width:100%;padding:12px;border-radius:8px;border:1px solid #cbd5e1;background:#fff;font-size:13px;resize:none;">${LQ.esc(typeof currentAnswer === "string" ? currentAnswer : "")}</textarea>
+        <div class="asm-split-right" style="justify-content:center;align-items:stretch;gap:14px;">
+          <div style="font-size:12px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:0.5px;">Type your response:</div>
+          <textarea id="asm-text-ans" class="inp" rows="5" placeholder="Type your response here..." oninput="LQ.saveSessionTextAnswer(this.value)" style="width:100%;padding:14px;border-radius:10px;border:1px solid #e2e8f0;background:#fff;font-size:14px;resize:none;line-height:1.6;">${LQ.esc(typeof currentAnswer === 'string' ? currentAnswer : '')}</textarea>
         </div>
       `;
     }
@@ -1620,8 +1875,7 @@ window.LQ = window.LQ || {};
       </div>
     `;
 
-    // Initialize speech support elements if needed
-    if (isSpeakType) {
+    if (needsMic || isSpeakType) {
       LQ.checkSpeechSupport();
     }
     
@@ -1659,13 +1913,11 @@ window.LQ = window.LQ || {};
       : [];
     list[blankIdx] = val;
     activeSession.userAnswers[qIdx] = list;
-    syncLiveProgress();
   };
 
   LQ.saveSessionTextAnswer = function (val) {
     if (!activeSession) return;
     activeSession.userAnswers[activeSession.currentIndex] = val;
-    syncLiveProgress();
   };
 
   LQ.prevSessionQuestion = function () {
@@ -1820,9 +2072,17 @@ window.LQ = window.LQ || {};
     }
 
     await LQ.AssessmentDB.saveAssessment(asm);
+    await cleanupTempMediaSession(asmId);
     LQ.toast("Assessment submitted & evaluated!", true);
 
     const asmId = asm.id;
+    LQ._lastSubmittedResult = {
+      id: asmId,
+      showResult: (activeSession && activeSession.assessment) ? activeSession.assessment.showResult : true,
+      showAnswer: (activeSession && activeSession.assessment) ? activeSession.assessment.showAnswer : false,
+      asm: asm
+    };
+
     if (LQ._asmTimerId) {
       clearInterval(LQ._asmTimerId);
       LQ._asmTimerId = null;
@@ -1840,9 +2100,112 @@ window.LQ = window.LQ || {};
     LQ.renderAssessmentResultScreen();
   };
 
+  function getCorrectOptionIndex(correctAns, options) {
+    if (!options || !options.length) return -1;
+    var str = (correctAns !== undefined && correctAns !== null) ? String(correctAns).trim() : '';
+    if (!str) return -1;
+    var directIdx = options.indexOf(str);
+    if (directIdx >= 0) return directIdx;
+    var upper = str.toUpperCase();
+    if (upper.length === 1 && upper >= 'A' && upper <= 'Z') {
+      var letterIdx = upper.charCodeAt(0) - 65;
+      if (letterIdx >= 0 && letterIdx < options.length) return letterIdx;
+    }
+    var numIdx = parseInt(str, 10);
+    if (!isNaN(numIdx) && numIdx >= 0 && numIdx < options.length) return numIdx;
+    return -1;
+  }
+
+  function renderPassageSubQuestionsResultHtml(q, originalIndex, showAns) {
+    let subHtml = "";
+    const userAnsMap = (typeof q.userAnswer === 'object' && q.userAnswer !== null) ? q.userAnswer : {};
+    const subQuestions = q.subQuestions || [];
+
+    subQuestions.forEach((sq, sqIdx) => {
+      const sqUserAns = sq.userAnswer !== undefined ? sq.userAnswer : userAnsMap[sqIdx];
+      const sqText = sq.questionText || sq.text || '';
+      const sqType = (sq.type || sq.questionType || '').toLowerCase();
+      const isExplicitMcq = sqType === 'mcq' || sqType === 'mcq_single' || sqType === 'mcq_multi' || sqType === 'single' || sqType === 'multiple';
+      const isExplicitFib = sqType === 'fib' || sqType === 'fill_blank' || sqType === 'fill_in_blank' || sqType === 'fill_in_the_blank';
+      const hasRealOptions = sq.options && sq.options.length > 0 && sq.options.some(opt => typeof opt === 'string' && opt.trim().length > 0);
+
+      const isSubqMcq = isExplicitMcq || (hasRealOptions && !isExplicitFib);
+
+      let isSqCorrect = sq.isCorrect;
+      if (isSqCorrect === undefined) {
+        if (isSubqMcq && sq.options && sq.options.length) {
+          const expectedIdx = getCorrectOptionIndex(sq.correctAnswer, sq.options);
+          const userIdx = typeof sqUserAns === 'number' ? sqUserAns : getCorrectOptionIndex(sqUserAns, sq.options);
+          isSqCorrect = expectedIdx >= 0 && userIdx === expectedIdx;
+        } else if (Array.isArray(sq.correctAnswers) && sq.correctAnswers.length > 1) {
+          const expectedArr = sq.correctAnswers.map(s => (s || '').trim().toLowerCase());
+          const userArr = Array.isArray(sqUserAns) ? sqUserAns.map(s => (s || '').trim().toLowerCase()) : [];
+          isSqCorrect = expectedArr.length > 0 && expectedArr.length === userArr.length && expectedArr.every((v, k) => v === userArr[k]);
+        } else {
+          const expected = (sq.correctAnswer || (sq.correctAnswers ? sq.correctAnswers[0] : '') || '').trim().toLowerCase();
+          const actual = typeof sqUserAns === 'string' ? sqUserAns.trim().toLowerCase() : (Array.isArray(sqUserAns) ? sqUserAns.join(' ').trim().toLowerCase() : '');
+          isSqCorrect = expected.length > 0 && expected === actual;
+        }
+      }
+
+      let sqAnsStr = "";
+      const sqMarks = sq.marks ? ` <span style='font-size:11px;color:#6b7280;'>(${formatScoreNum(sq.marks)} marks)</span>` : '';
+
+      if (showAns) {
+        if (isSubqMcq && sq.options && sq.options.length) {
+          const userOpt = (sqUserAns !== undefined && sqUserAns !== null && sqUserAns !== '') 
+            ? (typeof sqUserAns === 'number' ? (sq.options[sqUserAns] || sqUserAns) : sqUserAns) 
+            : "Not answered";
+          const correctIdx = getCorrectOptionIndex(sq.correctAnswer, sq.options);
+          const correctOpt = correctIdx >= 0 ? sq.options[correctIdx] : (sq.correctAnswer || "—");
+
+          sqAnsStr = `
+            <p class="asm-res-ans" style="margin:4px 0 0 0;font-size:12px;"><strong>Your choice:</strong> ${LQ.esc(userOpt)}</p>
+            ${(!isSqCorrect) ? `<p class="asm-res-ans correct" style="margin:2px 0 0 0;font-size:12px;color:#16a34a;background:none;padding:0;"><strong>Correct choice:</strong> ${LQ.esc(correctOpt)}</p>` : ""}
+          `;
+        } else if (Array.isArray(sq.correctAnswers) && sq.correctAnswers.length > 1) {
+          const userBlanks = Array.isArray(sqUserAns) ? sqUserAns : (typeof sqUserAns === 'string' ? [sqUserAns] : []);
+          const correctBlanks = sq.correctAnswers || [];
+          let blanksHtml = userBlanks.map((ub, bi) => {
+            const isBlankCorrect = (ub || '').trim().toLowerCase() === (correctBlanks[bi] || '').trim().toLowerCase();
+            return `<span style="display:inline-block;padding:2px 8px;margin:2px 4px;border-radius:4px;font-size:12px;background:${isBlankCorrect ? '#dcfce7' : '#fee2e2'};color:${isBlankCorrect ? '#166534' : '#991b1b'};">${LQ.esc(ub || '—')}</span>`;
+          }).join('');
+          sqAnsStr = `
+            <p class="asm-res-ans" style="margin:4px 0 0 0;font-size:12px;"><strong>Your blanks:</strong> ${blanksHtml || 'Not answered'}</p>
+            <p class="asm-res-ans correct" style="margin:2px 0 0 0;font-size:12px;color:#16a34a;background:none;padding:0;"><strong>Correct blanks:</strong> ${correctBlanks.map(c => LQ.esc(c)).join(', ')}</p>
+          `;
+        } else {
+          const sqUserStr = Array.isArray(sqUserAns) ? sqUserAns.join(', ') : (sqUserAns !== undefined && sqUserAns !== null && sqUserAns !== '' ? String(sqUserAns) : "Not answered");
+          const sqCorrectStr = Array.isArray(sq.correctAnswers) ? sq.correctAnswers.join(', ') : (sq.correctAnswer || "—");
+          sqAnsStr = `
+            <p class="asm-res-ans" style="margin:4px 0 0 0;font-size:12px;"><strong>Your answer:</strong> ${LQ.esc(sqUserStr)}</p>
+            <p class="asm-res-ans correct" style="margin:2px 0 0 0;font-size:12px;color:#16a34a;background:none;padding:0;"><strong>Correct answer:</strong> ${LQ.esc(sqCorrectStr)}</p>
+          `;
+        }
+      }
+      const sqBadge = showAns ? (isSqCorrect ? "<span style='color:#16a34a;font-weight:700;'>✓ Correct</span>" : "<span style='color:#dc2626;font-weight:700;'>✕ Incorrect</span>") : "<span style='color:#4b5563;'>Graded</span>";
+      const sqBorderColor = showAns ? (isSqCorrect ? '#22c55e' : '#ef4444') : '#e2e8f0';
+
+      subHtml += `
+        <div style="background:#f8fafc;padding:12px 14px;border-radius:8px;border:1px solid #e2e8f0;border-left:5px solid ${sqBorderColor};margin-top:8px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:600;color:#475569;gap:12px;">
+            <span>Q${originalIndex + 1}.${sqIdx + 1} ${LQ.esc(sq.questionText || sq.text || '')}${sqMarks}</span>
+            <span>${sqBadge}</span>
+          </div>
+          ${sqAnsStr}
+        </div>
+      `;
+    });
+
+    return `<div style="margin-top:8px;display:flex;flex-direction:column;gap:4px;">${subHtml}</div>`;
+  }
+
   LQ.renderAssessmentResultScreen = async function () {
     const id = sessionStorage.getItem("currentAssessmentId");
     if (!id) return;
+
+    // Purge temporary active-test media session data from IndexedDB & sessionStorage
+    await cleanupTempMediaSession(id);
 
     const titleEl = document.getElementById("asm-res-title");
     const scorePctEl = document.getElementById("asm-res-pct");
@@ -1859,96 +2222,175 @@ window.LQ = window.LQ || {};
     let isOfficialResult = false;
     let testResult = null;
 
-    // Fetch official database test results directly from server to reflect latest admin configurations
-    if (true) {
-      try {
-        const res = await fetch("/api/student/tests/" + id + "/session", { credentials: "include" });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.ok && data.attempt && data.attempt.status === 'completed') {
-            const testRes = await fetch("/api/student/tests/" + id, { credentials: "include" });
-            const testData = await testRes.json();
-            if (testData.ok && testData.test) {
-              const test = testData.test;
-              
+    // ── ENTRY POINT 1: Direct from active test submission (0 API calls needed) ──
+    if (LQ._lastSubmittedResult && String(LQ._lastSubmittedResult.id) === String(id)) {
+      const last = LQ._lastSubmittedResult;
+      isOfficialResult = true;
+      const showResult = last.showResult !== undefined ? last.showResult : true;
+      const showAnswer = last.showAnswer !== undefined ? last.showAnswer : false;
+
+      if (!showResult) {
+        testResult = { ok: true, showResult: false, showAnswer: false };
+      } else {
+        testResult = {
+          ok: true,
+          showResult: showResult,
+          showAnswer: showAnswer,
+          percentage: last.asm.percentage,
+          correctCount: last.asm.correctCount,
+          wrongCount: last.asm.wrongCount,
+          totalQuestions: last.asm.totalQuestions,
+          totalMarks: last.asm.totalMarks,
+          earnedMarks: last.asm.earnedMarks,
+          questions: last.asm.questions || []
+        };
+      }
+    } 
+    // ── ENTRY POINT 2: From landing page card button ──
+    else {
+      let testCard = (fetchedOfficialTests || []).find(t => String(t.id || t._id) === String(id));
+      const cardShowResult = testCard ? testCard.showResult : true;
+
+      // 2A: showResult is FALSE -> 0 API calls needed
+      if (testCard && cardShowResult === false) {
+        isOfficialResult = true;
+        testResult = { ok: true, showResult: false, showAnswer: false };
+      } 
+      // 2B & 2C: showResult is TRUE -> Fetch complete test data API & student session API
+      else {
+        try {
+          const testRes = await fetch("/api/student/tests/" + id, { credentials: "include" });
+          const testData = await testRes.json();
+          if (testData.ok && testData.test) {
+            const testDef = testData.test;
+
+            const sessionRes = await fetch("/api/student/tests/" + id + "/session", { credentials: "include" });
+            const sessionData = await sessionRes.json();
+
+            if (sessionData.ok && sessionData.attempt && sessionData.attempt.status === 'completed') {
+              const flatTestQs = [];
               const secNames = [];
-              (test.sections || []).forEach(sec => {
-                (sec.questions || []).forEach(() => {
+              (testDef.sections || []).forEach(sec => {
+                (sec.questions || []).forEach(q => {
+                  flatTestQs.push(q);
                   secNames.push(sec.name);
                 });
               });
 
               testResult = {
                 ok: true,
-                showResult: test.showResult,
-                showAnswer: test.showAnswer,
-                percentage: data.attempt.percentage,
-                correctCount: data.attempt.correctCount,
-                wrongCount: data.attempt.wrongCount,
-                totalQuestions: data.attempt.totalQuestions,
-                questions: (data.attempt.questions || []).map((eq, qIdx) => {
+                showResult: testDef.showResult,
+                showAnswer: testDef.showAnswer,
+                passPercentage: testDef.passPercentage !== undefined ? testDef.passPercentage : (testCard ? testCard.passPercentage : 30),
+                percentage: sessionData.attempt.percentage,
+                correctCount: sessionData.attempt.correctCount,
+                wrongCount: sessionData.attempt.wrongCount,
+                totalQuestions: sessionData.attempt.totalQuestions,
+                totalMarks: sessionData.attempt.totalMarks,
+                earnedMarks: sessionData.attempt.earnedMarks,
+                questions: (sessionData.attempt.questions || []).map((eq, qIdx) => {
+                  const origQ = flatTestQs.find(tq => String(tq.questionId || tq.id || tq._id) === String(eq.questionId || eq.id || eq._id)) || flatTestQs[qIdx] || {};
                   return {
                     ...eq,
+                    subQuestions: (eq.subQuestions && eq.subQuestions.length > 0) ? eq.subQuestions : (origQ.subQuestions || []),
                     groupTitle: eq.groupTitle || secNames[qIdx] || "Section"
                   };
                 })
               };
-              
-              if (test.showResult && !test.showAnswer) {
-                testResult.questions = testResult.questions.map(function(eq){
-                  return {
-                    questionId: eq.questionId,
-                    questionText: eq.questionText,
-                    type: eq.type,
-                    options: eq.options,
-                    userAnswer: eq.userAnswer,
-                    groupTitle: eq.groupTitle
-                  };
-                });
-              }
               isOfficialResult = true;
             }
           }
+        } catch (err) {
+          console.warn(err);
         }
-      } catch (err) {
-        console.warn(err);
       }
     }
 
     if (isOfficialResult && testResult) {
       if (titleEl) titleEl.textContent = "Test Results";
       
+      const summaryCardEl = document.querySelector(".asm-res-summary-card");
+
       if (!testResult.showResult) {
         if (scorePctEl) scorePctEl.style.display = "none";
         if (groupStatsEl) groupStatsEl.style.display = "none";
+        if (questionsListEl) {
+          questionsListEl.style.display = "none";
+          questionsListEl.innerHTML = "";
+        }
+        if (summaryCardEl) {
+          summaryCardEl.style.gridColumn = "1 / -1";
+          summaryCardEl.style.maxWidth = "540px";
+          summaryCardEl.style.margin = "40px auto";
+          summaryCardEl.style.padding = "40px 32px";
+          summaryCardEl.style.borderRadius = "20px";
+          summaryCardEl.style.background = "#fff";
+          summaryCardEl.style.boxShadow = "0 10px 25px -5px rgba(0,0,0,0.05)";
+          summaryCardEl.style.border = "1px solid #e2e8f0";
+          summaryCardEl.style.textAlign = "center";
+        }
         if (scoreCountsEl) {
           scoreCountsEl.innerHTML = `
-            <div style="background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;border-radius:12px;padding:24px;text-align:center;font-size:15px;line-height:1.6;margin-top:20px;">
-              <span style="font-size:36px;">✓</span>
-              <h3 style="margin:10px 0 6px;">Test Submitted Successfully</h3>
-              <p style="margin:0;color:#1e293b;">Your answers have been graded. Results will be available shortly.</p>
+            <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:10px 0;">
+              <div style="width:72px;height:72px;border-radius:50%;background:#dcfce7;color:#166534;display:flex;align-items:center;justify-content:center;font-size:36px;box-shadow:0 4px 12px rgba(22,101,52,0.15);">
+                ✓
+              </div>
+              <h3 style="margin:0;font-size:22px;font-weight:700;color:#0f172a;">Test Submitted Successfully</h3>
+              <p style="margin:0;color:#64748b;font-size:14px;line-height:1.6;max-width:380px;">
+                Your test answers have been recorded securely. Scores and evaluation details will be published by your administrator.
+              </p>
             </div>
           `;
-        }
-        if (questionsListEl) {
-          questionsListEl.innerHTML = "";
         }
         return;
       }
 
+      // Reset layout styling when showResult is true
+      if (questionsListEl) questionsListEl.style.display = "block";
+      if (summaryCardEl) {
+        summaryCardEl.style.gridColumn = "";
+        summaryCardEl.style.maxWidth = "";
+        summaryCardEl.style.margin = "";
+        summaryCardEl.style.padding = "";
+        summaryCardEl.style.borderRadius = "";
+        summaryCardEl.style.background = "";
+        summaryCardEl.style.boxShadow = "";
+        summaryCardEl.style.border = "";
+        summaryCardEl.style.textAlign = "";
+      }
+
       // Draw Result Circle
       const pctNum = formatScoreNum(testResult.percentage);
+      const reqPassPct = testResult.passPercentage !== undefined ? testResult.passPercentage : 30;
+      const isPassed = pctNum >= reqPassPct;
+      const isExcellent = pctNum >= 90 && reqPassPct < 90;
+
+      let passBadgeHtml = "";
+      if (isExcellent) {
+        passBadgeHtml = `<span class="asm-stat-chip" style="background:#fef3c7;color:#b45309;border:1px solid #fde68a;font-weight:700;padding:4px 14px;border-radius:20px;">🌟 EXCELLENT</span>`;
+      } else if (isPassed) {
+        passBadgeHtml = `<span class="asm-stat-chip" style="background:#dcfce7;color:#15803d;border:1px solid #86efac;font-weight:700;padding:4px 14px;border-radius:20px;">🎉 PASSED</span>`;
+      } else {
+        passBadgeHtml = `<span class="asm-stat-chip" style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;font-weight:700;padding:4px 14px;border-radius:20px;">🔴 FAILED</span>`;
+      }
+
       if (scorePctEl) {
         scorePctEl.textContent = pctNum + "%";
-        scorePctEl.className = "asm-res-pct-circle " + (pctNum > 60 ? "circle-green" : pctNum > 30 ? "circle-amber" : "circle-coral");
+        scorePctEl.className = "asm-res-pct-circle " + (isPassed ? "circle-green" : "circle-coral");
       }
 
       if (scoreCountsEl) {
+        let marksHtml = '';
+        if (testResult.totalMarks && testResult.earnedMarks !== undefined) {
+          marksHtml = `<span class="asm-stat-chip" style="background:#eff6ff;color:#1e40af;border:1.5px solid #bfdbfe;font-weight:800;font-size:14px;padding:6px 16px;">📊 Score: ${formatScoreNum(testResult.earnedMarks)} / ${formatScoreNum(testResult.totalMarks)} Marks</span>`;
+        }
         scoreCountsEl.innerHTML = `
           <div class="asm-res-stats-wrap">
-            <div class="asm-res-stat-chips">
-              <span class="asm-stat-chip chip-correct">✓ ${testResult.correctCount} Correct</span>
-              <span class="asm-stat-chip chip-wrong">✕ ${testResult.wrongCount} Wrong</span>
+            <div class="asm-res-stat-chips" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+              ${passBadgeHtml}
+              ${marksHtml}
+              <span class="asm-stat-chip chip-correct">✓ ${testResult.correctCount} Fully Correct</span>
+              <span class="asm-stat-chip chip-wrong">✕ ${testResult.wrongCount} Incorrect</span>
               <span class="asm-stat-chip chip-total">❓ ${testResult.totalQuestions} Total</span>
             </div>
           </div>
@@ -1962,10 +2404,14 @@ window.LQ = window.LQ || {};
         (testResult.questions || []).forEach(q => {
           const secName = q.groupTitle || "Section";
           if (!sectionScores[secName]) {
-            sectionScores[secName] = { name: secName, total: 0, correct: 0 };
+            sectionScores[secName] = { name: secName, total: 0, correct: 0, totalMarks: 0, earnedMarks: 0 };
           }
           sectionScores[secName].total++;
-          if (q.isCorrect) {
+          const maxM = q.marks || 1;
+          const earnedM = q.earnedMarks !== undefined ? q.earnedMarks : (q.isCorrect ? maxM : 0);
+          sectionScores[secName].totalMarks += maxM;
+          sectionScores[secName].earnedMarks += earnedM;
+          if (earnedM >= maxM && maxM > 0) {
             sectionScores[secName].correct++;
           }
         });
@@ -1974,33 +2420,27 @@ window.LQ = window.LQ || {};
           "<h3>📊 Performance by Section</h3>" +
           sections
             .map((s) => {
-              const percentage = s.total > 0 ? formatScoreNum((s.correct / s.total) * 100) : 0;
+              const percentage = s.totalMarks > 0 ? formatScoreNum((s.earnedMarks / s.totalMarks) * 100) : 0;
               const color =
-                percentage > 60
+                percentage >= 60
                   ? "#22c55e"
-                  : percentage > 30
+                  : percentage >= 30
                   ? "#f59e0b"
                   : "#ef4444";
               return (
-                '<div class="asm-grp-stat-item">' +
-                '<div class="asm-grp-stat-head">' +
-                "<strong>" +
-                LQ.esc(s.name) +
-                "</strong>" +
-                "<span>" +
-                s.correct +
-                "/" +
-                s.total +
-                " (" +
+                '<div class="asm-grp-stat-item" style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px 16px;margin-bottom:8px;box-shadow:0 1px 2px rgba(0,0,0,0.03);">' +
+                '<div class="asm-grp-stat-head" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:13px;">' +
+                '<strong>📂 ' + LQ.esc(s.name) + '</strong>' +
+                '<span style="font-weight:700;color:' + color + ';">' +
+                formatScoreNum(s.earnedMarks) + ' / ' + formatScoreNum(s.totalMarks) + ' Marks (' + percentage + '%)' +
+                '</span>' +
+                '</div>' +
+                '<div class="asm-grp-stat-bar" style="width:100%;height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden;"><div class="asm-grp-stat-fill" style="height:100%;width:' +
                 percentage +
-                "%)</span>" +
-                "</div>" +
-                '<div class="asm-grp-stat-bar"><div class="asm-grp-stat-fill" style="width:' +
-                percentage +
-                "%;background:" +
+                '%;background:' +
                 color +
-                '"></div></div>' +
-                "</div>"
+                ';transition:width 0.4s;"></div></div>' +
+                '</div>'
               );
             })
             .join("");
@@ -2030,64 +2470,79 @@ window.LQ = window.LQ || {};
             const showAns = testResult.showAnswer;
             const q = question;
             const i = originalIndex;
+            const qTypeLower = (q.type || '').toLowerCase();
             
-            if (q.type === 'passage') {
-              let subHtml = "";
-              (q.subQuestions || []).forEach((sq, sqIdx) => {
-                let sqAnsStr = "";
-                if (sq.options && sq.options.length) {
-                  const userOpt = (sq.userAnswer !== undefined && sq.userAnswer !== null) ? sq.options[sq.userAnswer] : "Not answered";
-                  const correctOpt = sq.options[sq.correctAnswerIndex] || sq.correctAnswer || "—";
-                  sqAnsStr = `
-                    <p class="asm-res-ans" style="margin:4px 0 0 0;font-size:12px;"><strong>Your choice:</strong> ${LQ.esc(userOpt)}</p>
-                    ${(showAns && !sq.isCorrect) ? `<p class="asm-res-ans correct" style="margin:2px 0 0 0;font-size:12px;color:#16a34a;background:none;padding:0;"><strong>Correct choice:</strong> ${LQ.esc(correctOpt)}</p>` : ""}
-                  `;
-                } else {
-                  sqAnsStr = `
-                    <p class="asm-res-ans" style="margin:4px 0 0 0;font-size:12px;"><strong>Your answer:</strong> ${LQ.esc(sq.userAnswer || "Not answered")}</p>
-                    ${(showAns && !sq.isCorrect) ? `<p class="asm-res-ans correct" style="margin:2px 0 0 0;font-size:12px;color:#16a34a;background:none;padding:0;"><strong>Correct answer:</strong> ${LQ.esc(sq.correctAnswer || "—")}</p>` : ""}
-                  `;
-                }
-                const sqBadge = showAns ? (sq.isCorrect ? "<span style='color:#16a34a;font-weight:700;'>✓ Correct</span>" : "<span style='color:#dc2626;font-weight:700;'>✕ Incorrect</span>") : "<span style='color:#4b5563;'>Graded</span>";
-                
-                subHtml += `
-                  <div style="background:#f8fafc;padding:10px 14px;border-radius:8px;border:1px solid #e2e8f0;margin-top:8px;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:600;color:#475569;gap:12px;">
-                      <span>Q${originalIndex + 1}.${sqIdx + 1} ${LQ.esc(sq.questionText || sq.text)}</span>
-                      <span>${sqBadge}</span>
-                    </div>
-                    ${sqAnsStr}
-                  </div>
+            if (showAns) {
+              if (qTypeLower === 'passage' || (q.subQuestions && q.subQuestions.length > 0)) {
+                ansStr = renderPassageSubQuestionsResultHtml(q, originalIndex, true);
+              } else if (q.options && q.options.length) {
+                const userOpt = (q.userAnswer !== undefined && q.userAnswer !== null && q.userAnswer !== '') 
+                  ? (typeof q.userAnswer === 'number' ? (q.options[q.userAnswer] || q.userAnswer) : q.userAnswer) 
+                  : "Not answered";
+                const correctIdx = getCorrectOptionIndex(q.correctAnswer, q.options);
+                const correctOpt = correctIdx >= 0 ? q.options[correctIdx] : (q.options[q.correctAnswerIndex] || q.correctAnswer || "—");
+                ansStr = `
+                  <p class="asm-res-ans"><strong>Your choice:</strong> ${LQ.esc(userOpt)}</p>
+                  <p class="asm-res-ans correct" style="color:#16a34a;margin-top:4px;"><strong>Correct choice:</strong> ${LQ.esc(correctOpt)}</p>
                 `;
-              });
-              
-              ansStr = `
-                <div style="margin-top:8px;display:flex;flex-direction:column;gap:4px;">
-                  ${subHtml}
-                </div>
-              `;
-            } else if (q.options && q.options.length) {
-              const userOpt = (q.userAnswer !== undefined && q.userAnswer !== null) ? q.options[q.userAnswer] : "Not answered";
-              const correctOpt = q.options[q.correctAnswerIndex] || q.correctAnswer || "—";
-              ansStr = `
-                <p class="asm-res-ans"><strong>Your choice:</strong> ${LQ.esc(userOpt)}</p>
-                ${(showAns && !q.isCorrect) ? `<p class="asm-res-ans correct"><strong>Correct choice:</strong> ${LQ.esc(correctOpt)}</p>` : ""}
-              `;
-            } else {
-              ansStr = `<p class="asm-res-ans"><strong>Your answer:</strong> ${LQ.esc(q.userAnswer || "Not answered")}</p>`;
+              } else if (['jumbled_sentence', 'listen_repeat', 'reading_listening', 'story_retelling', 'listening', 'speaking', 'speak'].includes(qTypeLower)) {
+                const userStr = Array.isArray(q.userAnswer) ? q.userAnswer.join(', ') : (q.userAnswer !== undefined && q.userAnswer !== null && q.userAnswer !== '' ? String(q.userAnswer) : "Not answered");
+                ansStr = `
+                  <p class="asm-res-ans"><strong>Your answer:</strong> ${LQ.esc(userStr)}</p>
+                `;
+              } else {
+                const userStr = Array.isArray(q.userAnswer) ? q.userAnswer.join(', ') : (q.userAnswer !== undefined && q.userAnswer !== null && q.userAnswer !== '' ? String(q.userAnswer) : "Not answered");
+                const correctStr = (Array.isArray(q.correctAnswers) && q.correctAnswers.length > 0) 
+                  ? q.correctAnswers.join(', ') 
+                  : (q.correctAnswer || "—");
+
+                ansStr = `
+                  <p class="asm-res-ans"><strong>Your answer:</strong> ${LQ.esc(userStr)}</p>
+                  <p class="asm-res-ans correct" style="color:#16a34a;margin-top:4px;"><strong>Correct answer:</strong> ${LQ.esc(correctStr)}</p>
+                `;
+              }
+            } else if (qTypeLower === 'passage' || (q.subQuestions && q.subQuestions.length > 0)) {
+              ansStr = renderPassageSubQuestionsResultHtml(q, originalIndex, false);
             }
 
-            const cardClass = showAns ? (q.isCorrect ? "ok" : "wrong") : "neutral";
-            const badgeClass = showAns ? (q.isCorrect ? "ok" : "wrong") : "neutral";
-            const badgeText = showAns ? (q.isCorrect ? "✓ Correct" : "✕ Incorrect") : "Graded";
+            const maxM = q.marks || 1;
+            const earnedM = q.earnedMarks !== undefined ? q.earnedMarks : (q.isCorrect ? maxM : 0);
+            
+            let cardClass = "neutral";
+            let badgeText = "Graded";
+            let cardBorderColor = "#cbd5e1";
+            let badgeBg = "#f1f5f9";
+            let badgeColor = "#475569";
+
+            if (testResult.showResult) {
+              if (earnedM >= maxM && maxM > 0) {
+                cardClass = "ok";
+                badgeText = `✓ Passed (${formatScoreNum(earnedM)} / ${formatScoreNum(maxM)} Marks)`;
+                cardBorderColor = "#22c55e"; // GREEN
+                badgeBg = "#dcfce7";
+                badgeColor = "#15803d";
+              } else if (earnedM > 0) {
+                cardClass = "partial";
+                badgeText = `⚠️ Partial (${formatScoreNum(earnedM)} / ${formatScoreNum(maxM)} Marks)`;
+                cardBorderColor = "#f97316"; // ORANGE
+                badgeBg = "#ffedd5";
+                badgeColor = "#c2410c";
+              } else {
+                cardClass = "wrong";
+                badgeText = `✕ Failed (0 / ${formatScoreNum(maxM)} Marks)`;
+                cardBorderColor = "#ef4444"; // RED
+                badgeBg = "#fee2e2";
+                badgeColor = "#b91c1c";
+              }
+            }
 
             listHtml += `
-              <div class="asm-res-q-item ${cardClass}" style="${!showAns ? 'border-left: 4px solid #cbd5e1;' : ''}">
-                <div class="asm-res-q-head">
-                  <span class="asm-res-q-num">Q${i + 1}</span>
-                  <span class="asm-res-q-badge ${badgeClass}">${badgeText}</span>
+              <div class="asm-res-q-item ${cardClass}" style="border-left: 6px solid ${cardBorderColor};background:#fff;border-radius:12px;padding:18px;margin-bottom:12px;border-top:1px solid #e2e8f0;border-right:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+                <div class="asm-res-q-head" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                  <span class="asm-res-q-num" style="font-weight:700;font-size:14px;color:#1e293b;">Q${i + 1} <span style="font-size:12px;color:#64748b;font-weight:600;margin-left:6px;">(${formatScoreNum(maxM)} Marks)</span></span>
+                  <span class="asm-res-q-badge" style="background:${badgeBg};color:${badgeColor};font-weight:700;padding:4px 12px;border-radius:12px;font-size:12px;">${badgeText}</span>
                 </div>
-                <p class="asm-res-q-text">${LQ.esc(q.questionText || q.text)}</p>
+                <p class="asm-res-q-text" style="font-size:14px;font-weight:600;color:#334155;margin-bottom:10px;">${LQ.esc(q.questionText || q.text)}</p>
                 ${ansStr}
                 ${(showAns && q.explanation) ? `<p class="asm-res-explanation" style="margin-top:8px;font-size:12px;color:#475569;background:#f1f5f9;padding:8px 12px;border-radius:6px;"><strong>Explanation:</strong> ${LQ.esc(q.explanation)}</p>` : ""}
               </div>
@@ -2113,16 +2568,16 @@ window.LQ = window.LQ || {};
     }
 
     const pctNum = formatScoreNum(asm.percentage);
+    const isPassed = pctNum >= 40;
+    const passBadgeHtml = isPassed 
+      ? `<span class="asm-stat-chip" style="background:#dcfce7;color:#15803d;border:1px solid #86efac;font-weight:700;padding:4px 14px;border-radius:20px;">🎉 PASSED</span>`
+      : `<span class="asm-stat-chip" style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;font-weight:700;padding:4px 14px;border-radius:20px;">🔴 FAILED</span>`;
+
     if (titleEl) titleEl.textContent = asm.title + " — Results";
     if (scorePctEl) {
       scorePctEl.textContent = pctNum + "%";
       scorePctEl.className =
-        "asm-res-pct-circle " +
-        (pctNum > 60
-          ? "circle-green"
-          : pctNum > 30
-          ? "circle-amber"
-          : "circle-coral");
+        "asm-res-pct-circle " + (isPassed ? "circle-green" : "circle-coral");
     }
     if (scoreCountsEl) {
       const createdTs = asm.createdAt || asm.completedAt;
@@ -2140,7 +2595,8 @@ window.LQ = window.LQ || {};
         : "Completed";
       scoreCountsEl.innerHTML =
         '<div class="asm-res-stats-wrap">' +
-        '<div class="asm-res-stat-chips">' +
+        '<div class="asm-res-stat-chips" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;">' +
+        passBadgeHtml +
         '<span class="asm-stat-chip chip-correct">✓ ' +
         asm.correctCount +
         " Correct</span>" +
@@ -2208,7 +2664,10 @@ window.LQ = window.LQ || {};
           .map((q, i) => {
             const isOk = q.isCorrect;
             let ansStr = "";
-            if (q.options && q.options.length) {
+            const qTypeLower = (q.type || '').toLowerCase();
+            if (qTypeLower === 'passage' || (q.subQuestions && q.subQuestions.length > 0)) {
+              ansStr = renderPassageSubQuestionsResultHtml(q, i, true);
+            } else if (q.options && q.options.length) {
               const userOpt =
                 q.userAnswer !== undefined && q.userAnswer !== null
                   ? q.options[q.userAnswer]
@@ -2233,23 +2692,38 @@ window.LQ = window.LQ || {};
                 "</p>";
             }
 
+            const maxM = q.marks || 1;
+            const earnedM = q.earnedMarks !== undefined ? q.earnedMarks : (q.isCorrect ? maxM : 0);
+            let borderColor = "#ef4444"; // RED
+            let badgeBg = "#fee2e2";
+            let badgeColor = "#b91c1c";
+            let badgeLabel = `✕ Failed (0 / ${formatScoreNum(maxM)} Marks)`;
+
+            if (earnedM >= maxM && maxM > 0) {
+              borderColor = "#22c55e"; // GREEN
+              badgeBg = "#dcfce7";
+              badgeColor = "#15803d";
+              badgeLabel = `✓ Passed (${formatScoreNum(earnedM)} / ${formatScoreNum(maxM)} Marks)`;
+            } else if (earnedM > 0) {
+              borderColor = "#f97316"; // ORANGE
+              badgeBg = "#ffedd5";
+              badgeColor = "#c2410c";
+              badgeLabel = `⚠️ Partial (${formatScoreNum(earnedM)} / ${formatScoreNum(maxM)} Marks)`;
+            }
+
             return (
-              '<div class="asm-res-q-item ' +
-              (isOk ? "ok" : "wrong") +
-              '">' +
-              '<div class="asm-res-q-head">' +
-              '<span class="asm-res-q-num">Q' +
+              '<div class="asm-res-q-item" style="border-left: 6px solid ' + borderColor + ';background:#fff;border-radius:12px;padding:18px;margin-bottom:12px;border-top:1px solid #e2e8f0;border-right:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(0,0,0,0.04);">' +
+              '<div class="asm-res-q-head" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">' +
+              '<span class="asm-res-q-num" style="font-weight:700;font-size:14px;color:#1e293b;">Q' +
               (i + 1) +
               " · " +
               LQ.esc(q.groupTitle) +
               "</span>" +
-              '<span class="asm-res-q-badge ' +
-              (isOk ? "ok" : "wrong") +
-              '">' +
-              (isOk ? "✓ Correct" : "✕ Incorrect") +
+              '<span class="asm-res-q-badge" style="background:' + badgeBg + ';color:' + badgeColor + ';font-weight:700;padding:4px 12px;border-radius:12px;font-size:12px;">' +
+              badgeLabel +
               "</span>" +
               "</div>" +
-              '<p class="asm-res-q-text">' +
+              '<p class="asm-res-q-text" style="font-size:14px;font-weight:600;color:#334155;margin-bottom:10px;">' +
               LQ.esc(q.text) +
               "</p>" +
               ansStr +
@@ -2326,6 +2800,8 @@ window.LQ = window.LQ || {};
 
     LQ._proctorViolationHandler = async function () {
       if (!proctoringActive) return;
+      // Suppress violation during mic/speaker permission prompts
+      if (permissionPromptActive) return;
       
       try {
         const res = await fetch("/api/student/tests/" + testId + "/malpractice", {
@@ -2413,34 +2889,104 @@ window.LQ = window.LQ || {};
     }
   };
 
-  LQ.playQuestionAudio = function (qId, text) {
-    let playLimit = 2;
-    let playedCount = parseInt(sessionStorage.getItem(`played_${qId}`) || "0");
+  LQ.playQuestionAudio = function (qKeyParam, text) {
+    let playLimit = 1;
+    let idx = 0;
+    let tId = "asm";
+    if (activeSession && activeSession.assessment) {
+      idx = activeSession.currentIndex;
+      tId = activeSession.assessment.id;
+      const q = activeSession.assessment.questions[idx];
+      if (q) playLimit = q.playLimit || q.maxPlays || 1;
+    }
+    const prefix = getUserTestPrefix(tId);
+    const playKey = prefix + "_played_" + idx;
+
+    let playedCount = 0;
+    try {
+      playedCount = parseInt(sessionStorage.getItem(playKey) || '0', 10);
+    } catch(e) { playedCount = 0; }
+
     if (playedCount >= playLimit) {
-      LQ.toast("⚠️ Playback limit reached for this audio.");
+      LQ.toast('⚠️ Playback limit reached for this audio.');
       return;
     }
 
     playedCount++;
-    sessionStorage.setItem(`played_${qId}`, playedCount);
+    try {
+      sessionStorage.setItem(playKey, String(playedCount));
+      if (LQ.AssessmentDB && LQ.AssessmentDB.saveTempMedia) {
+        LQ.AssessmentDB.saveTempMedia(playKey, prefix, playedCount);
+      }
+    } catch(e) {}
+
+    const remaining = Math.max(0, playLimit - playedCount);
     
-    // Update play button text count
-    const btn = document.getElementById("btn-play-audio");
+    const btn = document.getElementById('btn-play-audio');
     if (btn) {
-      btn.innerHTML = `<span>🔊 Playing...</span> <span style="font-size:11px;background:rgba(255,255,255,0.2);padding:2px 6px;border-radius:4px;">Remaining: ${playLimit - playedCount}</span>`;
+      btn.innerHTML = '<span>🔊 Playing...</span> <span style="font-size:11px;background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:6px;">Plays left: ' + remaining + '</span>';
       btn.disabled = true;
+      btn.style.background = '#94a3b8';
     }
 
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'en-US';
     utterance.onend = function () {
       if (btn) {
-        btn.disabled = false;
-        btn.innerHTML = `<span>🔊 Play Audio</span> <span style="font-size:11px;background:rgba(255,255,255,0.2);padding:2px 6px;border-radius:4px;">Remaining: ${playLimit - playedCount}</span>`;
+        if (remaining > 0) {
+          btn.disabled = false;
+          btn.style.background = '#2563eb';
+          btn.innerHTML = '<span>🔊 Play Audio</span> <span style="font-size:11px;background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:6px;">Plays left: ' + remaining + '</span>';
+        } else {
+          btn.innerHTML = '<span>🔊 Playback Complete</span>';
+          btn.style.background = '#94a3b8';
+          btn.style.cursor = 'not-allowed';
+        }
       }
     };
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(utterance);
+  };
+
+  // ═══════════════════════════════════════════
+  // Media Permission Pre-Request
+  // ═══════════════════════════════════════════
+  LQ.requestMediaPermissions = async function () {
+    const statusEl = document.getElementById('inst-permission-status');
+    const btn = document.getElementById('btn-grant-permissions');
+    
+    permissionPromptActive = true;
+    try {
+      // Request mic permission
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach(t => t.stop()); // Release immediately
+      
+      // Test speech synthesis
+      const silentUtterance = new SpeechSynthesisUtterance('');
+      silentUtterance.volume = 0;
+      window.speechSynthesis.speak(silentUtterance);
+      
+      micPermissionGranted = true;
+      if (statusEl) {
+        statusEl.innerHTML = '✅ Permissions granted successfully!';
+        statusEl.style.color = '#16a34a';
+      }
+      if (btn) {
+        btn.innerHTML = '✅ Access Granted';
+        btn.style.background = '#16a34a';
+        btn.disabled = true;
+      }
+      LQ.toast('Mic & speaker access granted!', true);
+    } catch (err) {
+      console.warn('Permission request error:', err);
+      if (statusEl) {
+        statusEl.innerHTML = '❌ Permission denied. Please allow mic access in browser settings.';
+        statusEl.style.color = '#dc2626';
+      }
+      LQ.toast('Mic access denied. Some questions may not work correctly.');
+    } finally {
+      permissionPromptActive = false;
+    }
   };
 
   LQ.checkSpeechSupport = function () {
@@ -2456,35 +3002,62 @@ window.LQ = window.LQ || {};
   LQ.toggleSpeechRecognition = function () {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      LQ.toast("Speech recognition is not supported in this browser.");
+      LQ.toast('Speech recognition is not supported in this browser.');
       return;
     }
 
-    const txtArea = document.getElementById("asm-text-ans");
-    const micBtn = document.getElementById("btn-mic-toggle");
-    const micAnim = document.getElementById("mic-animation");
+    if (!activeSession) return;
+    const q = activeSession.assessment.questions[activeSession.currentIndex];
+    if (!q) return;
+
+    // Single-attempt enforcement: block if already used
+    if (isMicUsed(q.id) && !isRecordingAudio) {
+      LQ.toast('Recording already completed for this question.');
+      return;
+    }
+
+    const txtArea = document.getElementById('asm-text-ans');
+    const micBtn = document.getElementById('btn-mic-toggle');
+    const micAnim = document.getElementById('mic-animation');
 
     if (isRecordingAudio) {
-      // Stop
+      // Stop recording
       if (speechRecognitionObj) speechRecognitionObj.stop();
       isRecordingAudio = false;
-      if (micBtn) micBtn.textContent = "🎤 Start Recording";
-      if (micAnim) micAnim.classList.add("hidden");
+      
+      // Mark as used (single attempt)
+      markMicUsed(q.id);
+      
+      if (micBtn) {
+        micBtn.textContent = '✅ Recording Complete';
+        micBtn.style.background = '#16a34a';
+        micBtn.disabled = true;
+        micBtn.style.opacity = '0.7';
+        micBtn.style.cursor = 'not-allowed';
+      }
+      if (micAnim) micAnim.classList.add('hidden');
     } else {
-      // Start
+      // Start recording
+      permissionPromptActive = true; // Suppress malpractice during mic init
       isRecordingAudio = true;
-      if (micBtn) micBtn.textContent = "⏹️ Stop Recording";
-      if (micAnim) micAnim.classList.remove("hidden");
+      if (micBtn) {
+        micBtn.textContent = '⏹️ Stop Recording';
+        micBtn.style.background = '#dc2626';
+      }
+      if (micAnim) micAnim.classList.remove('hidden');
 
       speechRecognitionObj = new SpeechRecognition();
       speechRecognitionObj.lang = 'en-US';
       speechRecognitionObj.continuous = true;
-      speechRecognitionObj.interimResults = false;
+      speechRecognitionObj.interimResults = true;
 
       speechRecognitionObj.onresult = function (event) {
-        const transcript = event.results[event.results.length - 1][0].transcript;
+        let fullTranscript = '';
+        for (let i = 0; i < event.results.length; i++) {
+          fullTranscript += event.results[i][0].transcript;
+        }
         if (txtArea) {
-          txtArea.value = (txtArea.value + " " + transcript).trim();
+          txtArea.value = fullTranscript.trim();
           if (activeSession) {
             activeSession.userAnswers[activeSession.currentIndex] = txtArea.value;
           }
@@ -2492,29 +3065,55 @@ window.LQ = window.LQ || {};
       };
 
       speechRecognitionObj.onerror = function (e) {
-        console.warn("Speech recognition error:", e);
-        LQ.toast("Microphone error or speech not detected.");
+        console.warn('Speech recognition error:', e);
+        if (e.error !== 'aborted') {
+          LQ.toast('Microphone error: ' + (e.error || 'unknown'));
+        }
         isRecordingAudio = false;
-        if (micBtn) micBtn.textContent = "🎤 Start Recording";
-        if (micAnim) micAnim.classList.add("hidden");
+        permissionPromptActive = false;
+        if (micBtn) {
+          micBtn.textContent = '🎤 Start Recording';
+          micBtn.style.background = '#2563eb';
+        }
+        if (micAnim) micAnim.classList.add('hidden');
       };
 
       speechRecognitionObj.onend = function () {
         isRecordingAudio = false;
-        if (micBtn) micBtn.textContent = "🎤 Start Recording";
-        if (micAnim) micAnim.classList.add("hidden");
+        permissionPromptActive = false;
+        if (isMicUsed(q.id)) {
+          if (micBtn) {
+            micBtn.textContent = '✅ Recording Complete';
+            micBtn.style.background = '#16a34a';
+            micBtn.disabled = true;
+            micBtn.style.opacity = '0.7';
+            micBtn.style.cursor = 'not-allowed';
+          }
+        } else {
+          if (micBtn) {
+            micBtn.textContent = '🎤 Start Recording';
+            micBtn.style.background = '#2563eb';
+          }
+        }
+        if (micAnim) micAnim.classList.add('hidden');
       };
 
       speechRecognitionObj.start();
+      // Release permission flag after short delay to let browser settle
+      setTimeout(function() { permissionPromptActive = false; }, 1500);
     }
   };
 
   LQ.submitSessionQuestion = async function (isAutoSubmit = false) {
     if (!activeSession) return;
     
+    // Guard against duplicate submit clicks while request is in flight
+    if (LQ._submittingQuestion) return;
+    LQ._submittingQuestion = true;
+
     // Stop recording if active
     if (isRecordingAudio && speechRecognitionObj) {
-      speechRecognitionObj.stop();
+      try { speechRecognitionObj.stop(); } catch(e) {}
       isRecordingAudio = false;
     }
 
@@ -2530,28 +3129,49 @@ window.LQ = window.LQ || {};
       activeSession.userAnswers[idx] = textInp.value;
     }
 
-    // 2. Call Save Progress to Sync current answer and index to MongoDB Server
+    let saveSuccess = true;
+
+    // 2. Save progress to server/IndexedDB
     try {
-      await fetch("/api/assessment/save-progress", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          assessmentId: asm.id,
+      if (activeSession.isOfficial) {
+        const resp = await fetch("/api/assessment/save-progress", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            assessmentId: asm.id,
+            userAnswers: activeSession.userAnswers,
+            currentIndex: idx
+          })
+        });
+        if (!resp.ok) {
+          saveSuccess = false;
+        }
+      }
+      if (LQ.AssessmentDB && LQ.AssessmentDB.saveAttempt) {
+        await LQ.AssessmentDB.saveAttempt({
+          id: asm.id,
+          testId: asm.id,
+          startTimeMs: activeSession.startTimeMs,
+          durationSeconds: activeSession.durationSeconds,
           userAnswers: activeSession.userAnswers,
-          currentIndex: idx
-        })
-      });
+          currentIndex: idx,
+          status: 'in_progress'
+        });
+      }
     } catch (err) {
       console.warn("Failed to sync progress on submit", err);
-      if (!isAutoSubmit) {
-        LQ.toast("Network error submitting answer. Please retry.");
-        LQ.hideLoader();
-        return;
-      }
+      saveSuccess = false;
     }
 
-    // 3. Move to next question or submit final
+    if (!saveSuccess && !isAutoSubmit) {
+      LQ.hideLoader();
+      LQ._submittingQuestion = false;
+      LQ.toast("Failed to submit answer. Please try again.", false);
+      return;
+    }
+
+    // 3. On success: move to next question or submit final
     try {
       if (idx < asm.totalQuestions - 1) {
         if (LQ._asmTimerId) {
@@ -2561,14 +3181,17 @@ window.LQ = window.LQ || {};
         activeSession.currentIndex = idx + 1;
         LQ.renderSessionQuestion();
         LQ.startSessionTimer();
+        LQ.toast("Answer submitted!", true);
       } else {
         // Last question of last section: Submit final assessment
         await LQ.submitAssessmentSession();
       }
     } catch (err) {
       console.error("Transition to next question failed:", err);
+      LQ.toast("Error advancing question. Please retry.", false);
     } finally {
       LQ.hideLoader();
+      LQ._submittingQuestion = false;
     }
   };
 
@@ -2593,7 +3216,6 @@ window.LQ = window.LQ || {};
     }
     ansArr[blankIdx] = value;
     activeSession.userAnswers[qIdx] = ansArr;
-    syncLiveProgress();
   };
 
   LQ.selectPassageSubAnswer = function (qIdx, sqIdx, oIdx) {
@@ -2603,14 +3225,12 @@ window.LQ = window.LQ || {};
     
     // Rerender question immediately to highlight selection
     LQ.renderSessionQuestion();
-    syncLiveProgress();
   };
 
   LQ.savePassageSubTextAnswer = function (qIdx, sqIdx, value) {
     if (!activeSession) return;
     if (!activeSession.userAnswers[qIdx]) activeSession.userAnswers[qIdx] = {};
     activeSession.userAnswers[qIdx][sqIdx] = value;
-    syncLiveProgress();
   };
 
   LQ.savePassageSubFibAnswer = function (qIdx, sqIdx, blankIdx, value) {
@@ -2622,7 +3242,6 @@ window.LQ = window.LQ || {};
     }
     sqAns[blankIdx] = value;
     activeSession.userAnswers[qIdx][sqIdx] = sqAns;
-    syncLiveProgress();
   };
 
   LQ.toggleAsmSidebar = function () {
@@ -2726,6 +3345,46 @@ window.LQ = window.LQ || {};
 
     html += `</div>`;
     sidebar.innerHTML = html;
+  };
+
+  LQ.selectPassageSubAnswer = function (qIdx, sqIdx, optIdx) {
+    if (!activeSession) return;
+    const current = activeSession.userAnswers[qIdx] || {};
+    current[sqIdx] = optIdx;
+    activeSession.userAnswers[qIdx] = current;
+    LQ.renderSessionQuestion();
+    syncLiveProgress();
+  };
+
+  LQ.savePassageSubTextAnswer = function (qIdx, sqIdx, value) {
+    if (!activeSession) return;
+    const current = activeSession.userAnswers[qIdx] || {};
+    current[sqIdx] = value;
+    activeSession.userAnswers[qIdx] = current;
+    syncLiveProgress();
+  };
+
+  LQ.savePassageSubFibAnswer = function (qIdx, sqIdx, blankIdx, value) {
+    if (!activeSession) return;
+    const current = activeSession.userAnswers[qIdx] || {};
+    let subAns = current[sqIdx];
+    if (!Array.isArray(subAns)) {
+      subAns = typeof subAns === 'string' && subAns !== '' ? [subAns] : [];
+    }
+    subAns[blankIdx] = value;
+    current[sqIdx] = subAns;
+    activeSession.userAnswers[qIdx] = current;
+  };
+
+  LQ.saveInlineBlankAnswer = function (blankIdx, value) {
+    if (!activeSession) return;
+    const qIdx = activeSession.currentIndex;
+    let current = activeSession.userAnswers[qIdx];
+    if (!Array.isArray(current)) {
+      current = typeof current === 'string' && current !== '' ? [current] : [];
+    }
+    current[blankIdx] = value;
+    activeSession.userAnswers[qIdx] = current;
   };
 
   document.addEventListener("DOMContentLoaded", function () {

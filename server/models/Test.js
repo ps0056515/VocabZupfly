@@ -82,6 +82,12 @@ const testSchema = new mongoose.Schema(
       default: 3,
       min: 0,
     },
+    passPercentage: {
+      type: Number,
+      default: 30,
+      min: 0,
+      max: 100,
+    },
     sections: [testSectionSchema],
 
     totalMarks: {

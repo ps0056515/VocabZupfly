@@ -150,6 +150,10 @@ LQ.Auth = (function () {
     LQ.Store.dispatch({ type: 'CLEAR_USER' });
     if (LQ.resetAssessmentState) LQ.resetAssessmentState();
     if (LQ.IDB) await LQ.IDB.clear();
+    try {
+      localStorage.clear();
+      sessionStorage.clear();
+    } catch (e) {}
     showLoginScreen();
   }
 
@@ -377,12 +381,12 @@ LQ.Auth = (function () {
             return await originalFetch(url, options);
           } else {
             refreshSubscribers = [];
-            LQ.Auth.logout();
+            LQ.Auth.logout(true);
           }
         } catch (err) {
           isRefreshing = false;
           refreshSubscribers = [];
-          LQ.Auth.logout();
+          LQ.Auth.logout(true);
         }
       } else {
         return new Promise(function (resolve, reject) {

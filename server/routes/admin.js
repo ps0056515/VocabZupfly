@@ -20,6 +20,7 @@ const PracticeQuestion = require('../models/PracticeQuestion');
 const Test = require('../models/Test');
 const AssessmentResult = require('../models/AssessmentResult');
 const { authenticate, requireRole } = require('../middleware/auth');
+const { evaluateTest } = require('../services/evaluationService');
 
 const router = express.Router();
 
@@ -2494,6 +2495,7 @@ router.post('/tests', requireRole('admin', 'super_admin'), async function (req, 
       showResult: typeof req.body.showResult === 'boolean' ? req.body.showResult : true,
       showAnswer: typeof req.body.showAnswer === 'boolean' ? req.body.showAnswer : true,
       malpracticeLimit: typeof req.body.malpracticeLimit === 'number' ? Math.max(0, req.body.malpracticeLimit) : 3,
+      passPercentage: typeof req.body.passPercentage === 'number' ? Math.max(0, Math.min(100, req.body.passPercentage)) : 30,
       sections: sections,
       createdBy: req.user.id,
       orgId: orgIdValue,
@@ -2558,6 +2560,7 @@ router.put('/tests/:id', requireRole('admin', 'super_admin'), async function (re
     test.showResult = typeof req.body.showResult === 'boolean' ? req.body.showResult : true;
     test.showAnswer = typeof req.body.showAnswer === 'boolean' ? req.body.showAnswer : true;
     test.malpracticeLimit = typeof req.body.malpracticeLimit === 'number' ? Math.max(0, req.body.malpracticeLimit) : 3;
+    test.passPercentage = typeof req.body.passPercentage === 'number' ? Math.max(0, Math.min(100, req.body.passPercentage)) : 30;
     test.sections = sections;
 
     if (req.body.orgId !== undefined) {
@@ -2753,113 +2756,18 @@ router.post('/attempts/:attemptId/force-submit', requireRole('admin', 'super_adm
     if (!test) return res.status(404).json({ error: 'Matching test config not found.' });
 
     var userAnswers = attempt.userAnswers || {};
-    var correctCount = 0;
-    var wrongCount = 0;
-    var evaluatedQuestions = [];
 
-    // Flatten all test snapshot questions
-    var flatQuestions = [];
-    (test.sections || []).forEach(function (sec) {
-      (sec.questions || []).forEach(function (q) {
-        var qCopy = JSON.parse(JSON.stringify(q));
-        qCopy.groupTitle = sec.name;
-        flatQuestions.push(qCopy);
-      });
-    });
-
-    flatQuestions.forEach(function (q, idx) {
-      var userAns = userAnswers[idx];
-      var isCorrect = false;
-      var gradedSubQs = undefined;
-
-      if (q.type === 'mcq') {
-        var expectedIdx = q.options.indexOf(q.correctAnswer);
-        isCorrect = userAns === expectedIdx;
-      } else if (q.type === 'mcq_multi' || q.mcqType === 'multiple') {
-        var expectedAnswers = (q.correctAnswer || '').split(',').map(s => s.trim());
-        var expectedIndices = expectedAnswers.map(ans => q.options.indexOf(ans)).filter(i => i >= 0).sort();
-        var userIndices = Array.isArray(userAns) ? userAns.slice().sort() : [];
-        isCorrect = expectedIndices.length > 0 &&
-                    expectedIndices.length === userIndices.length &&
-                    expectedIndices.every((v, i) => v === userIndices[i]);
-      } else if (q.type === 'fill_blank' && q.correctAnswers && q.correctAnswers.length > 1) {
-        var expectedArr = q.correctAnswers.map(s => (s || '').trim().toLowerCase());
-        var userArr = Array.isArray(userAns) ? userAns.map(s => (s || '').trim().toLowerCase()) : [];
-        isCorrect = expectedArr.length > 0 &&
-                    expectedArr.length === userArr.length &&
-                    expectedArr.every((v, i) => v === userArr[i]);
-      } else if (q.type === 'passage') {
-        var subAnswers = userAns || {};
-        var subQuestions = q.subQuestions || [];
-        var allSubCorrect = true;
-        
-        gradedSubQs = subQuestions.map(function(sq, sqIdx) {
-          var sqUserAns = subAnswers[sqIdx];
-          var sqIsCorrect = false;
-          
-          if (sq.options && sq.options.length) {
-            var expectedIdx = sq.options.indexOf(sq.correctAnswer);
-            sqIsCorrect = sqUserAns === expectedIdx;
-          } else if (Array.isArray(sq.correctAnswers) && sq.correctAnswers.length > 1) {
-            var expectedArr = sq.correctAnswers.map(s => (s || '').trim().toLowerCase());
-            var userArr = Array.isArray(sqUserAns) ? userAns.map(s => (s || '').trim().toLowerCase()) : [];
-            sqIsCorrect = expectedArr.length > 0 &&
-                          expectedArr.length === userArr.length &&
-                          expectedArr.every((v, i) => v === userArr[i]);
-          } else {
-            var expected = (sq.correctAnswer || (sq.correctAnswers ? sq.correctAnswers[0] : '') || '').trim().toLowerCase();
-            var actual = typeof sqUserAns === 'string' ? sqUserAns.trim().toLowerCase() : '';
-            sqIsCorrect = expected.length > 0 && expected === actual;
-          }
-          
-          if (!sqIsCorrect) allSubCorrect = false;
-          
-          return {
-            questionText: sq.questionText || sq.text,
-            options: sq.options,
-            correctAnswer: sq.correctAnswer,
-            correctAnswers: sq.correctAnswers,
-            userAnswer: sqUserAns,
-            isCorrect: sqIsCorrect
-          };
-        });
-        isCorrect = allSubCorrect;
-      } else {
-        // Single blanks, speaking, listening, etc.
-        var expected = (q.correctAnswer || (q.correctAnswers ? q.correctAnswers[0] : '') || '').trim().toLowerCase();
-        var actual = typeof userAns === 'string' ? userAns.trim().toLowerCase() : '';
-        isCorrect = expected.length > 0 && expected === actual;
-      }
-
-      var qGraded = {
-        questionId: q.questionId || q._id,
-        questionText: q.questionText,
-        type: q.type,
-        options: q.options,
-        correctAnswer: q.correctAnswer,
-        correctAnswers: q.correctAnswers,
-        explanation: q.explanation,
-        marks: q.marks,
-        userAnswer: userAns,
-        isCorrect: isCorrect,
-        groupTitle: q.groupTitle,
-        subQuestions: gradedSubQs
-      };
-
-      if (isCorrect) correctCount++;
-      else wrongCount++;
-
-      evaluatedQuestions.push(qGraded);
-    });
-
-    var percentage = flatQuestions.length > 0 ? Number(((correctCount / flatQuestions.length) * 100).toFixed(2)) : 0;
+    // Use centralized evaluation service
+    var evalResult = evaluateTest(test.sections, userAnswers);
 
     attempt.status = 'completed';
     attempt.completedAt = new Date();
-    attempt.correctCount = correctCount;
-    attempt.wrongCount = wrongCount;
-    attempt.percentage = percentage;
-    attempt.questions = evaluatedQuestions;
+    attempt.correctCount = evalResult.correctCount;
+    attempt.wrongCount = evalResult.wrongCount;
+    attempt.percentage = evalResult.percentage;
+    attempt.totalMarks = evalResult.totalMarks;
+    attempt.earnedMarks = evalResult.earnedMarks;
+    attempt.questions = evalResult.evaluatedQuestions;
 
     await attempt.save();
 
