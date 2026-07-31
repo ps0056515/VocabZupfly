@@ -669,6 +669,23 @@ window.LQ = window.LQ || {};
     }
     if (termsEl) termsEl.textContent = formattedInstructions;
 
+    const proctorWarningEl = document.getElementById("inst-test-proctoring-warning");
+    if (proctorWarningEl) {
+      const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || !!(window.Capacitor || window.cordova);
+      if (isMobileDevice) {
+        proctorWarningEl.innerHTML = 
+          '<strong>⚠️ Proctored Examination Warning:</strong> Do not switch tabs, minimize the browser, or close the app.<br/><br/>' +
+          '📱 <strong>Mobile Device Guidelines:</strong><br/>' +
+          '• Enable <strong>"Do Not Disturb"</strong> mode to block notification popups.<br/>' +
+          '• Do not tap on WhatsApp/SMS/App notification banners.<br/>' +
+          '• Do not answer phone calls or switch to other apps during the test.<br/>' +
+          '• Exiting the test app/screen for any reason will trigger a malpractice violation!';
+      } else {
+        proctorWarningEl.innerHTML = 
+          '<strong>⚠️ Proctored Examination Warning:</strong> Do not switch tabs, exit fullscreen, or minimize the browser window. Malpractice detection is active, and violations will trigger automatic test submission.';
+      }
+    }
+
     // Show permission section if test has audio/mic question types
     const permSection = document.getElementById("inst-permission-section");
     if (permSection && test.questions) {
@@ -2414,6 +2431,7 @@ window.LQ = window.LQ || {};
                 totalQuestions: sessionData.attempt.totalQuestions,
                 totalMarks: sessionData.attempt.totalMarks,
                 earnedMarks: sessionData.attempt.earnedMarks,
+                malpracticeCount: sessionData.attempt.malpracticeCount || 0,
                 questions: (sessionData.attempt.questions || []).map((eq, qIdx) => {
                   const origQ = flatTestQs.find(tq => String(tq.questionId || tq.id || tq._id) === String(eq.questionId || eq.id || eq._id)) || flatTestQs[qIdx] || {};
                   return {
@@ -2510,6 +2528,10 @@ window.LQ = window.LQ || {};
         if (testResult.totalMarks && testResult.earnedMarks !== undefined) {
           marksHtml = `<span class="asm-stat-chip" style="background:#eff6ff;color:#1e40af;border:1.5px solid #bfdbfe;font-weight:800;font-size:14px;padding:6px 16px;">📊 Score: ${formatScoreNum(testResult.earnedMarks)} / ${formatScoreNum(testResult.totalMarks)} Marks</span>`;
         }
+        let malpracticeHtml = '';
+        if (testResult.malpracticeCount > 0) {
+          malpracticeHtml = `<span class="asm-stat-chip" style="background:#fef2f2;color:#991b1b;border:1.5px solid #fca5a5;font-weight:700;font-size:12px;padding:4px 12px;border-radius:20px;">⚠️ ${testResult.malpracticeCount} Malpractice${testResult.malpracticeCount > 1 ? 's' : ''}</span>`;
+        }
         scoreCountsEl.innerHTML = `
           <div class="asm-res-stats-wrap">
             <div class="asm-res-stat-chips" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
@@ -2518,6 +2540,7 @@ window.LQ = window.LQ || {};
               <span class="asm-stat-chip chip-correct">✓ ${testResult.correctCount} Fully Correct</span>
               <span class="asm-stat-chip chip-wrong">✕ ${testResult.wrongCount} Incorrect</span>
               <span class="asm-stat-chip chip-total">❓ ${testResult.totalQuestions} Total</span>
+              ${malpracticeHtml}
             </div>
           </div>
         `;
@@ -2968,7 +2991,10 @@ window.LQ = window.LQ || {};
       }
     };
 
-    window.addEventListener("blur", LQ._proctorViolationHandler);
+    const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || !!(window.Capacitor || window.cordova);
+    if (!isMobileDevice) {
+      window.addEventListener("blur", LQ._proctorViolationHandler);
+    }
     
     LQ._visibilityHandler = function () {
       if (document.visibilityState === 'hidden') {

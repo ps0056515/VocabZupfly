@@ -129,7 +129,7 @@ window.LQ = window.LQ || {};
       }
 
       var html = '<div class="admin-table-responsive"><table class="admin-table">' +
-        '<thead><tr><th>Name</th><th>Email</th><th>Register No</th><th>Branch</th><th>Tests Attended</th><th>Score</th><th>Avg %</th><th>Actions</th></tr></thead><tbody>';
+        '<thead><tr><th>Name</th><th>Email</th><th>Register No</th><th>Branch</th><th>Tests Attended</th><th>Score</th><th>Avg %</th><th>Malpractices</th><th>Actions</th></tr></thead><tbody>';
 
       list.forEach(function (s) {
         html +=
@@ -141,6 +141,7 @@ window.LQ = window.LQ || {};
             '<td><span class="admin-chip">' + s.testsAttended + ' tests</span></td>' +
             '<td>' + s.earnedMarks + ' / ' + s.totalMarks + '</td>' +
             '<td><strong style="color:' + (s.avgPercentage >= 30 ? '#16a34a' : '#dc2626') + '">' + s.avgPercentage + '%</strong></td>' +
+            '<td>' + (s.malpracticeCount > 0 ? '<span style="background:#fef2f2;color:#991b1b;font-size:11px;font-weight:700;padding:2px 8px;border-radius:12px;border:1px solid #fca5a5">⚠️ ' + s.malpracticeCount + '</span>' : '<span style="color:#94a3b8">0</span>') + '</td>' +
             '<td><button class="admin-btn admin-btn-outline admin-btn-sm" onclick="LQ.viewStudentDetail(\'' + s.id + '\')">👁️ View</button></td>' +
           '</tr>';
       });
@@ -202,7 +203,7 @@ window.LQ = window.LQ || {};
         html += '<p class="admin-empty">This student has not completed any tests yet.</p>';
       } else {
         html += '<div class="admin-table-responsive"><table class="admin-table">' +
-          '<thead><tr><th>Test Title</th><th>Score Marks</th><th>Correct / Total Qs</th><th>Percentage (%)</th><th>Status</th><th>Date</th></tr></thead><tbody>';
+          '<thead><tr><th>Test Title</th><th>Score Marks</th><th>Correct / Total Qs</th><th>Percentage (%)</th><th>Status</th><th>Malpractices</th><th>Date</th></tr></thead><tbody>';
 
         tests.forEach(function (t) {
           var isPassed = t.status === 'Passed';
@@ -213,6 +214,7 @@ window.LQ = window.LQ || {};
               '<td>' + t.correctCount + ' / ' + t.totalQuestions + '</td>' +
               '<td><strong style="color:' + (isPassed ? '#16a34a' : '#dc2626') + '">' + t.percentage + '%</strong></td>' +
               '<td><span style="background:' + (isPassed ? '#dcfce7' : '#fee2e2') + ';color:' + (isPassed ? '#15803d' : '#991b1b') + ';font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;">' + (isPassed ? '🎉 PASSED' : '🔴 FAILED') + '</span></td>' +
+              '<td>' + (t.malpracticeCount > 0 ? '<span style="background:#fef2f2;color:#991b1b;font-size:11px;font-weight:700;padding:2px 8px;border-radius:12px;border:1px solid #fca5a5">⚠️ ' + t.malpracticeCount + '</span>' : '<span style="color:#94a3b8">0</span>') + '</td>' +
               '<td>' + (t.completedAt ? new Date(t.completedAt).toLocaleDateString() : '-') + '</td>' +
             '</tr>';
         });
@@ -264,7 +266,7 @@ window.LQ = window.LQ || {};
       }
 
       var html = '<div class="admin-table-responsive"><table class="admin-table">' +
-        '<thead><tr><th>Test Title</th><th>Total Qs</th><th>Total Marks</th><th>Attempted</th><th>Passed</th><th>Failed</th><th>Avg %</th><th>Top Scorer</th><th>Actions</th></tr></thead><tbody>';
+        '<thead><tr><th>Test Title</th><th>Total Qs</th><th>Total Marks</th><th>Attempted</th><th>Passed</th><th>Failed</th><th>Malpractice Subs</th><th>Avg %</th><th>Top Scorer</th><th>Actions</th></tr></thead><tbody>';
 
       list.forEach(function (t) {
         html +=
@@ -275,6 +277,7 @@ window.LQ = window.LQ || {};
             '<td><span class="admin-chip">' + t.totalStudents + ' students</span></td>' +
             '<td><span style="color:#16a34a;font-weight:700">' + t.passed + '</span></td>' +
             '<td><span style="color:#dc2626;font-weight:700">' + t.failed + '</span></td>' +
+            '<td>' + (t.malpracticeSubmitted > 0 ? '<span style="background:#fef2f2;color:#991b1b;font-size:11px;font-weight:700;padding:2px 8px;border-radius:12px;border:1px solid #fca5a5">⚠️ ' + t.malpracticeSubmitted + '</span>' : '<span style="color:#94a3b8">0</span>') + '</td>' +
             '<td><strong>' + t.avgPercentage + '%</strong></td>' +
             '<td>' + LQ.esc(t.topScorer) + (t.topScore ? ' (' + t.topScore + '%)' : '') + '</td>' +
             '<td><button class="admin-btn admin-btn-outline admin-btn-sm" onclick="LQ.viewTestDetail(\'' + t.id + '\')">👁️ View Details</button></td>' +
@@ -335,6 +338,7 @@ window.LQ = window.LQ || {};
           '<div style="background:#fff;border:1px solid #e2e8f0;padding:16px;border-radius:12px;text-align:center"><div style="font-size:12px;color:#64748b">Passed</div><div style="font-size:24px;font-weight:800;color:#16a34a">' + sum.passed + '</div></div>' +
           '<div style="background:#fff;border:1px solid #e2e8f0;padding:16px;border-radius:12px;text-align:center"><div style="font-size:12px;color:#64748b">Failed</div><div style="font-size:24px;font-weight:800;color:#dc2626">' + sum.failed + '</div></div>' +
           '<div style="background:#fff;border:1px solid #e2e8f0;padding:16px;border-radius:12px;text-align:center"><div style="font-size:12px;color:#64748b">Average Score</div><div style="font-size:24px;font-weight:800;color:#2563eb">' + sum.avgPercentage + '%</div></div>' +
+          '<div style="background:#fff;border:1px solid #e2e8f0;padding:16px;border-radius:12px;text-align:center"><div style="font-size:12px;color:#64748b">Malpractice Subs</div><div style="font-size:24px;font-weight:800;color:' + (sum.malpracticeSubmitted > 0 ? '#dc2626' : '#94a3b8') + '">' + (sum.malpracticeSubmitted || 0) + '</div></div>' +
         '</div>' +
 
         '<div class="admin-search-bar" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">' +
@@ -351,7 +355,7 @@ window.LQ = window.LQ || {};
         html += '<p class="admin-empty">No student attempts recorded for this test.</p>';
       } else {
         html += '<div class="admin-table-responsive"><table class="admin-table">' +
-          '<thead><tr><th>Rank</th><th>Student Name</th><th>Email</th><th>Correct / Total Qs</th><th>Marks</th><th>Percentage (%)</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
+          '<thead><tr><th>Rank</th><th>Student Name</th><th>Email</th><th>Correct / Total Qs</th><th>Marks</th><th>Percentage (%)</th><th>Malpractices</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
 
         students.forEach(function (s) {
           var statusHtml = '';
@@ -373,6 +377,7 @@ window.LQ = window.LQ || {};
               '<td>' + (s.status === 'In Progress' ? '-' : s.correctCount + ' / ' + s.totalQuestions) + '</td>' +
               '<td>' + (s.status === 'In Progress' ? '-' : s.earnedMarks + ' / ' + s.totalMarks) + '</td>' +
               '<td>' + (s.status === 'In Progress' ? '-' : '<strong style="color:' + (s.status === 'Passed' ? '#16a34a' : '#dc2626') + '">' + s.percentage + '%</strong>') + '</td>' +
+              '<td>' + (s.malpracticeCount > 0 ? '<span style="background:#fef2f2;color:#991b1b;font-size:11px;font-weight:700;padding:2px 8px;border-radius:12px;border:1px solid #fca5a5">⚠️ ' + s.malpracticeCount + '</span>' : '<span style="color:#94a3b8">0</span>') + '</td>' +
               '<td>' + statusHtml + '</td>' +
               '<td>' + actionHtml + '</td>' +
             '</tr>';

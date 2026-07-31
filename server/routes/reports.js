@@ -81,7 +81,8 @@ router.get('/students', requireRole('admin', 'super_admin'), async function (req
         totalQuestions: { $sum: '$totalQuestions' },
         avgPercentage: { $avg: '$percentage' },
         earnedMarks: { $sum: { $ifNull: ['$earnedMarks', 0] } },
-        totalMarks: { $sum: { $ifNull: ['$totalMarks', 0] } }
+        totalMarks: { $sum: { $ifNull: ['$totalMarks', 0] } },
+        totalMalpractice: { $sum: { $ifNull: ['$malpracticeCount', 0] } }
       }}
     ];
     var statsArr = await AssessmentResult.aggregate(pipeline);
@@ -101,7 +102,8 @@ router.get('/students', requireRole('admin', 'super_admin'), async function (req
         totalWrong: stats.totalWrong || 0,
         avgPercentage: stats.avgPercentage ? Number(stats.avgPercentage.toFixed(2)) : 0,
         earnedMarks: stats.earnedMarks ? Number(stats.earnedMarks.toFixed(2)) : 0,
-        totalMarks: stats.totalMarks ? Number(stats.totalMarks.toFixed(2)) : 0
+        totalMarks: stats.totalMarks ? Number(stats.totalMarks.toFixed(2)) : 0,
+        malpracticeCount: stats.totalMalpractice || 0
       };
     });
 
@@ -151,6 +153,7 @@ router.get('/students/:studentId', requireRole('admin', 'super_admin'), async fu
         totalQuestions: r.totalQuestions || 0,
         earnedMarks: r.earnedMarks || 0,
         totalMarks: r.totalMarks || 0,
+        malpracticeCount: r.malpracticeCount || 0,
         status: (r.percentage || 0) >= passPct ? 'Passed' : 'Failed',
         completedAt: r.completedAt
       };
@@ -199,7 +202,7 @@ router.get('/tests', requireRole('admin', 'super_admin'), async function (req, r
 
     var totalTests = await Test.countDocuments(testQuery);
     var tests = await Test.find(testQuery)
-      .select('title totalQuestions totalMarks passPercentage isAssigned startTime endTime')
+      .select('title totalQuestions totalMarks passPercentage malpracticeLimit isAssigned startTime endTime')
       .sort({ [sortBy]: order })
       .skip((page - 1) * limit)
       .limit(limit)
@@ -217,7 +220,8 @@ router.get('/tests', requireRole('admin', 'super_admin'), async function (req, r
         avgPercentage: { $avg: '$percentage' },
         maxPercentage: { $max: '$percentage' },
         topScorerName: { $first: '$userName' },
-        percentages: { $push: '$percentage' }
+        percentages: { $push: '$percentage' },
+        malpracticeCounts: { $push: { $ifNull: ['$malpracticeCount', 0] } }
       }}
     ];
     var statsArr = await AssessmentResult.aggregate(pipeline);
@@ -227,9 +231,12 @@ router.get('/tests', requireRole('admin', 'super_admin'), async function (req, r
     var list = tests.map(function (t) {
       var stats = statsMap[String(t._id)] || {};
       var passPct = t.passPercentage !== undefined ? t.passPercentage : 30;
+      var malpracticeLimit = t.malpracticeLimit !== undefined ? t.malpracticeLimit : 3;
       var totalStudents = stats.totalStudents || 0;
       var percentages = stats.percentages || [];
+      var malpracticeCounts = stats.malpracticeCounts || [];
       var passedCount = percentages.filter(function (p) { return p >= passPct; }).length;
+      var malpracticeSubmittedCount = malpracticeCounts.filter(function (mc) { return mc >= malpracticeLimit && malpracticeLimit > 0; }).length;
 
       return {
         id: t._id,
@@ -239,6 +246,7 @@ router.get('/tests', requireRole('admin', 'super_admin'), async function (req, r
         passPercentage: passPct,
         isAssigned: t.isAssigned || false,
         totalStudents: totalStudents,
+        malpracticeSubmitted: malpracticeSubmittedCount,
         passed: passedCount,
         failed: totalStudents - passedCount,
         avgPercentage: stats.avgPercentage ? Number(stats.avgPercentage.toFixed(2)) : 0,
@@ -267,7 +275,7 @@ router.get('/tests/:testId', requireRole('admin', 'super_admin'), async function
     var orgId = resolveOrgId(req);
     if (!orgId) return res.status(400).json({ error: 'Organization ID is required.' });
 
-    var test = await Test.findById(req.params.testId).select('title totalQuestions totalMarks passPercentage').lean();
+    var test = await Test.findById(req.params.testId).select('title totalQuestions totalMarks passPercentage malpracticeLimit').lean();
     if (!test) return res.status(404).json({ error: 'Test not found.' });
 
     var page = Math.max(1, parseInt(req.query.page, 10) || 1);
@@ -299,6 +307,8 @@ router.get('/tests/:testId', requireRole('admin', 'super_admin'), async function
 
     var passPct = test.passPercentage !== undefined ? test.passPercentage : 30;
 
+    var malpracticeLimit = test.malpracticeLimit !== undefined ? test.malpracticeLimit : 3;
+
     var students = results.map(function (r, idx) {
       return {
         rank: (page - 1) * limit + idx + 1,
@@ -311,6 +321,7 @@ router.get('/tests/:testId', requireRole('admin', 'super_admin'), async function
         percentage: r.percentage || 0,
         earnedMarks: r.earnedMarks || 0,
         totalMarks: r.totalMarks || 0,
+        malpracticeCount: r.malpracticeCount || 0,
         status: r.status === 'in_progress' ? 'In Progress' : ((r.percentage || 0) >= passPct ? 'Passed' : 'Failed'),
         completedAt: r.completedAt
       };
@@ -321,16 +332,17 @@ router.get('/tests/:testId', requireRole('admin', 'super_admin'), async function
       assessmentId: req.params.testId,
       status: 'completed',
       userEmail: { $in: orgEmails }
-    }).select('percentage').lean();
+    }).select('percentage malpracticeCount').lean();
 
     var totalStudents = allResults.length;
     var passedCount = allResults.filter(function (r) { return (r.percentage || 0) >= passPct; }).length;
     var avgPct = totalStudents > 0 ? Number((allResults.reduce(function (sum, r) { return sum + (r.percentage || 0); }, 0) / totalStudents).toFixed(2)) : 0;
+    var malpracticeSubmittedCount = allResults.filter(function (r) { return (r.malpracticeCount || 0) >= malpracticeLimit && malpracticeLimit > 0; }).length;
 
     res.json({
       ok: true,
       test: { title: test.title, totalQuestions: test.totalQuestions, totalMarks: test.totalMarks, passPercentage: passPct },
-      summary: { totalStudents: totalStudents, passed: passedCount, failed: totalStudents - passedCount, avgPercentage: avgPct },
+      summary: { totalStudents: totalStudents, passed: passedCount, failed: totalStudents - passedCount, avgPercentage: avgPct, malpracticeSubmitted: malpracticeSubmittedCount },
       students: students,
       pagination: { page: page, limit: limit, total: totalResults, totalPages: Math.ceil(totalResults / limit) }
     });
