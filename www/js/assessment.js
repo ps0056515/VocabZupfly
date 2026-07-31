@@ -10,6 +10,57 @@ window.LQ = window.LQ || {};
   let micPermissionGranted = false;
   let permissionPromptActive = false;
 
+  LQ.requestFullscreenMode = async function () {
+    if (window.Capacitor && window.Capacitor.isPluginAvailable && window.Capacitor.isPluginAvailable('StatusBar')) {
+      try {
+        const { StatusBar } = window.Capacitor.Plugins;
+        await StatusBar.hide();
+        return;
+      } catch (e) {
+        console.warn("Capacitor StatusBar hide failed", e);
+      }
+    }
+    if (window.StatusBar && typeof window.StatusBar.hide === 'function') {
+      try {
+        window.StatusBar.hide();
+        return;
+      } catch (e) {
+        console.warn("Cordova StatusBar hide failed", e);
+      }
+    }
+    try {
+      var docEl = document.documentElement;
+      var requestFS = docEl.requestFullscreen || docEl.webkitRequestFullscreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
+      if (requestFS) {
+        await requestFS.call(docEl);
+      }
+    } catch (err) {
+      console.warn("Browser Fullscreen request denied/unsupported", err);
+    }
+  };
+
+  LQ.exitFullscreenMode = async function () {
+    if (window.Capacitor && window.Capacitor.isPluginAvailable && window.Capacitor.isPluginAvailable('StatusBar')) {
+      try {
+        const { StatusBar } = window.Capacitor.Plugins;
+        await StatusBar.show();
+        return;
+      } catch (e) {}
+    }
+    if (window.StatusBar && typeof window.StatusBar.show === 'function') {
+      try {
+        window.StatusBar.show();
+        return;
+      } catch (e) {}
+    }
+    try {
+      var exitFS = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen;
+      if (exitFS) {
+        await exitFS.call(document);
+      }
+    } catch (err) {}
+  };
+
   function formatScoreNum(num) {
     if (num === null || num === undefined || isNaN(num)) return 0;
     return Number(Number(num).toFixed(2));
@@ -2838,13 +2889,7 @@ window.LQ = window.LQ || {};
     LQ.closeTestInstructionModal();
 
     // 1. Request Fullscreen Mode
-    try {
-      if (document.documentElement.requestFullscreen) {
-        await document.documentElement.requestFullscreen();
-      }
-    } catch (err) {
-      console.warn("Fullscreen request denied", err);
-    }
+    await LQ.requestFullscreenMode();
 
     try {
       // 2. Call Start API
@@ -2914,8 +2959,8 @@ window.LQ = window.LQ || {};
           
           alert("⚠️ Proctor Warning: You have exited the test screen or switched tabs. Violation logged: " + currentViolationCount + " of " + limit + ". Exceeding the limit will auto-submit your test!");
           
-          if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
-            document.documentElement.requestFullscreen().catch(()=>{});
+          if (!document.fullscreenElement) {
+            LQ.requestFullscreenMode();
           }
         }
       } catch (e) {
@@ -2963,24 +3008,21 @@ window.LQ = window.LQ || {};
     if (LQ._fullscreenExitHandler) {
       document.removeEventListener("fullscreenchange", LQ._fullscreenExitHandler);
     }
-    if (document.fullscreenElement && document.exitFullscreen) {
-      document.exitFullscreen().catch(()=>{});
+    if (document.fullscreenElement) {
+      LQ.exitFullscreenMode();
     }
   };
 
   LQ.reEnterFullscreen = function () {
-    const docEl = document.documentElement;
-    if (docEl.requestFullscreen) {
-      docEl.requestFullscreen().then(() => {
-        const modal = document.getElementById("asm-fullscreen-warning-modal");
-        if (modal) {
-          modal.classList.add("hidden");
-          modal.style.display = "none";
-        }
-      }).catch(err => {
-        console.warn("Failed to enter fullscreen", err);
-      });
-    }
+    LQ.requestFullscreenMode().then(() => {
+      const modal = document.getElementById("asm-fullscreen-warning-modal");
+      if (modal) {
+        modal.classList.add("hidden");
+        modal.style.display = "none";
+      }
+    }).catch(err => {
+      console.warn("Failed to enter fullscreen", err);
+    });
   };
 
   LQ.playQuestionAudio = function (qKeyParam, text) {
