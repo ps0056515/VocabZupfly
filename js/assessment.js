@@ -1552,8 +1552,10 @@ window.LQ = window.LQ || {};
     if (trackerEl) {
       if (activeSession.isOfficial) {
         trackerEl.textContent = `Section ${(q.sectionIndex || 0) + 1} · Q${idx + 1}/${asm.totalQuestions} · Attempted ${attemptedCount}/${asm.totalQuestions}`;
+        trackerEl.classList.remove("practice-tracker");
       } else {
         trackerEl.textContent = `Q${idx + 1}/${asm.totalQuestions} · Attempted ${attemptedCount}/${asm.totalQuestions}`;
+        trackerEl.classList.add("practice-tracker");
       }
     }
 
@@ -3511,6 +3513,9 @@ window.LQ = window.LQ || {};
       });
 
       html += `
+        <div class="mobile-only-tracker" style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:8px 10px;font-size:12px;font-weight:600;color:#1e40af;margin-bottom:12px;">
+          Q${currentQIdx + 1}/${questionsList.length} · Attempted ${answeredCount}/${questionsList.length}
+        </div>
         <div style="padding:4px;">
           <div style="font-weight:700;font-size:13px;display:flex;justify-content:space-between;color:#1e40af;">
             <span>Questions</span>

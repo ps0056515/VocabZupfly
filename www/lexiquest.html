@@ -1512,6 +1512,9 @@ body.native-app .desktop-only-ui{display:none!important}
                 width: 100%;
                 padding: 16px;
               }
+              #asm-session-tracker.practice-tracker {
+                display: none !important;
+              }
             }
             @media (max-width: 500px) {
               .asm-navbar-brand span.logo-text {
@@ -1520,9 +1523,17 @@ body.native-app .desktop-only-ui{display:none!important}
               .asm-navbar {
                 padding: 8px;
               }
-              #asm-btn-submit-question {
+              #asm-btn-submit-question, #asm-btn-prev-question {
                 padding: 6px 12px !important;
                 font-size: 12px !important;
+              }
+            }
+            .mobile-only-tracker {
+              display: none !important;
+            }
+            @media (max-width: 768px) {
+              .mobile-only-tracker {
+                display: block !important;
               }
             }
           </style>
