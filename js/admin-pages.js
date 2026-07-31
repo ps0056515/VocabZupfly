@@ -1163,10 +1163,6 @@ LQ.renderChangePasswordPage = function () {
     '</div>' +
     '<form class="admin-form" onsubmit="LQ._submitChangePassword(event)" style="max-width:420px">' +
       '<div class="admin-form-field">' +
-        '<label>Current Password <span class="req">*</span></label>' +
-        '<input type="password" id="cp-old" required placeholder="Enter current password" />' +
-      '</div>' +
-      '<div class="admin-form-field">' +
         '<label>New Password <span class="req">*</span></label>' +
         '<input type="password" id="cp-new" required placeholder="Enter new password" minlength="6" />' +
         '<p class="admin-field-hint">Must contain uppercase, lowercase, digit, and special character.</p>' +
@@ -1190,7 +1186,6 @@ LQ._submitChangePassword = async function (e) {
   var errEl = document.getElementById('cp-error');
   var successEl = document.getElementById('cp-success');
 
-  var oldPw = document.getElementById('cp-old').value;
   var newPw = document.getElementById('cp-new').value;
   var confirmPw = document.getElementById('cp-confirm').value;
 
@@ -1205,7 +1200,7 @@ LQ._submitChangePassword = async function (e) {
   if (btn) { btn.disabled = true; btn.textContent = 'Changing...'; }
 
   try {
-    await LQ.Auth.changePassword(oldPw, newPw);
+    await LQ.Auth.changePassword(newPw);
     if (successEl) { successEl.textContent = '✓ Password changed successfully!'; successEl.style.display = 'block'; }
     LQ.toast('Password changed!');
   } catch (err) {
@@ -5787,7 +5782,7 @@ LQ._loadTests = async function () {
                 '<button type="button" style="display:block;width:100%;padding:8px 12px;background:none;border:none;text-align:left;font-size:13px;cursor:pointer;color:#334155" onclick="LQ.openTestAssignDrawer(\'' + t._id + '\')">📅 Assign</button>' +
                 '<button type="button" style="display:block;width:100%;padding:8px 12px;background:none;border:none;text-align:left;font-size:13px;cursor:pointer;color:#334155" onclick="LQ.openTestCloneModal(\'' + t._id + '\')">👥 Clone</button>' +
                 '<button type="button" style="display:block;width:100%;padding:8px 12px;background:none;border:none;text-align:left;font-size:13px;cursor:pointer;color:#334155" onclick="LQ.openTestConfigDrawer(\'' + t._id + '\')">⚙️ Config</button>' +
-                '<button type="button" style="display:block;width:100%;padding:8px 12px;background:none;border:none;text-align:left;font-size:13px;cursor:pointer;color:#334155" onclick="LQ.toggleTestDisable(\'' + t._id + '\',' + (t.isDisabled ? 'false' : 'true') + ')">' + (t.isDisabled ? '🟢 Enable' : '🔴 Disable') + '</button>' +
+                (t.isDisabled || canDisable ? '<button type="button" style="display:block;width:100%;padding:8px 12px;background:none;border:none;text-align:left;font-size:13px;cursor:pointer;color:#334155" onclick="LQ.toggleTestDisable(\'' + t._id + '\',' + (t.isDisabled ? 'false' : 'true') + ')">' + (t.isDisabled ? '🟢 Enable' : '🔴 Disable') + '</button>' : '') +
                 (canEdit ? '<button type="button" class="admin-btn-delete" style="display:block;width:100%;padding:8px 12px;background:none;border:none;text-align:left;font-size:13px;cursor:pointer;color:#dc2626" onclick="LQ.deleteTest(\'' + t._id + '\')">🗑️ Delete</button>' : '') +
               '</div>' +
             '</div>' +
@@ -6065,39 +6060,249 @@ LQ._pickerPage = 1;
 LQ._pickerFilters = {};
 LQ._pickerSelected = {};
 
-LQ._openTestQuestionPicker = function (sIdx, mode) {
+LQ._openTestQuestionPicker = async function (sIdx, mode) {
   LQ._pickerSectionIdx = sIdx;
   LQ._pickerMode = mode || 'manual';
   LQ._pickerPage = 1;
   LQ._pickerFilters = {};
   LQ._pickerSelected = {};
 
-  var modalHtml =
-    '<div id="test-qpicker-modal" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:999999;display:flex;align-items:center;justify-content:center">' +
-      '<div style="background:#fff;border-radius:16px;width:90%;max-width:800px;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.3)">' +
-        '<div style="padding:16px 20px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between">' +
-          '<h3 style="margin:0;font-size:16px;font-weight:700">' + (mode === 'auto' ? '⚡ Auto-Add Questions' : '📋 Pick Questions') + '</h3>' +
-          '<button type="button" onclick="LQ._closeTestQPicker()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#64748b">✕</button>' +
-        '</div>' +
-        '<div style="padding:12px 20px;border-bottom:1px solid #e2e8f0;display:flex;gap:8px;flex-wrap:wrap;align-items:center">' +
-          '<select id="qpicker-type" class="admin-search-input" style="width:auto;min-width:100px"><option value="">Type: All</option><option value="mcq">MCQ</option><option value="fib">FIB</option><option value="passage">Passage</option><option value="reading_listening">Reading</option><option value="listen_repeat">Listen</option><option value="jumbled_sentence">Jumbled</option><option value="story_retelling">Story</option></select>' +
-          '<select id="qpicker-difficulty" class="admin-search-input" style="width:auto;min-width:100px"><option value="">Difficulty: All</option><option value="easy">Easy</option><option value="medium">Medium</option><option value="hard">Hard</option></select>' +
-          '<input type="text" id="qpicker-search" class="admin-search-input" placeholder="Search..." style="flex:1;min-width:120px" />' +
-          (mode === 'auto' ? '<input type="number" id="qpicker-auto-count" min="1" max="100" value="10" style="width:60px;padding:6px;border:1px solid #cbd5e1;border-radius:6px;text-align:center" title="Count" />' : '') +
-          '<button type="button" class="admin-btn admin-btn-primary" style="font-size:12px" onclick="LQ._pickerPage=1;LQ._loadPickerQuestions()">' + (mode === 'auto' ? '⚡ Auto Select' : '🔍 Search') + '</button>' +
-        '</div>' +
-        '<div id="qpicker-results" style="flex:1;overflow-y:auto;max-height:480px;padding:12px 20px"></div>' +
-        '<div style="padding:12px 20px;border-top:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between">' +
-          '<div id="qpicker-pagination" style="display:flex;gap:4px"></div>' +
-          (mode === 'manual' ? '<button type="button" class="admin-btn admin-btn-primary" onclick="LQ._addPickerSelectedQuestions()">Add Selected</button>' : '<span></span>') +
-        '</div>' +
-      '</div>' +
-    '</div>';
+  if (mode === 'auto') {
+    // Show temporary status in the drawer or toast
+    var loadingToast = null;
+    if (LQ.toast) {
+      loadingToast = document.createElement('div');
+      loadingToast.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#1e293b;color:#fff;padding:12px 20px;border-radius:8px;z-index:9999999;font-size:13px;font-weight:600';
+      loadingToast.textContent = '⏳ Loading filter options...';
+      document.body.appendChild(loadingToast);
+    }
+    
+    var tenseGroups = [];
+    var wordLists = [];
+    try {
+      var [respG, respW] = await Promise.all([
+        fetch('/api/admin/tenses', { credentials: 'include' }).then(r => r.json()),
+        fetch('/api/admin/word-lists?limit=1000', { credentials: 'include' }).then(r => r.json())
+      ]);
+      if (respG.ok) tenseGroups = respG.groups || [];
+      if (respW.ok) wordLists = respW.items || [];
+    } catch (e) {
+      console.warn("Failed to load tense groups or word lists for filter picker", e);
+    }
+    
+    if (loadingToast) loadingToast.remove();
 
-  var existing = document.getElementById('test-qpicker-modal');
-  if (existing) existing.remove();
-  document.body.insertAdjacentHTML('beforeend', modalHtml);
-  LQ._loadPickerQuestions();
+    var typeOptions = '<option value="">All Types</option>' +
+      '<option value="mcq">MCQ (Single Answer)</option>' +
+      '<option value="mcq_multi">MCQ (Multiple Answers)</option>' +
+      '<option value="fib">Fill in Blanks</option>' +
+      '<option value="reading_listening">Reading & Listening</option>' +
+      '<option value="listen_repeat">Listen & Repeat</option>' +
+      '<option value="jumbled_sentence">Jumbled Sentence</option>' +
+      '<option value="story_retelling">Story Retelling</option>' +
+      '<option value="passage">Passage</option>';
+
+    var diffOptions = '<option value="">All Difficulties</option>' +
+      '<option value="easy">Easy</option>' +
+      '<option value="medium">Medium</option>' +
+      '<option value="hard">Hard</option>';
+
+    var catOptions = '<option value="">-- Choose Category --</option>' +
+      '<option value="General">General</option>' +
+      '<option value="Tense">Tense</option>' +
+      '<option value="Word">Word</option>';
+
+    var tenseOptions = '<option value="">-- Choose Tense Group (Optional) --</option>' +
+      tenseGroups.map(function (tg) {
+        return '<option value="' + LQ.esc(tg.name) + '">' + LQ.esc(tg.displayName || tg.name) + '</option>';
+      }).join('');
+
+    var listOptions = '<option value="">-- Choose Word List (Optional) --</option>' +
+      wordLists.map(function (wl) {
+        return '<option value="' + LQ.esc(wl.id) + '">' + LQ.esc(wl.name || wl.id) + '</option>';
+      }).join('');
+
+    window.onAutoPickerCategoryChange = function (val) {
+      var tenseField = document.getElementById('qpicker-tensegroup-field');
+      var wordField = document.getElementById('qpicker-wordlist-field');
+      if (tenseField) {
+        tenseField.style.display = (val === 'Tense') ? 'block' : 'none';
+        if (val !== 'Tense') document.getElementById('qpicker-tensegroup').value = '';
+      }
+      if (wordField) {
+        wordField.style.display = (val === 'Word') ? 'block' : 'none';
+        if (val !== 'Word') document.getElementById('qpicker-wordlist').value = '';
+      }
+    };
+
+    var modalHtml =
+      '<div id="test-qpicker-modal" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:999999;display:flex;align-items:center;justify-content:center">' +
+        '<div style="background:#fff;border-radius:16px;width:95%;max-width:480px;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.3);overflow:hidden">' +
+          '<div style="padding:16px 20px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between">' +
+            '<h3 style="margin:0;font-size:16px;font-weight:700">⚡ Auto-Add Questions</h3>' +
+            '<button type="button" onclick="LQ._closeTestQPicker()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#64748b">✕</button>' +
+          '</div>' +
+          '<div style="padding:20px;display:flex;flex-direction:column;gap:14px;max-height:65vh;overflow-y:auto">' +
+            '<div class="admin-form-field" style="margin:0">' +
+              '<label style="font-weight:600;font-size:13px;color:#334155;display:block;margin-bottom:6px">Question Type</label>' +
+              '<select id="qpicker-type" class="admin-search-input" style="width:100%;box-sizing:border-box">' + typeOptions + '</select>' +
+            '</div>' +
+            '<div class="admin-form-field" style="margin:0">' +
+              '<label style="font-weight:600;font-size:13px;color:#334155;display:block;margin-bottom:6px">Category</label>' +
+              '<select id="qpicker-category" class="admin-search-input" style="width:100%;box-sizing:border-box" onchange="window.onAutoPickerCategoryChange(this.value)">' + catOptions + '</select>' +
+            '</div>' +
+            '<div class="admin-form-field" id="qpicker-tensegroup-field" style="margin:0;display:none">' +
+              '<label style="font-weight:600;font-size:13px;color:#334155;display:block;margin-bottom:6px">Tense Group</label>' +
+              '<select id="qpicker-tensegroup" class="admin-search-input" style="width:100%;box-sizing:border-box">' + tenseOptions + '</select>' +
+            '</div>' +
+            '<div class="admin-form-field" id="qpicker-wordlist-field" style="margin:0;display:none">' +
+              '<label style="font-weight:600;font-size:13px;color:#334155;display:block;margin-bottom:6px">Word List</label>' +
+              '<select id="qpicker-wordlist" class="admin-search-input" style="width:100%;box-sizing:border-box">' + listOptions + '</select>' +
+            '</div>' +
+            '<div class="admin-form-field" style="margin:0">' +
+              '<label style="font-weight:600;font-size:13px;color:#334155;display:block;margin-bottom:6px">Difficulty</label>' +
+              '<select id="qpicker-difficulty" class="admin-search-input" style="width:100%;box-sizing:border-box">' + diffOptions + '</select>' +
+            '</div>' +
+            '<div class="admin-form-field" style="margin:0">' +
+              '<label style="font-weight:600;font-size:13px;color:#334155;display:block;margin-bottom:6px">Question Count (Max 20)</label>' +
+              '<input type="number" id="qpicker-auto-count" min="1" max="20" value="5" class="admin-search-input" style="width:100%;box-sizing:border-box" />' +
+              '<small style="color:#64748b;font-size:11px;margin-top:4px;display:block">💡 Maximum 20 auto-questions can be added at a time.</small>' +
+            '</div>' +
+            '<p id="qpicker-error" style="color:#dc2626;font-size:12px;display:none;margin:0;font-weight:600"></p>' +
+          '</div>' +
+          '<div style="padding:12px 20px;border-top:1px solid #e2e8f0;display:flex;justify-content:flex-end;gap:10px;background:#f8fafc">' +
+            '<button type="button" class="admin-btn admin-btn-outline" onclick="LQ._closeTestQPicker()">Cancel</button>' +
+            '<button type="button" class="admin-btn admin-btn-primary" onclick="LQ._executeAutoAddQuestions()">⚡ Auto Select</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+
+    var existing = document.getElementById('test-qpicker-modal');
+    if (existing) existing.remove();
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+  } else {
+    var modalHtml =
+      '<div id="test-qpicker-modal" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:999999;display:flex;align-items:center;justify-content:center">' +
+        '<div style="background:#fff;border-radius:16px;width:90%;max-width:800px;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.3)">' +
+          '<div style="padding:16px 20px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between">' +
+            '<h3 style="margin:0;font-size:16px;font-weight:700">📋 Pick Questions</h3>' +
+            '<button type="button" onclick="LQ._closeTestQPicker()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#64748b">✕</button>' +
+          '</div>' +
+          '<div style="padding:12px 20px;border-bottom:1px solid #e2e8f0;display:flex;gap:8px;flex-wrap:wrap;align-items:center">' +
+            '<select id="qpicker-type" class="admin-search-input" style="width:auto;min-width:100px"><option value="">Type: All</option><option value="mcq">MCQ</option><option value="mcq_multi">MCQ Multi</option><option value="fib">FIB</option><option value="reading_listening">Reading & Listening</option><option value="listen_repeat">Listen & Repeat</option><option value="jumbled_sentence">Jumbled Sentence</option><option value="story_retelling">Story Retelling</option><option value="passage">Passage</option></select>' +
+            '<select id="qpicker-difficulty" class="admin-search-input" style="width:auto;min-width:100px"><option value="">Difficulty: All</option><option value="easy">Easy</option><option value="medium">Medium</option><option value="hard">Hard</option></select>' +
+            '<input type="text" id="qpicker-search" class="admin-search-input" placeholder="Search by question text..." style="flex:1;min-width:120px" />' +
+            '<button type="button" class="admin-btn admin-btn-primary" style="font-size:12px" onclick="LQ._pickerPage=1;LQ._loadPickerQuestions()">🔍 Search</button>' +
+          '</div>' +
+          '<div id="qpicker-results" style="flex:1;overflow-y:auto;max-height:480px;padding:12px 20px"></div>' +
+          '<div style="padding:12px 20px;border-top:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between">' +
+            '<div id="qpicker-pagination" style="display:flex;gap:4px"></div>' +
+            '<button type="button" class="admin-btn admin-btn-primary" onclick="LQ._addPickerSelectedQuestions()">Add Selected</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+
+    var existing = document.getElementById('test-qpicker-modal');
+    if (existing) existing.remove();
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    LQ._loadPickerQuestions();
+  }
+};
+
+LQ._executeAutoAddQuestions = async function () {
+  var errEl = document.getElementById('qpicker-error');
+  if (errEl) errEl.style.display = 'none';
+
+  var countVal = parseInt(document.getElementById('qpicker-auto-count').value, 10);
+  if (isNaN(countVal) || countVal < 1 || countVal > 20) {
+    if (errEl) {
+      errEl.textContent = 'Please enter a valid count between 1 and 20.';
+      errEl.style.display = 'block';
+    }
+    return;
+  }
+
+  var type = document.getElementById('qpicker-type').value || '';
+  var category = document.getElementById('qpicker-category').value || '';
+  var difficulty = document.getElementById('qpicker-difficulty').value || '';
+  
+  var wordList = '';
+  if (category === 'Word') {
+    wordList = document.getElementById('qpicker-wordlist').value || '';
+  }
+  var tenseGroup = '';
+  if (category === 'Tense') {
+    tenseGroup = document.getElementById('qpicker-tensegroup').value || '';
+  }
+
+  var params = 'page=1&limit=100&status=active';
+  if (type) params += '&type=' + type;
+  if (category) params += '&category=' + category;
+  if (difficulty) params += '&difficulty=' + difficulty;
+  if (wordList) params += '&wordList=' + wordList;
+  if (tenseGroup) params += '&tenseGroup=' + tenseGroup;
+
+  var submitBtn = document.querySelector('#test-qpicker-modal .admin-btn-primary');
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Fetching...';
+  }
+
+  try {
+    var resp = await fetch('/api/admin/questions?' + params, { credentials: 'include' });
+    var data = await resp.json();
+    if (!resp.ok) {
+      if (errEl) { errEl.textContent = data.error || 'Failed to fetch questions.'; errEl.style.display = 'block'; }
+      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '⚡ Auto Select'; }
+      return;
+    }
+
+    var questions = data.questions || [];
+    var available = questions.filter(function (q) { return !LQ._allAddedQuestionIds[q._id]; });
+
+    if (!available.length) {
+      if (errEl) { errEl.textContent = 'No available questions found matching these filters.'; errEl.style.display = 'block'; }
+      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '⚡ Auto Select'; }
+      return;
+    }
+
+    // Shuffle available
+    for (var i = available.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = available[i];
+      available[i] = available[j];
+      available[j] = tmp;
+    }
+
+    var picked = available.slice(0, countVal);
+    picked.forEach(function (q) {
+      LQ._testSections[LQ._pickerSectionIdx].questions.push({
+        questionId: q._id,
+        questionText: q.questionText,
+        type: q.type,
+        mcqType: q.mcqType,
+        options: q.options || [],
+        correctAnswer: q.correctAnswer || '',
+        correctAnswers: q.correctAnswers || [],
+        subQuestions: q.subQuestions || [],
+        playLimit: q.playLimit || 1,
+        marks: q.marks || 1,
+        duration: q.duration || 1,
+        durationType: q.durationType || 'minutes',
+        explanation: q.explanation || '',
+        difficulty: q.difficulty || 'medium',
+        category: q.category || 'General',
+      });
+      LQ._allAddedQuestionIds[q._id] = true;
+    });
+
+    LQ._closeTestQPicker();
+    LQ._renderTestSectionsUI();
+    LQ.toast('Added ' + picked.length + ' questions automatically!', true);
+  } catch (err) {
+    if (errEl) { errEl.textContent = 'Network error fetching questions.'; errEl.style.display = 'block'; }
+    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '⚡ Auto Select'; }
+  }
 };
 
 LQ._closeTestQPicker = function () {
@@ -6128,46 +6333,7 @@ LQ._loadPickerQuestions = async function () {
 
     var questions = data.questions || [];
 
-    if (LQ._pickerMode === 'auto') {
-      var autoCount = parseInt((document.getElementById('qpicker-auto-count') || {}).value, 10) || 10;
-      var available = questions.filter(function (q) { return !LQ._allAddedQuestionIds[q._id]; });
-      // Shuffle and take autoCount
-      for (var i = available.length - 1; i > 0; i--) {
-        var j = Math.floor(Math.random() * (i + 1));
-        var tmp = available[i]; available[i] = available[j]; available[j] = tmp;
-      }
-      var picked = available.slice(0, autoCount);
-      if (!picked.length) {
-        resultsEl.innerHTML = '<p style="text-align:center;color:#94a3b8;padding:20px">No new questions available matching these filters.</p>';
-        return;
-      }
 
-      picked.forEach(function (q) {
-        LQ._testSections[LQ._pickerSectionIdx].questions.push({
-          questionId: q._id,
-          questionText: q.questionText,
-          type: q.type,
-          mcqType: q.mcqType,
-          options: q.options || [],
-          correctAnswer: q.correctAnswer || '',
-          correctAnswers: q.correctAnswers || [],
-          subQuestions: q.subQuestions || [],
-          playLimit: q.playLimit || 1,
-          marks: q.marks || 1,
-          duration: q.duration || 1,
-          durationType: q.durationType || 'minutes',
-          explanation: q.explanation || '',
-          difficulty: q.difficulty || 'medium',
-          category: q.category || 'General',
-        });
-        LQ._allAddedQuestionIds[q._id] = true;
-      });
-
-      LQ._closeTestQPicker();
-      LQ._renderTestSectionsUI();
-      LQ.toast('Added ' + picked.length + ' questions automatically!');
-      return;
-    }
 
     // Manual mode — render selectable list
     if (!questions.length) {

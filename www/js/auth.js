@@ -208,12 +208,12 @@ LQ.Auth = (function () {
   /**
    * Change password.
    */
-  async function changePassword(oldPassword, newPassword) {
+  async function changePassword(newPassword) {
     var resp = await fetch(API_BASE + '/change-password', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
-      body: JSON.stringify({ oldPassword: oldPassword, newPassword: newPassword }),
+      body: JSON.stringify({ newPassword: newPassword }),
     });
 
     var data = await resp.json();

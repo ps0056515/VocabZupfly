@@ -237,11 +237,10 @@ router.post('/refresh-token', async function (req, res) {
  */
 router.put('/change-password', authenticate, async function (req, res) {
   try {
-    var oldPassword = req.body.oldPassword || '';
     var newPassword = req.body.newPassword || '';
 
-    if (!oldPassword || !newPassword) {
-      return res.status(400).json({ error: 'Old password and new password are required.' });
+    if (!newPassword) {
+      return res.status(400).json({ error: 'New password is required.' });
     }
 
     if (newPassword.length < 6) {
@@ -262,11 +261,6 @@ router.put('/change-password', authenticate, async function (req, res) {
     var user = await User.findById(req.user.id).select('+password');
     if (!user) {
       return res.status(404).json({ error: 'User not found.' });
-    }
-
-    var isMatch = await user.comparePassword(oldPassword);
-    if (!isMatch) {
-      return res.status(400).json({ error: 'Current password is incorrect.' });
     }
 
     user.password = newPassword;
