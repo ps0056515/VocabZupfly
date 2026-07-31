@@ -39,6 +39,14 @@ const AssessmentResultSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  earnedMarks: {
+    type: Number,
+    default: 0
+  },
+  totalMarks: {
+    type: Number,
+    default: 0
+  },
   questions: {
     type: Array,
     default: []

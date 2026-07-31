@@ -34,4 +34,7 @@ copyDir('css');
 const manifestSrc = path.join(root, 'manifest.json');
 const manifestDest = path.join(root, 'www', 'manifest.json');
 if (fs.existsSync(manifestSrc)) fs.copyFileSync(manifestSrc, manifestDest);
-console.log('Copied lexiquest.html → www/index.html + js/ + data/ + css/');
+const faviconSrc = path.join(root, 'favicon.png');
+const faviconDest = path.join(root, 'www', 'favicon.png');
+if (fs.existsSync(faviconSrc)) fs.copyFileSync(faviconSrc, faviconDest);
+console.log('Copied lexiquest.html → www/index.html + js/ + data/ + css/ + favicon.png');

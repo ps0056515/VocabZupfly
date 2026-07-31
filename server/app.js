@@ -9,6 +9,7 @@ const cors = require('cors');
 const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
 const studentRoutes = require('./routes/student');
+const reportRoutes = require('./routes/reports');
 
 const app = express();
 
@@ -28,6 +29,7 @@ app.use(cookieParser());
 // Mount API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/reports', reportRoutes);
 app.use('/api', studentRoutes);
 
 // Global Error Handler (catches malformed JSON requests & server errors)

@@ -305,6 +305,7 @@ LQ.setupRoleNavigation = function (user) {
         '<button type="button" class="desktop-rail-item" id="desktop-nav-admin-students" onclick="goTo(\'admin-students\')"><span class="rail-icon">👩‍🎓</span> Students</button>' +
         '<button type="button" class="desktop-rail-item" id="desktop-nav-admin-questions" onclick="goTo(\'admin-questions\')"><span class="rail-icon">❓</span> Questions</button>' +
         '<button type="button" class="desktop-rail-item" id="desktop-nav-admin-tests" onclick="goTo(\'admin-tests\')"><span class="rail-icon">📝</span> Tests</button>' +
+        '<button type="button" class="desktop-rail-item" id="desktop-nav-admin-reports" onclick="goTo(\'admin-reports\')"><span class="rail-icon">📊</span> Reports</button>' +
         '<button type="button" class="desktop-rail-item" id="desktop-nav-admin-practice-questions" onclick="goTo(\'admin-practice-questions\')"><span class="rail-icon">📝</span> Practice Qs</button>' +
         '<button type="button" class="desktop-rail-item" id="desktop-nav-admin-tenses" onclick="goTo(\'admin-tenses\')"><span class="rail-icon">🕒</span> Tenses</button>' +
         '<button type="button" class="desktop-rail-item" id="desktop-nav-admin-words" onclick="goTo(\'admin-words\')"><span class="rail-icon">📝</span> Words</button>' +

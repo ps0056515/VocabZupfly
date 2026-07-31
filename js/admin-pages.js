@@ -712,7 +712,7 @@ LQ.renderAdminOrgsPage = async function () {
           '<td>' + LQ.esc(o.address) + '</td>' +
           '<td>' + countCell + '</td>' +
           '<td><span class="admin-capitalize" style="color:#16a34a;font-weight:600">Active</span></td>' +
-          '<td><button class="admin-btn admin-btn-outline admin-btn-sm" disabled title="Editing disabled">Edit</button></td>' +
+          '<td><button class="admin-btn admin-btn-primary admin-btn-sm" style="margin-right:4px" onclick="LQ.openOrgReport(\'' + o._id + '\')">📊 Report</button><button class="admin-btn admin-btn-outline admin-btn-sm" disabled title="Editing disabled">Edit</button></td>' +
         '</tr>';
     });
 
@@ -5765,6 +5765,8 @@ LQ.openEditTestDrawer = async function (id) {
       if (ml) ml.value = t.malpracticeLimit || 3;
       var pp = document.getElementById('test-pass-percentage');
       if (pp) pp.value = t.passPercentage !== undefined ? t.passPercentage : 30;
+      var orgSel = document.getElementById('test-org-select');
+      if (orgSel) orgSel.value = t.orgId || '6a6336008e7335277d4b6ab0';
       LQ._renderTestSectionsUI();
     }, 100);
   } catch (err) {
@@ -5773,6 +5775,21 @@ LQ.openEditTestDrawer = async function (id) {
 };
 
 LQ._renderTestFormDrawer = function (title) {
+  var state = LQ.Store.getState();
+  var user = state.user || {};
+  var isSuperAdmin = user.role === 'super_admin';
+
+  var orgField = '';
+  if (isSuperAdmin) {
+    orgField =
+      '<div class="admin-form-field" style="grid-column:1/-1">' +
+        '<label>Organization</label>' +
+        '<select id="test-org-select" disabled style="background:#f1f5f9;cursor:not-allowed;color:#64748b;border-color:#e2e8f0;width:100%;padding:8px;border-radius:6px">' +
+          '<option value="6a6336008e7335277d4b6ab0" selected>Panimalar</option>' +
+        '</select>' +
+      '</div>';
+  }
+
   var html =
     '<form id="test-form" onsubmit="LQ._submitTestForm(event)">' +
       '<div class="admin-form-grid" style="grid-template-columns:1fr 1fr;gap:14px">' +
@@ -5785,6 +5802,7 @@ LQ._renderTestFormDrawer = function (title) {
           '<label>Description</label>' +
           '<textarea id="test-description" rows="2" placeholder="Optional description"></textarea>' +
         '</div>' +
+        orgField +
         '<div class="admin-form-field">' +
           '<label style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="test-show-result" checked /> Show Result to Student</label>' +
         '</div>' +
@@ -6199,6 +6217,12 @@ LQ._submitTestForm = async function (e) {
     passPercentage: passPercentage,
     sections: LQ._testSections,
   };
+  var orgIdSelect = document.getElementById('test-org-select');
+  if (orgIdSelect) {
+    payload.orgId = orgIdSelect.value;
+  } else if (LQ._testOrgFilter && LQ._testOrgFilter !== 'all') {
+    payload.orgId = LQ._testOrgFilter;
+  }
 
   if (errEl) errEl.style.display = 'none';
   if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }

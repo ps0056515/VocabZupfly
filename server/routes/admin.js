@@ -2485,7 +2485,9 @@ router.post('/tests', requireRole('admin', 'super_admin'), async function (req, 
     }
 
     var orgIdValue = null;
-    if (req.body.orgId && req.body.orgId !== 'global') {
+    if (req.user.role === 'admin') {
+      orgIdValue = req.user.orgId;
+    } else if (req.body.orgId && req.body.orgId !== 'global') {
       orgIdValue = req.body.orgId;
     }
 
@@ -2563,7 +2565,9 @@ router.put('/tests/:id', requireRole('admin', 'super_admin'), async function (re
     test.passPercentage = typeof req.body.passPercentage === 'number' ? Math.max(0, Math.min(100, req.body.passPercentage)) : 30;
     test.sections = sections;
 
-    if (req.body.orgId !== undefined) {
+    if (req.user.role === 'admin') {
+      test.orgId = req.user.orgId;
+    } else if (req.body.orgId !== undefined) {
       test.orgId = (req.body.orgId && req.body.orgId !== 'global') ? req.body.orgId : null;
     }
 

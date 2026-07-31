@@ -232,6 +232,7 @@ LQ.goTo = function (screen, opts) {
     'admin-word-lists': () => LQ.renderAdminWordListsPage && LQ.renderAdminWordListsPage(),
     'admin-dictionary': () => LQ.renderAdminDictionaryPage && LQ.renderAdminDictionaryPage(),
     'admin-bulk': () => LQ.renderAdminBulkPage && LQ.renderAdminBulkPage(),
+    'admin-reports': () => LQ.renderAdminReportsPage && LQ.renderAdminReportsPage(),
     'admin-profile': () => LQ.renderProfilePage && LQ.renderProfilePage(),
     'change-password': () => LQ.renderChangePasswordPage && LQ.renderChangePasswordPage(),
     cms: () => {},
