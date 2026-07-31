@@ -1157,27 +1157,35 @@ LQ.renderChangePasswordPage = function () {
   if (!wrap) return;
 
   wrap.innerHTML =
-    '<div class="admin-page-header">' +
-      '<button type="button" class="admin-back-btn" onclick="goTo(\'admin-profile\')">← Back</button>' +
-      '<h2 class="admin-page-title">🔑 Change Password</h2>' +
+    '<div class="admin-page-header" style="padding-bottom: 20px;">' +
+      '<button type="button" class="admin-back-btn" onclick="goTo(\'admin-profile\')">← Back to Profile</button>' +
     '</div>' +
-    '<form class="admin-form" onsubmit="LQ._submitChangePassword(event)" style="max-width:420px">' +
-      '<div class="admin-form-field">' +
-        '<label>New Password <span class="req">*</span></label>' +
-        '<input type="password" id="cp-new" required placeholder="Enter new password" minlength="6" />' +
-        '<p class="admin-field-hint">Must contain uppercase, lowercase, digit, and special character.</p>' +
+    '<div style="max-width: 480px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.05); overflow: hidden;">' +
+      '<div style="padding: 24px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; gap: 12px; background: #f8fafc;">' +
+        '<span style="font-size: 24px;">🔑</span>' +
+        '<div>' +
+          '<h2 style="margin: 0; font-size: 18px; font-weight: 700; color: #0f172a;">Change Password</h2>' +
+          '<p style="margin: 4px 0 0; font-size: 12px; color: #64748b;">Ensure your account remains secure by choosing a strong password.</p>' +
+        '</div>' +
       '</div>' +
-      '<div class="admin-form-field">' +
-        '<label>Confirm New Password <span class="req">*</span></label>' +
-        '<input type="password" id="cp-confirm" required placeholder="Confirm new password" />' +
-      '</div>' +
-      '<p id="cp-error" class="admin-error-msg" style="display:none"></p>' +
-      '<p id="cp-success" class="admin-success-msg" style="display:none"></p>' +
-      '<div class="admin-form-actions">' +
-        '<button type="button" class="admin-btn admin-btn-outline" onclick="goTo(\'admin-profile\')">Cancel</button>' +
-        '<button type="submit" class="admin-btn admin-btn-primary" id="cp-btn">Change Password</button>' +
-      '</div>' +
-    '</form>';
+      '<form class="admin-form" onsubmit="LQ._submitChangePassword(event)" style="padding: 24px; display: flex; flex-direction: column; gap: 18px; margin: 0;">' +
+        '<div class="admin-form-field" style="margin: 0;">' +
+          '<label style="font-weight: 600; font-size: 13px; color: #334155; display: block; margin-bottom: 6px;">New Password <span class="req" style="color: #ef4444;">*</span></label>' +
+          '<input type="password" id="cp-new" required placeholder="Enter your new password" minlength="6" style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; box-sizing: border-box;" />' +
+          '<p class="admin-field-hint" style="margin: 6px 0 0; font-size: 11px; color: #64748b; line-height: 1.4;">💡 Must contain uppercase, lowercase, digit, and special character.</p>' +
+        '</div>' +
+        '<div class="admin-form-field" style="margin: 0;">' +
+          '<label style="font-weight: 600; font-size: 13px; color: #334155; display: block; margin-bottom: 6px;">Confirm New Password <span class="req" style="color: #ef4444;">*</span></label>' +
+          '<input type="password" id="cp-confirm" required placeholder="Confirm your new password" style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; box-sizing: border-box;" />' +
+        '</div>' +
+        '<p id="cp-error" class="admin-error-msg" style="display:none; margin: 0; color: #dc2626; font-size: 13px; font-weight: 600; background: #fef2f2; padding: 10px; border-radius: 6px; border: 1px solid #fca5a5;"></p>' +
+        '<p id="cp-success" class="admin-success-msg" style="display:none; margin: 0; color: #16a34a; font-size: 13px; font-weight: 600; background: #f0fdf4; padding: 10px; border-radius: 6px; border: 1px solid #bbf7d0;"></p>' +
+        '<div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 8px; border-top: 1px solid #f1f5f9; padding-top: 18px;">' +
+          '<button type="button" class="admin-btn admin-btn-outline" onclick="goTo(\'admin-profile\')" style="padding: 10px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">Cancel</button>' +
+          '<button type="submit" class="admin-btn admin-btn-primary" id="cp-btn" style="padding: 10px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">Change Password</button>' +
+        '</div>' +
+      '</form>' +
+    '</div>';
 };
 
 LQ._submitChangePassword = async function (e) {
@@ -5777,7 +5785,7 @@ LQ._loadTests = async function () {
           '<td style="position:relative">' +
             '<div class="admin-dropdown-menu-wrapper" style="position:relative;display:inline-block">' +
               '<button type="button" class="admin-btn admin-btn-sm" style="font-size:16px;padding:2px 8px;font-weight:bold" onclick="event.stopPropagation();LQ.toggleTestActionsMenu(this,\'' + t._id + '\')">⋮</button>' +
-              '<div id="actions-menu-' + t._id + '" class="admin-actions-dropdown-content" style="display:none;position:absolute;right:0;top:30px;background:#fff;box-shadow:0 10px 25px -5px rgba(0,0,0,0.1),0 8px 10px -6px rgba(0,0,0,0.1);border:1px solid #e2e8f0;border-radius:8px;z-index:9999;min-width:140px;padding:6px 0;text-align:left">' +
+              '<div id="actions-menu-' + t._id + '" class="admin-actions-dropdown-content" style="display:none;position:absolute;right:0;top:30px;background:#fff;box-shadow:0 10px 25px -5px rgba(0,0,0,0.1),0 8px 10px -6px rgba(0,0,0,0.1);border:1px solid #e2e8f0;border-radius:8px;z-index:9999;min-width:150px;padding:6px 0;text-align:left">' +
                 (canEdit ? '<button type="button" style="display:block;width:100%;padding:8px 12px;background:none;border:none;text-align:left;font-size:13px;cursor:pointer;color:#334155" onclick="LQ.openEditTestDrawer(\'' + t._id + '\')">📝 Edit</button>' : '') +
                 (t.isAssigned && t.startTime && now >= startMs ? 
                   '<button type="button" style="display:block;width:100%;padding:8px 12px;background:none;border:none;text-align:left;font-size:13px;cursor:pointer;color:#334155" onclick="LQ.openTestAssignDrawer(\'' + t._id + '\')">📅 Update End Date</button>' :
