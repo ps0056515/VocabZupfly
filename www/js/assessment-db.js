@@ -45,6 +45,8 @@ window.LQ = window.LQ || {};
     async saveAssessment(data) {
       const db = await openDB();
       if (!db) return null;
+      const email = (sessionStorage.getItem("userEmail") || localStorage.getItem("userEmail") || "shared").toLowerCase();
+      data.userEmail = email;
       return new Promise((resolve, reject) => {
         const tx = db.transaction('assessments', 'readwrite');
         const store = tx.objectStore('assessments');
@@ -69,12 +71,15 @@ window.LQ = window.LQ || {};
     async getAllAssessments() {
       const db = await openDB();
       if (!db) return [];
+      const email = (sessionStorage.getItem("userEmail") || localStorage.getItem("userEmail") || "shared").toLowerCase();
       return new Promise((resolve, reject) => {
         const tx = db.transaction('assessments', 'readonly');
         const store = tx.objectStore('assessments');
         const req = store.getAll();
         req.onsuccess = () => {
-          const list = req.result || [];
+          let list = req.result || [];
+          // Filter by current user
+          list = list.filter(item => item.userEmail === email);
           list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
           resolve(list);
         };
@@ -85,10 +90,12 @@ window.LQ = window.LQ || {};
     async deleteAssessment(id) {
       const db = await openDB();
       if (!db) return false;
+      const email = (sessionStorage.getItem("userEmail") || localStorage.getItem("userEmail") || "shared").toLowerCase();
+      const compoundKey = email + "_" + id;
       return new Promise((resolve, reject) => {
         const tx = db.transaction(['assessments', 'attempts'], 'readwrite');
         tx.objectStore('assessments').delete(id);
-        const req = tx.objectStore('attempts').delete(id);
+        tx.objectStore('attempts').delete(compoundKey);
         tx.oncomplete = () => resolve(true);
         tx.onerror = () => reject(tx.error);
       });
@@ -97,11 +104,19 @@ window.LQ = window.LQ || {};
     async saveAttempt(attemptData) {
       const db = await openDB();
       if (!db) return null;
+      const email = (sessionStorage.getItem("userEmail") || localStorage.getItem("userEmail") || "shared").toLowerCase();
+      attemptData.userEmail = email;
+      const originalId = attemptData.id;
+      attemptData.id = email + "_" + originalId;
+
       return new Promise((resolve, reject) => {
         const tx = db.transaction('attempts', 'readwrite');
         const store = tx.objectStore('attempts');
         const req = store.put(attemptData);
-        req.onsuccess = () => resolve(attemptData);
+        req.onsuccess = () => {
+          attemptData.id = originalId; // restore original ID before returning
+          resolve(attemptData);
+        };
         req.onerror = () => reject(req.error);
       });
     },
@@ -109,11 +124,32 @@ window.LQ = window.LQ || {};
     async getAttempt(id) {
       const db = await openDB();
       if (!db) return null;
+      const email = (sessionStorage.getItem("userEmail") || localStorage.getItem("userEmail") || "shared").toLowerCase();
+      const compoundKey = email + "_" + id;
       return new Promise((resolve, reject) => {
         const tx = db.transaction('attempts', 'readonly');
         const store = tx.objectStore('attempts');
-        const req = store.get(id);
-        req.onsuccess = () => resolve(req.result || null);
+        const req = store.get(compoundKey);
+        req.onsuccess = () => {
+          const result = req.result || null;
+          if (result) {
+            result.id = id; // restore original ID before returning
+          }
+          resolve(result);
+        };
+        req.onerror = () => reject(req.error);
+      });
+    },
+
+    async deleteAttempt(id) {
+      const db = await openDB();
+      if (!db) return false;
+      const email = (sessionStorage.getItem("userEmail") || localStorage.getItem("userEmail") || "shared").toLowerCase();
+      const compoundKey = email + "_" + id;
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction('attempts', 'readwrite');
+        const req = tx.objectStore('attempts').delete(compoundKey);
+        req.onsuccess = () => resolve(true);
         req.onerror = () => reject(req.error);
       });
     },

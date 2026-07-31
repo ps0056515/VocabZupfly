@@ -4975,6 +4975,71 @@ LQ._triggerPqSearch = function (val) {
   }, 300);
 };
 
+// Helper: resolve correct option index (handles A/B/C/D, text, or index)
+function getCorrectOptionIndex(correctAns, options) {
+  if (!options || !options.length) return -1;
+  var str = (correctAns !== undefined && correctAns !== null) ? String(correctAns).trim() : '';
+  if (!str) return -1;
+  var directIdx = options.indexOf(str);
+  if (directIdx >= 0) return directIdx;
+  var upper = str.toUpperCase();
+  if (upper.length === 1 && upper >= 'A' && upper <= 'Z') {
+    var letterIdx = upper.charCodeAt(0) - 65;
+    if (letterIdx >= 0 && letterIdx < options.length) return letterIdx;
+  }
+  var numIdx = parseInt(str, 10);
+  if (!isNaN(numIdx) && numIdx >= 0 && numIdx < options.length) return numIdx;
+  return -1;
+}
+
+LQ.previewPracticeQuestion = function(qJsonStringEncoded) {
+  var q = JSON.parse(decodeURIComponent(qJsonStringEncoded));
+  var listObj = LQ._pqLists.find(l => l.id === q.listId);
+  var groupObj = listObj ? (listObj.groups || []).find(g => g.id === q.groupId) : null;
+  var listName = listObj ? listObj.title : q.listId;
+  var groupName = groupObj ? groupObj.title : q.groupId;
+
+  var actualAnswer = q.correctAnswer;
+  if (q.options && q.options.length && q.correctAnswer) {
+    var answers = q.correctAnswer.split(",").map(s => s.trim());
+    var resolved = answers.map(ans => {
+      var idx = getCorrectOptionIndex(ans, q.options);
+      return (idx >= 0 && idx < q.options.length) ? q.options[idx] : ans;
+    });
+    actualAnswer = resolved.join(', ');
+  }
+
+  var optionsHtml = '';
+  if (q.options && q.options.length) {
+    optionsHtml = '<div style="margin-top:12px"><strong>Options:</strong><ul style="margin:6px 0 0 16px;padding:0;list-style:disc">';
+    q.options.forEach(function(opt, idx) {
+      optionsHtml += '<li style="margin-bottom:4px">Option ' + String.fromCharCode(65 + idx) + ': ' + LQ.esc(opt) + '</li>';
+    });
+    optionsHtml += '</ul></div>';
+  }
+
+  var html = 
+    '<div class="admin-form" style="padding:10px">' +
+      '<div style="margin-bottom:12px"><strong>Question Prompt:</strong><div style="background:#f8fafc;padding:12px;border:1px solid #e2e8f0;border-radius:8px;margin-top:6px;font-weight:600;color:#0f172a">' + LQ.esc(q.title) + '</div></div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">' +
+        '<div><strong>Word List:</strong><div>' + LQ.esc(listName) + '</div></div>' +
+        '<div><strong>Synonym Group:</strong><div>' + LQ.esc(groupName) + '</div></div>' +
+        '<div><strong>Question Type:</strong><div><code>' + LQ.esc(q.type) + '</code></div></div>' +
+        '<div><strong>Category:</strong><div>' + LQ.esc(q.category || 'normal') + '</div></div>' +
+      '</div>' +
+      optionsHtml +
+      '<div style="margin-top:16px;background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:8px;padding:12px">' +
+        '<span style="color:#166534;font-weight:700">✓ Correct Answer:</span> ' +
+        '<span style="font-weight:800;color:#14532d">' + LQ.esc(actualAnswer) + '</span>' +
+      '</div>' +
+      '<div style="margin-top:24px;text-align:right">' +
+        '<button type="button" class="admin-btn admin-btn-primary" onclick="LQ.closeAdminDrawer()">Close</button>' +
+      '</div>' +
+    '</div>';
+
+  LQ.openAdminDrawer('🔍 Practice Question Preview', html);
+};
+
 LQ._loadAdminPracticeQuestions = async function () {
   var tableWrap = document.getElementById('admin-pq-table-wrap');
   var pagWrap = document.getElementById('admin-pq-pagination-wrap');
@@ -5021,15 +5086,29 @@ LQ._loadAdminPracticeQuestions = async function () {
       var groupName = groupObj ? groupObj.title : q.groupId;
       var optionsStr = (q.options && q.options.length) ? q.options.filter(Boolean).join(' | ') : '—';
 
+      var actualAnswerStr = q.correctAnswer || '—';
+      if (q.options && q.options.length && q.correctAnswer) {
+        var answers = q.correctAnswer.split(",").map(s => s.trim());
+        var resolvedTexts = answers.map(ans => {
+          var idxOpt = getCorrectOptionIndex(ans, q.options);
+          return (idxOpt >= 0 && idxOpt < q.options.length) ? q.options[idxOpt] : ans;
+        });
+        actualAnswerStr = resolvedTexts.join(', ');
+      }
+
+      var qEncoded = encodeURIComponent(JSON.stringify(q));
+
       html +=
         '<tr>' +
           '<td>' + startIdx + '</td>' +
           '<td>' + LQ.esc(listName) + '</td>' +
           '<td>' + LQ.esc(groupName) + '</td>' +
           '<td><code>' + LQ.esc(q.type) + '</code></td>' +
-          '<td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + LQ.esc(q.title) + '"><strong>' + LQ.esc(q.title) + '</strong></td>' +
+          '<td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Click to Preview: ' + LQ.esc(q.title) + '">' +
+            '<a href="javascript:void(0)" onclick="LQ.previewPracticeQuestion(\'' + qEncoded + '\')" style="color:#2563eb;text-decoration:none;font-weight:700;cursor:pointer">' + LQ.esc(q.title) + '</a>' +
+          '</td>' +
           '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + LQ.esc(optionsStr) + '</td>' +
-          '<td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><code>' + LQ.esc(q.correctAnswer) + '</code></td>' +
+          '<td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><code>' + LQ.esc(actualAnswerStr) + '</code></td>' +
           '<td>' +
             '<button class="admin-btn admin-btn-outline admin-btn-sm" style="margin-right:6px" onclick="LQ.renderEditPracticeQuestionForm(\'' + q._id + '\')">Edit</button>' +
             '<button class="admin-btn admin-btn-danger admin-btn-sm" onclick="LQ._deletePracticeQuestion(\'' + q._id + '\')">Delete</button>' +
@@ -5236,8 +5315,8 @@ LQ._submitPracticeQuestion = async function (e, id) {
   var correctAnswer = '';
 
   if (type === 'mcq') {
-    var selectEl = document.getElementById('pq-form-correct-answer-select');
-    correctAnswer = selectEl ? selectEl.value : '';
+    var radioEl = document.querySelector('.pq-form-correct-radio:checked');
+    correctAnswer = radioEl ? radioEl.value : '';
     if (!correctAnswer) {
       if (errEl) { errEl.textContent = 'Please configure options and select a correct answer.'; errEl.style.display = 'block'; }
       return;
@@ -5393,27 +5472,24 @@ window.renderPqFormCorrectAnswerSelector = function () {
       var checkedAttr = correctList.includes(val) ? ' checked' : '';
       html += '<label style="display:flex;align-items:center;gap:8px;font-weight:normal;cursor:pointer;font-size:13px">' +
         '<input type="checkbox" class="pq-form-correct-chk" value="' + LQ.esc(val) + '"' + checkedAttr + ' onchange="LQ._pqFormPrevCorrect=Array.from(document.querySelectorAll(\'.pq-form-correct-chk:checked\')).map(c=>c.value).join(\', \')" style="cursor:pointer">' +
-        '<span>Option ' + String.fromCharCode(65 + idx) + ': ' + LQ.esc(val) + '</span>' +
+        '<span>Option ' + String.fromCharCode(65 + idx) + ': ' + LQ.esc(optText) + '</span>' +
         '</label>';
     });
     html += '</div>';
     container.innerHTML = html;
   } else {
-    var html = '<select id="pq-form-correct-answer-select" required class="admin-search-input" style="width:100%;box-sizing:border-box" onchange="LQ._pqFormPrevCorrect=this.value">';
+    var html = '<div style="display:flex;flex-direction:column;gap:6px;margin-top:6px">';
     LQ._pqFormOptions.forEach(function (optText, idx) {
       var val = optText.trim();
-      var displayLabel = val ? val : 'Option ' + String.fromCharCode(65 + idx);
-      var selectedAttr = val && val === prevVal ? ' selected' : '';
-      html += '<option value="' + LQ.esc(val) + '"' + selectedAttr + '>' + LQ.esc(displayLabel) + '</option>';
+      if (!val) return;
+      var checkedAttr = (val === prevVal) ? ' checked' : '';
+      html += '<label style="display:flex;align-items:center;gap:8px;font-weight:normal;cursor:pointer;font-size:13px">' +
+        '<input type="radio" name="pq-correct-radio" class="pq-form-correct-radio" value="' + LQ.esc(val) + '"' + checkedAttr + ' onchange="LQ._pqFormPrevCorrect=this.value" style="cursor:pointer">' +
+        '<span>Option ' + String.fromCharCode(65 + idx) + ': ' + LQ.esc(optText) + '</span>' +
+        '</label>';
     });
-    html += '</select>';
+    html += '</div>';
     container.innerHTML = html;
-    
-    // Set the saved value to select if it has option
-    var selectEl = document.getElementById('pq-form-correct-answer-select');
-    if (selectEl && prevVal) {
-      selectEl.value = prevVal;
-    }
   }
 };
 

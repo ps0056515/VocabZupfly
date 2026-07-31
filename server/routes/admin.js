@@ -2291,21 +2291,14 @@ router.post('/practice-questions/import', requireRole('admin', 'super_admin'), u
         });
         if (dup) throw new Error('Duplicate Question: A question with this title already exists');
 
-        // Parse option key and ignore bracket data, e.g. A (Agreement) -> Agreement
-        // Also support multiple answers like A, B -> mcq_multi
+        // Parse option key and ignore bracket data, e.g. D (anticipate) -> D
+        // Also support multiple answers like A (text), C (text) -> A, C
         var cleanAnswerParts = [];
         var rawAnswerParts = correctAnswer.split(/[,&]/).map(function(s) { return s.trim(); });
         for (var part of rawAnswerParts) {
-          var match = part.match(/^([A-Fa-f])(?:\b|\s*\(|$)/);
+          var match = part.match(/^([A-Fa-f0-9]+)/);
           if (match) {
-            var optLetter = match[1].toUpperCase();
-            var optIdx = optLetter.charCodeAt(0) - 65;
-            var optVal = opts[optIdx];
-            if (optVal) {
-              cleanAnswerParts.push(optVal);
-            } else {
-              cleanAnswerParts.push(part);
-            }
+            cleanAnswerParts.push(match[1].toUpperCase());
           } else {
             cleanAnswerParts.push(part);
           }

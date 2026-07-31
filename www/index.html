@@ -1545,8 +1545,14 @@ body.native-app .desktop-only-ui{display:none!important}
                 <span>⏱️ Q:</span>
                 <strong id="asm-question-timer" style="color:#f87171;">00:00</strong>
               </div>
+              <!-- Practice Timer (Overall) -->
+              <div id="asm-practice-timer-wrap" class="asm-timer-box" style="display:none;">
+                <span>⏱️ Time:</span>
+                <strong id="asm-practice-timer" style="color:#fbbf24;">00:00</strong>
+              </div>
             </div>
-            <div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <button type="button" id="asm-btn-prev-question" class="btn" onclick="LQ.navSessionQuestion(-1)" style="background:#475569;color:#fff;font-weight:600;padding:8px 16px;border-radius:8px;border:none;cursor:pointer;display:none;">← Prev</button>
               <button type="button" id="asm-btn-submit-question" class="btn" onclick="LQ.submitSessionQuestion()" style="background:#2563eb;color:#fff;font-weight:600;padding:8px 16px;border-radius:8px;border:none;cursor:pointer;">Submit Answer →</button>
             </div>
           </div>

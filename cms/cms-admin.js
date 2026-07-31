@@ -1619,12 +1619,17 @@
     $('tab-lists').appendChild(listsSaveBtn);
   }
 
-  api('/status')
-    .then(function () {
-      showApp(true);
-      loadContent();
-    })
-    .catch(function () {
-      showApp(false);
-    });
+  var userRole = sessionStorage.getItem("userRole") || localStorage.getItem("userRole") || "";
+  if (userRole === "student") {
+    window.location.href = "/";
+  } else {
+    api('/status')
+      .then(function () {
+        showApp(true);
+        loadContent();
+      })
+      .catch(function () {
+        showApp(false);
+      });
+  }
 })();

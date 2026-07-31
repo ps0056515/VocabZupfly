@@ -7,6 +7,7 @@ const AssessmentResult = require('../models/AssessmentResult');
 const Test = require('../models/Test');
 const { authenticate } = require('../middleware/auth');
 const { evaluateQuestion, evaluateTest } = require('../services/evaluationService');
+const { evaluateQuestion: evaluatePracticeQuestion } = require('../services/practiceEvaluationService');
 
 const router = express.Router();
 
@@ -287,16 +288,118 @@ router.post('/assessment/evaluate', async function (req, res) {
   }
 });
 
+/**
+ * POST /api/assessment/evaluate-practice — Perform server-side evaluation of student practice answers
+ */
+router.post('/assessment/evaluate-practice', async function (req, res) {
+  try {
+    const { questions, userAnswers } = req.body;
+    let correctCount = 0;
+    let wrongCount = 0;
+    const groupStats = {};
+    const evaluatedQuestions = [];
+
+    for (let idx = 0; idx < questions.length; idx++) {
+      const q = questions[idx];
+      const userAns = userAnswers[idx];
+
+      // Enrich question with actual correct answer from DB for absolute accuracy
+      if (q.dbId) {
+        try {
+          var dbQ = await PracticeQuestion.findById(q.dbId).lean();
+          if (dbQ) {
+            q.correctAnswer = dbQ.correctAnswer;
+            const resolveIdx = (correctAns, options) => {
+              if (!options || !options.length) return -1;
+              var str = (correctAns !== undefined && correctAns !== null) ? String(correctAns).trim() : '';
+              if (!str) return -1;
+              var directIdx = options.indexOf(str);
+              if (directIdx >= 0) return directIdx;
+              var cleanStr = str;
+              var match = str.match(/^([A-Za-z0-9]+)/);
+              if (match) cleanStr = match[1];
+              var upper = cleanStr.toUpperCase();
+              if (upper.length === 1 && upper >= 'A' && upper <= 'Z') {
+                var letterIdx = upper.charCodeAt(0) - 65;
+                if (letterIdx >= 0 && letterIdx < options.length) return letterIdx;
+              }
+              var numIdx = parseInt(cleanStr, 10);
+              if (!isNaN(numIdx) && numIdx >= 0 && numIdx < options.length) return numIdx;
+              return -1;
+            };
+
+            if (q.type === 'mcq') {
+              q.correctAnswerIndex = resolveIdx(dbQ.correctAnswer, q.options);
+            } else if (q.type === 'mcq_multi') {
+              var parts = (dbQ.correctAnswer || '').split(',').map(s => s.trim()).filter(Boolean);
+              q.correctAnswerIndices = parts.map(p => resolveIdx(p, q.options)).filter(i => i >= 0);
+            }
+          }
+        } catch (dbErr) {
+          console.error('[Student API] Db lookup error during practice evaluation:', dbErr);
+        }
+      }
+
+      const grpId = q.groupId || 'official';
+      const grpTitle = q.groupTitle || grpId;
+
+      if (!groupStats[grpId]) {
+        groupStats[grpId] = { groupId: grpId, groupTitle: grpTitle, total: 0, correct: 0, wrong: 0 };
+      }
+      groupStats[grpId].total++;
+
+      // Grade directly using the enriched structure
+      const result = evaluatePracticeQuestion(q, userAns);
+
+      q.userAnswer = userAns;
+      q.isCorrect = result.isCorrect;
+      q.earnedMarks = result.earnedMarks;
+      if (result.gradedSubQs) q.subQuestions = result.gradedSubQs;
+
+      if (result.isCorrect) {
+        correctCount++;
+        groupStats[grpId].correct++;
+      } else {
+        wrongCount++;
+        groupStats[grpId].wrong++;
+      }
+
+      evaluatedQuestions.push(q);
+    }
+
+    // Compute accuracy percentages
+    Object.keys(groupStats).forEach(function (gId) {
+      const g = groupStats[gId];
+      g.percentage = g.total > 0 ? Number(((g.correct / g.total) * 100).toFixed(2)) : 0;
+    });
+
+    const percentage = questions.length > 0 ? Number(((correctCount / questions.length) * 100).toFixed(2)) : 0;
+
+    res.json({
+      ok: true,
+      correctCount: correctCount,
+      wrongCount: wrongCount,
+      percentage: percentage,
+      groupStats: groupStats,
+      questions: evaluatedQuestions
+    });
+  } catch (err) {
+    console.error('[Student API] Practice Evaluation error:', err);
+    res.status(500).json({ error: 'Failed to evaluate practice assessment.' });
+  }
+});
+
 
 /**
  * GET /api/student/tests — Get the list of tests assigned to the student
  */
 router.get('/student/tests', async function (req, res) {
   try {
+    var userOrgId = req.user.orgId && /^[0-9a-fA-F]{24}$/.test(req.user.orgId) ? req.user.orgId : null;
     var conditions = [
       { isAssigned: true },
       { isDisabled: false },
-      { $or: [{ orgId: req.user.orgId }, { orgId: null }] }
+      { $or: [{ orgId: userOrgId }, { orgId: null }] }
     ];
 
     if (req.query.search) {
@@ -389,11 +492,15 @@ router.get('/student/tests', async function (req, res) {
  */
 router.get('/student/tests/:id', async function (req, res) {
   try {
+    if (!/^[0-9a-fA-F]{24}$/.test(req.params.id)) {
+      return res.status(404).json({ error: 'Test not found or not assigned.' });
+    }
+    var userOrgId = req.user.orgId && /^[0-9a-fA-F]{24}$/.test(req.user.orgId) ? req.user.orgId : null;
     var test = await Test.findOne({
       _id: req.params.id,
       isAssigned: true,
       isDisabled: false,
-      $or: [{ orgId: req.user.orgId }, { orgId: null }]
+      $or: [{ orgId: userOrgId }, { orgId: null }]
     })
     .select('-sections.questions.correctAnswer -sections.questions.correctAnswers -sections.questions.explanation')
     .lean();
@@ -413,11 +520,15 @@ router.get('/student/tests/:id', async function (req, res) {
  */
 router.post('/student/tests/:id/start', async function (req, res) {
   try {
+    if (!/^[0-9a-fA-F]{24}$/.test(req.params.id)) {
+      return res.status(404).json({ error: 'Test not found or not active.' });
+    }
+    var userOrgId = req.user.orgId && /^[0-9a-fA-F]{24}$/.test(req.user.orgId) ? req.user.orgId : null;
     var test = await Test.findOne({
       _id: req.params.id,
       isAssigned: true,
       isDisabled: false,
-      $or: [{ orgId: req.user.orgId }, { orgId: null }]
+      $or: [{ orgId: userOrgId }, { orgId: null }]
     }).lean();
 
     if (!test) return res.status(404).json({ error: 'Test not found or not active.' });

@@ -8,7 +8,8 @@
   justify-content: center;
   min-height: 100%;
   padding: 24px 16px;
-  background: linear-gradient(160deg, #1A1A2E 0%, #16213E 60%, #0F3460 100%);
+  background: radial-gradient(circle at center, rgba(15, 23, 42, 0.5) 0%, rgba(15, 23, 42, 0.85) 100%), url('vocab_login_background.png') no-repeat center center;
+  background-size: cover;
 }
 
 .login-card {

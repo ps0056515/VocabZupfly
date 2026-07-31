@@ -362,11 +362,12 @@ LQ.Auth = (function () {
 
     var response = await originalFetch(url, options);
 
-    // Intercept 401 Unauthorized for API routes (excluding login, logout & refresh-token)
+    // Intercept 401 Unauthorized for API routes (excluding login, logout, refresh-token, & CMS)
     if (
       response.status === 401 &&
       urlStr &&
       urlStr.indexOf('/api/') !== -1 &&
+      urlStr.indexOf('/api/cms') === -1 &&
       urlStr.indexOf('/api/auth/login') === -1 &&
       urlStr.indexOf('/api/auth/logout') === -1 &&
       urlStr.indexOf('/api/auth/refresh-token') === -1

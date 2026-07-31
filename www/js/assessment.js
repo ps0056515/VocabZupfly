@@ -1116,14 +1116,15 @@ window.LQ = window.LQ || {};
         let correctAnswerIndices = [];
         
         if (q.type === "mcq") {
-          correctAnswerIndex = q.options.indexOf(q.correctAnswer);
+          correctAnswerIndex = getCorrectOptionIndex(q.correctAnswer, q.options);
           if (correctAnswerIndex === -1) correctAnswerIndex = 0;
         } else if (q.type === "mcq_multi") {
           const answers = q.correctAnswer.split(",").map(s => s.trim());
-          correctAnswerIndices = answers.map(ans => q.options.indexOf(ans)).filter(i => i >= 0);
+          correctAnswerIndices = answers.map(ans => getCorrectOptionIndex(ans, q.options)).filter(i => i >= 0);
         }
 
         return {
+          ...q,
           id: "q_" + idx,
           dbId: q._id,
           groupId: q.groupId,
@@ -1133,7 +1134,7 @@ window.LQ = window.LQ || {};
           options: q.options && q.options.length ? q.options : null,
           correctAnswerIndex: correctAnswerIndex,
           correctAnswerIndices: correctAnswerIndices,
-          correctAnswers: q.type === "fib" ? [q.correctAnswer] : null,
+          correctAnswers: q.type === "fib" ? (q.correctAnswers || [q.correctAnswer]) : null,
           correctAnswerText: q.type === "fib" ? q.correctAnswer : "",
           userAnswerIndex: null,
           userTextAnswer: "",
@@ -1256,6 +1257,8 @@ window.LQ = window.LQ || {};
       } catch (e) {}
     }
 
+    LQ.clearTestProctoring(); // Make sure any previous proctoring state is cleared
+
     activeSession = {
       assessment: item,
       currentIndex: timerRecord.currentIndex || 0,
@@ -1296,9 +1299,16 @@ window.LQ = window.LQ || {};
       const qTimerEl = document.getElementById("asm-question-timer");
       const sTimerEl = document.getElementById("asm-section-timer");
       const legacyTimerEl = document.getElementById("asm-session-timer");
+      const qTimerWrap = document.getElementById("asm-question-timer-wrap");
+      const sTimerWrap = document.getElementById("asm-section-timer-wrap");
+      const practiceTimerWrap = document.getElementById("asm-practice-timer-wrap");
+      const practiceTimerEl = document.getElementById("asm-practice-timer");
 
       if (activeSession.isOfficial) {
-        // Hide legacy timer wrapper
+        // Show official timers, hide practice timer
+        if (qTimerWrap) qTimerWrap.style.display = "inline-flex";
+        if (sTimerWrap) sTimerWrap.style.display = "inline-flex";
+        if (practiceTimerWrap) practiceTimerWrap.style.display = "none";
         if (legacyTimerEl) legacyTimerEl.style.display = "none";
 
         // 1. Question Countdown
@@ -1336,9 +1346,18 @@ window.LQ = window.LQ || {};
         }
 
       } else {
-        // Fallback for custom IndexDB practice tests (Total Session Timer)
+        // Practice Mode
+        // Hide official timers
+        if (qTimerWrap) qTimerWrap.style.display = "none";
+        if (sTimerWrap) sTimerWrap.style.display = "none";
+        if (legacyTimerEl) legacyTimerEl.style.display = "none";
+
+        if (!activeSession.durationSeconds && activeSession.assessment && activeSession.assessment.durationMinutes) {
+          activeSession.durationSeconds = activeSession.assessment.durationMinutes * 60;
+        }
+
         if (!activeSession.durationSeconds) {
-          if (legacyTimerEl) legacyTimerEl.style.display = "none";
+          if (practiceTimerWrap) practiceTimerWrap.style.display = "none";
           return;
         }
 
@@ -1351,21 +1370,22 @@ window.LQ = window.LQ || {};
             clearInterval(LQ._asmTimerId);
             LQ._asmTimerId = null;
           }
-          if (legacyTimerEl) {
-            legacyTimerEl.innerHTML = "⏱️ 0:00";
-            legacyTimerEl.style.background = "#fee2e2";
-            legacyTimerEl.style.color = "#dc2626";
+          if (practiceTimerEl) {
+            practiceTimerEl.textContent = "0:00";
+            practiceTimerEl.style.color = "#ef4444";
           }
-          LQ.toast("⏱️ Time is up! Auto-submitting test...", true);
+          LQ.toast("⏱️ Time is up! Auto-submitting practice...", true);
           LQ.submitAssessmentSession();
           return;
         }
 
         const m = Math.floor(rem / 60);
         const s = rem % 60;
-        if (legacyTimerEl) {
-          legacyTimerEl.style.display = "inline-flex";
-          legacyTimerEl.innerHTML = "⏱️ " + m + ":" + (s < 10 ? "0" : "") + s;
+        if (practiceTimerWrap) {
+          practiceTimerWrap.style.display = "inline-flex";
+        }
+        if (practiceTimerEl) {
+          practiceTimerEl.textContent = `${m}:${s < 10 ? "0" : ""}${s}`;
         }
       }
     }
@@ -1401,12 +1421,19 @@ window.LQ = window.LQ || {};
     if (!str) return -1;
     var directIdx = options.indexOf(str);
     if (directIdx >= 0) return directIdx;
-    var upper = str.toUpperCase();
+    
+    var cleanStr = str;
+    var match = str.match(/^([A-Za-z0-9]+)/);
+    if (match) {
+      cleanStr = match[1];
+    }
+
+    var upper = cleanStr.toUpperCase();
     if (upper.length === 1 && upper >= 'A' && upper <= 'Z') {
       var letterIdx = upper.charCodeAt(0) - 65;
       if (letterIdx >= 0 && letterIdx < options.length) return letterIdx;
     }
-    var numIdx = parseInt(str, 10);
+    var numIdx = parseInt(cleanStr, 10);
     if (!isNaN(numIdx) && numIdx >= 0 && numIdx < options.length) return numIdx;
     return -1;
   }
@@ -1523,7 +1550,44 @@ window.LQ = window.LQ || {};
     // Track attempts / question progression
     const attemptedCount = Object.keys(activeSession.userAnswers || {}).length;
     if (trackerEl) {
-      trackerEl.textContent = `Section ${(q.sectionIndex || 0) + 1} · Q${idx + 1}/${asm.totalQuestions} · Attempted ${attemptedCount}/${asm.totalQuestions}`;
+      if (activeSession.isOfficial) {
+        trackerEl.textContent = `Section ${(q.sectionIndex || 0) + 1} · Q${idx + 1}/${asm.totalQuestions} · Attempted ${attemptedCount}/${asm.totalQuestions}`;
+      } else {
+        trackerEl.textContent = `Q${idx + 1}/${asm.totalQuestions} · Attempted ${attemptedCount}/${asm.totalQuestions}`;
+      }
+    }
+
+    // Configure Navigation Buttons (Prev / Next / Finish)
+    const prevBtn = document.getElementById("asm-btn-prev-question");
+    const submitBtn = document.getElementById("asm-btn-submit-question");
+
+    if (activeSession.isOfficial) {
+      if (prevBtn) prevBtn.style.display = "none";
+      if (submitBtn) {
+        submitBtn.onclick = function() { LQ.submitSessionQuestion(); };
+        if (idx === asm.totalQuestions - 1) {
+          submitBtn.textContent = "Finish Test →";
+        } else {
+          submitBtn.textContent = "Submit Answer →";
+        }
+      }
+    } else {
+      if (prevBtn) {
+        if (idx > 0) {
+          prevBtn.style.display = "inline-block";
+        } else {
+          prevBtn.style.display = "none";
+        }
+      }
+      if (submitBtn) {
+        if (idx === asm.totalQuestions - 1) {
+          submitBtn.textContent = "Finish Practice";
+          submitBtn.onclick = function() { LQ.navSessionQuestion(1); };
+        } else {
+          submitBtn.textContent = "Next →";
+          submitBtn.onclick = function() { LQ.navSessionQuestion(1); };
+        }
+      }
     }
 
     // Initialize/reset question timer
@@ -1994,7 +2058,7 @@ window.LQ = window.LQ || {};
     let evaluatedQuestions = asm.questions;
 
     try {
-      const evalResp = await fetch("/api/assessment/evaluate", {
+      const evalResp = await fetch("/api/assessment/evaluate-practice", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -2072,14 +2136,14 @@ window.LQ = window.LQ || {};
     }
 
     await LQ.AssessmentDB.saveAssessment(asm);
+    const asmId = asm.id;
     await cleanupTempMediaSession(asmId);
     LQ.toast("Assessment submitted & evaluated!", true);
 
-    const asmId = asm.id;
     LQ._lastSubmittedResult = {
       id: asmId,
-      showResult: (activeSession && activeSession.assessment) ? activeSession.assessment.showResult : true,
-      showAnswer: (activeSession && activeSession.assessment) ? activeSession.assessment.showAnswer : false,
+      showResult: (activeSession && activeSession.assessment && activeSession.assessment.showResult !== undefined) ? activeSession.assessment.showResult : true,
+      showAnswer: (activeSession && activeSession.assessment && activeSession.assessment.showAnswer !== undefined) ? activeSession.assessment.showAnswer : (!activeSession.isOfficial),
       asm: asm
     };
 
@@ -2106,12 +2170,19 @@ window.LQ = window.LQ || {};
     if (!str) return -1;
     var directIdx = options.indexOf(str);
     if (directIdx >= 0) return directIdx;
-    var upper = str.toUpperCase();
+    
+    var cleanStr = str;
+    var match = str.match(/^([A-Za-z0-9]+)/);
+    if (match) {
+      cleanStr = match[1];
+    }
+
+    var upper = cleanStr.toUpperCase();
     if (upper.length === 1 && upper >= 'A' && upper <= 'Z') {
       var letterIdx = upper.charCodeAt(0) - 65;
       if (letterIdx >= 0 && letterIdx < options.length) return letterIdx;
     }
-    var numIdx = parseInt(str, 10);
+    var numIdx = parseInt(cleanStr, 10);
     if (!isNaN(numIdx) && numIdx >= 0 && numIdx < options.length) return numIdx;
     return -1;
   }
@@ -2230,12 +2301,13 @@ window.LQ = window.LQ || {};
       const showAnswer = last.showAnswer !== undefined ? last.showAnswer : false;
 
       if (!showResult) {
-        testResult = { ok: true, showResult: false, showAnswer: false };
+        testResult = { ok: true, showResult: false, showAnswer: false, title: last.asm.title || last.asm.name };
       } else {
         testResult = {
           ok: true,
           showResult: showResult,
           showAnswer: showAnswer,
+          title: last.asm.title || last.asm.name,
           percentage: last.asm.percentage,
           correctCount: last.asm.correctCount,
           wrongCount: last.asm.wrongCount,
@@ -2254,7 +2326,7 @@ window.LQ = window.LQ || {};
       // 2A: showResult is FALSE -> 0 API calls needed
       if (testCard && cardShowResult === false) {
         isOfficialResult = true;
-        testResult = { ok: true, showResult: false, showAnswer: false };
+        testResult = { ok: true, showResult: false, showAnswer: false, title: testCard.title || testCard.name };
       } 
       // 2B & 2C: showResult is TRUE -> Fetch complete test data API & student session API
       else {
@@ -2281,6 +2353,7 @@ window.LQ = window.LQ || {};
                 ok: true,
                 showResult: testDef.showResult,
                 showAnswer: testDef.showAnswer,
+                title: testDef.title || testDef.name || (testCard ? (testCard.title || testCard.name) : ""),
                 passPercentage: testDef.passPercentage !== undefined ? testDef.passPercentage : (testCard ? testCard.passPercentage : 30),
                 percentage: sessionData.attempt.percentage,
                 correctCount: sessionData.attempt.correctCount,
@@ -2307,7 +2380,7 @@ window.LQ = window.LQ || {};
     }
 
     if (isOfficialResult && testResult) {
-      if (titleEl) titleEl.textContent = "Test Results";
+      if (titleEl) titleEl.textContent = (testResult.title || "Test") + " — Results";
       
       const summaryCardEl = document.querySelector(".asm-res-summary-card");
 
@@ -2668,14 +2741,33 @@ window.LQ = window.LQ || {};
             if (qTypeLower === 'passage' || (q.subQuestions && q.subQuestions.length > 0)) {
               ansStr = renderPassageSubQuestionsResultHtml(q, i, true);
             } else if (q.options && q.options.length) {
-              const userOpt =
-                q.userAnswer !== undefined && q.userAnswer !== null
-                  ? q.options[q.userAnswer]
-                  : "Not answered";
-              const correctOpt =
-                q.correctAnswerIndex !== null
-                  ? q.options[q.correctAnswerIndex]
-                  : "—";
+              let userOpt = "Not answered";
+              if (q.userAnswer !== undefined && q.userAnswer !== null) {
+                const userAnswersArray = Array.isArray(q.userAnswer)
+                  ? q.userAnswer
+                  : String(q.userAnswer).split(',').map(s => s.trim()).filter(Boolean);
+                const resolvedUserOpts = userAnswersArray.map(ans => {
+                  let idx = typeof ans === 'number' ? ans : getCorrectOptionIndex(ans, q.options);
+                  return (idx >= 0 && idx < q.options.length) ? q.options[idx] : ans;
+                });
+                if (resolvedUserOpts.length > 0) {
+                  userOpt = resolvedUserOpts.join(', ');
+                }
+              }
+
+              let correctOpt = "—";
+              const correctAnswersArray = Array.isArray(q.correctAnswerIndices) && q.correctAnswerIndices.length > 0
+                ? q.correctAnswerIndices
+                : (q.correctAnswer ? String(q.correctAnswer).split(',').map(s => s.trim()).filter(Boolean) : []);
+              const resolvedCorrectOpts = correctAnswersArray.map(ans => {
+                let idx = typeof ans === 'number' ? ans : getCorrectOptionIndex(ans, q.options);
+                return (idx >= 0 && idx < q.options.length) ? q.options[idx] : ans;
+              });
+              if (resolvedCorrectOpts.length > 0) {
+                correctOpt = resolvedCorrectOpts.join(', ');
+              } else if (q.correctAnswerIndex !== null && q.correctAnswerIndex !== undefined && q.options[q.correctAnswerIndex]) {
+                correctOpt = q.options[q.correctAnswerIndex];
+              }
               ansStr =
                 '<p class="asm-res-ans"><strong>Your choice:</strong> ' +
                 LQ.esc(userOpt) +
@@ -3195,6 +3287,68 @@ window.LQ = window.LQ || {};
     }
   };
 
+  LQ.navSessionQuestion = async function (direction) {
+    if (!activeSession) return;
+    if (LQ._submittingQuestion) return;
+    LQ._submittingQuestion = true;
+
+    // Stop recording if active
+    if (isRecordingAudio && speechRecognitionObj) {
+      try { speechRecognitionObj.stop(); } catch(e) {}
+      isRecordingAudio = false;
+    }
+
+    LQ.showLoader();
+    const idx = activeSession.currentIndex;
+    const asm = activeSession.assessment;
+    const q = asm.questions[idx];
+
+    // 1. Gather answer from inputs
+    const textInp = document.getElementById("asm-text-ans");
+    if (textInp && q.type !== 'fill_blank' && q.type !== 'fib' && q.type !== 'passage') {
+      activeSession.userAnswers[idx] = textInp.value;
+    }
+
+    // 2. Save progress to IndexedDB
+    try {
+      if (LQ.AssessmentDB && LQ.AssessmentDB.saveAttempt) {
+        await LQ.AssessmentDB.saveAttempt({
+          id: asm.id,
+          testId: asm.id,
+          startTimeMs: activeSession.startTimeMs,
+          durationSeconds: activeSession.durationSeconds,
+          userAnswers: activeSession.userAnswers,
+          currentIndex: idx,
+          status: 'in_progress'
+        });
+      }
+    } catch (err) {
+      console.warn("Failed to sync progress on navigation", err);
+    }
+
+    // 3. Move index
+    const targetIdx = idx + direction;
+    try {
+      if (targetIdx >= 0 && targetIdx < asm.totalQuestions) {
+        if (LQ._asmTimerId) {
+          clearInterval(LQ._asmTimerId);
+          LQ._asmTimerId = null;
+        }
+        activeSession.currentIndex = targetIdx;
+        LQ.renderSessionQuestion();
+        LQ.startSessionTimer();
+      } else if (targetIdx === asm.totalQuestions) {
+        // Last question finish submit
+        await LQ.submitAssessmentSession();
+      }
+    } catch (err) {
+      console.error("Navigation failed:", err);
+    } finally {
+      LQ.hideLoader();
+      LQ._submittingQuestion = false;
+    }
+  };
+
   LQ.resetAssessmentState = function () {
     activeSession = null;
     if (LQ._asmTimerId) {
@@ -3263,59 +3417,109 @@ window.LQ = window.LQ || {};
     const asm = activeSession.assessment;
     const currentQIdx = activeSession.currentIndex;
     const currentQ = asm.questions[currentQIdx];
-    const currentSecIdx = currentQ ? currentQ.sectionIndex : 0;
 
     const sidebar = document.getElementById("asm-tracker-sidebar");
     if (!sidebar) return;
 
-    // Group questions by sectionIndex
-    const sectionsMap = {};
-    (asm.questions || []).forEach((q, qIdx) => {
-      const secIdx = q.sectionIndex !== undefined ? q.sectionIndex : 0;
-      const secName = q.groupTitle || `Section ${secIdx + 1}`;
-      if (!sectionsMap[secIdx]) {
-        sectionsMap[secIdx] = {
-          name: secName,
-          questions: [],
-          answeredCount: 0
-        };
-      }
-      const isAnswered = activeSession.userAnswers[qIdx] !== undefined && activeSession.userAnswers[qIdx] !== null && activeSession.userAnswers[qIdx] !== "";
-      sectionsMap[secIdx].questions.push({
-        index: qIdx,
-        isAnswered: isAnswered,
-        isActive: qIdx === currentQIdx
-      });
-      if (isAnswered) {
-        sectionsMap[secIdx].answeredCount++;
-      }
-    });
-
-    const sections = Object.keys(sectionsMap).sort((a, b) => Number(a) - Number(b));
-
     let html = `
       <h3 style="margin-top:0;font-size:15px;color:#1e3a8a;border-bottom:2px solid #e2e8f0;padding-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
-        <span>📋 Test Navigator</span>
+        <span>📋 ${activeSession.isOfficial ? "Test Navigator" : (asm.title || "Practice Navigator")}</span>
         <button type="button" onclick="LQ.toggleAsmSidebar()" style="background:none;border:none;color:#64748b;font-size:16px;cursor:pointer;">✕</button>
       </h3>
       <div style="display:flex;flex-direction:column;gap:16px;margin-top:12px;">
     `;
 
-    sections.forEach(secIdx => {
-      const sec = sectionsMap[secIdx];
-      const isActiveSection = Number(secIdx) === currentSecIdx;
-      const secStyle = isActiveSection ? 'background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px;' : 'padding:4px;';
-      
+    if (activeSession.isOfficial) {
+      const currentSecIdx = currentQ ? currentQ.sectionIndex : 0;
+      // Group questions by sectionIndex
+      const sectionsMap = {};
+      (asm.questions || []).forEach((q, qIdx) => {
+        const secIdx = q.sectionIndex !== undefined ? q.sectionIndex : 0;
+        const secName = q.groupTitle || `Section ${secIdx + 1}`;
+        if (!sectionsMap[secIdx]) {
+          sectionsMap[secIdx] = {
+            name: secName,
+            questions: [],
+            answeredCount: 0
+          };
+        }
+        const isAnswered = activeSession.userAnswers[qIdx] !== undefined && activeSession.userAnswers[qIdx] !== null && activeSession.userAnswers[qIdx] !== "";
+        sectionsMap[secIdx].questions.push({
+          index: qIdx,
+          isAnswered: isAnswered,
+          isActive: qIdx === currentQIdx
+        });
+        if (isAnswered) {
+          sectionsMap[secIdx].answeredCount++;
+        }
+      });
+
+      const sections = Object.keys(sectionsMap).sort((a, b) => Number(a) - Number(b));
+
+      sections.forEach(secIdx => {
+        const sec = sectionsMap[secIdx];
+        const isActiveSection = Number(secIdx) === currentSecIdx;
+        const secStyle = isActiveSection ? 'background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px;' : 'padding:4px;';
+        
+        html += `
+          <div style="${secStyle}">
+            <div style="font-weight:700;font-size:13px;display:flex;justify-content:space-between;color:${isActiveSection ? '#1e40af' : '#475569'};">
+              <span>${LQ.esc(sec.name)}</span>
+              <span style="font-size:11px;font-weight:600;background:#e2e8f0;padding:2px 6px;border-radius:4px;color:#334155;">${sec.answeredCount}/${sec.questions.length} Ans</span>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">
+        `;
+
+        sec.questions.forEach(qItem => {
+          let bg = "#f1f5f9";
+          let color = "#475569";
+          let border = "1px solid #cbd5e1";
+
+          if (qItem.isActive) {
+            bg = "#2563eb";
+            color = "#ffffff";
+            border = "1px solid #2563eb";
+          } else if (qItem.isAnswered) {
+            bg = "#dcfce7";
+            color = "#15803d";
+            border = "1px solid #bbf7d0";
+          }
+
+          html += `
+            <div style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:${bg};color:${color};border:${border};cursor:default;" title="Question ${qItem.index + 1}">
+              ${qItem.index + 1}
+            </div>
+          `;
+        });
+
+        html += `
+            </div>
+          </div>
+        `;
+      });
+    } else {
+      // Practice Mode: flat question display (no sections)
+      let answeredCount = 0;
+      const questionsList = (asm.questions || []).map((q, qIdx) => {
+        const isAnswered = activeSession.userAnswers[qIdx] !== undefined && activeSession.userAnswers[qIdx] !== null && activeSession.userAnswers[qIdx] !== "";
+        if (isAnswered) answeredCount++;
+        return {
+          index: qIdx,
+          isAnswered: isAnswered,
+          isActive: qIdx === currentQIdx
+        };
+      });
+
       html += `
-        <div style="${secStyle}">
-          <div style="font-weight:700;font-size:13px;display:flex;justify-content:space-between;color:${isActiveSection ? '#1e40af' : '#475569'};">
-            <span>${LQ.esc(sec.name)}</span>
-            <span style="font-size:11px;font-weight:600;background:#e2e8f0;padding:2px 6px;border-radius:4px;color:#334155;">${sec.answeredCount}/${sec.questions.length} Ans</span>
+        <div style="padding:4px;">
+          <div style="font-weight:700;font-size:13px;display:flex;justify-content:space-between;color:#1e40af;">
+            <span>Questions</span>
+            <span style="font-size:11px;font-weight:600;background:#e2e8f0;padding:2px 6px;border-radius:4px;color:#334155;">${answeredCount}/${questionsList.length} Ans</span>
           </div>
           <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">
       `;
 
-      sec.questions.forEach(qItem => {
+      questionsList.forEach(qItem => {
         let bg = "#f1f5f9";
         let color = "#475569";
         let border = "1px solid #cbd5e1";
@@ -3341,7 +3545,7 @@ window.LQ = window.LQ || {};
           </div>
         </div>
       `;
-    });
+    }
 
     html += `</div>`;
     sidebar.innerHTML = html;
