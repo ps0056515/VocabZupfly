@@ -5183,13 +5183,14 @@ LQ.renderAddPracticeQuestionForm = function () {
           '<option value="listening">Listening</option>' +
         '</select>' +
       '</div>' +
-      '<div class="admin-form-field">' +
-        '<label for="pq-form-type">Question Type <span class="req">*</span></label>' +
-        '<select id="pq-form-type" class="admin-search-input" style="width:100%;box-sizing:border-box" onchange="window.togglePqFormTypeView()" required>' +
-          '<option value="mcq">MCQ (Single Correct)</option>' +
-          '<option value="mcq_multi">MCQ (Multiple Correct)</option>' +
-          '<option value="fib">Fill in the Blanks</option>' +
-        '</select>' +
+      '<div class="admin-form-field" style="margin-bottom:20px">' +
+        '<label>Question Type <span class="req">*</span></label>' +
+        '<div class="pq-type-toggle-group" style="display:flex;gap:4px;margin-top:6px;width:100%;box-sizing:border-box;background:#f1f5f9;padding:4px;border-radius:10px;border:none">' +
+          '<button type="button" class="pq-type-btn" data-value="mcq" onclick="window.setPqFormType(\'mcq\')" style="flex:1;text-align:center;padding:8px 4px;font-size:12px;font-weight:600;transition:all 0.2s;border:none;border-radius:8px;background:transparent;color:#64748b;cursor:pointer">Single Select MCQ</button>' +
+          '<button type="button" class="pq-type-btn" data-value="mcq_multi" onclick="window.setPqFormType(\'mcq_multi\')" style="flex:1;text-align:center;padding:8px 4px;font-size:12px;font-weight:600;transition:all 0.2s;border:none;border-radius:8px;background:transparent;color:#64748b;cursor:pointer">Multi Select MCQ</button>' +
+          '<button type="button" class="pq-type-btn" data-value="fib" onclick="window.setPqFormType(\'fib\')" style="flex:1;text-align:center;padding:8px 4px;font-size:12px;font-weight:600;transition:all 0.2s;border:none;border-radius:8px;background:transparent;color:#64748b;cursor:pointer">Fill in Blank</button>' +
+        '</div>' +
+        '<input type="hidden" id="pq-form-type" value="mcq">' +
       '</div>' +
       '<div class="admin-form-field">' +
         '<label for="pq-form-title">Question Prompt (Text) <span class="req">*</span></label>' +
@@ -5197,13 +5198,13 @@ LQ.renderAddPracticeQuestionForm = function () {
       '</div>' +
       
       '<div id="pq-options-section" style="margin-top:16px">' +
-        '<label style="font-weight:600;margin-bottom:8px;display:block">MCQ Options (Provide at least 4 options)</label>' +
+        '<label style="font-weight:600;margin-bottom:8px;display:block">MCQ Options (Select the correct radio/checkbox on the left)</label>' +
         '<div id="pq-options-container"></div>' +
         '<button type="button" id="btn-add-pq-option" class="admin-btn admin-btn-outline admin-btn-sm" style="margin-top:8px" onclick="window.addPqFormOption()">+ Add Option</button>' +
       '</div>' +
 
-      '<div class="admin-form-field" style="margin-top:16px">' +
-        '<label id="pq-correct-answer-label">Correct Option</label>' +
+      '<div id="pq-correct-answer-section" class="admin-form-field" style="margin-top:16px">' +
+        '<label id="pq-correct-answer-label" style="font-weight:600;margin-bottom:8px;display:block">Correct Answer Text</label>' +
         '<div id="pq-correct-answer-container"></div>' +
       '</div>' +
 
@@ -5218,7 +5219,7 @@ LQ.renderAddPracticeQuestionForm = function () {
 
   setTimeout(function () {
     window.populatePqFormGroups();
-    window.togglePqFormTypeView();
+    window.setPqFormType('mcq');
   }, 100);
 };
 
@@ -5258,13 +5259,14 @@ LQ.renderEditPracticeQuestionForm = async function (id) {
             '<option value="listening"' + (q.category === 'listening' ? ' selected' : '') + '>Listening</option>' +
           '</select>' +
         '</div>' +
-        '<div class="admin-form-field">' +
-          '<label for="pq-form-type">Question Type <span class="req">*</span></label>' +
-          '<select id="pq-form-type" class="admin-search-input" style="width:100%;box-sizing:border-box" onchange="window.togglePqFormTypeView()" required>' +
-            '<option value="mcq"' + (q.type === 'mcq' ? ' selected' : '') + '>MCQ (Single Correct)</option>' +
-            '<option value="mcq_multi"' + (q.type === 'mcq_multi' ? ' selected' : '') + '>MCQ (Multiple Correct)</option>' +
-            '<option value="fib"' + (q.type === 'fib' ? ' selected' : '') + '>Fill in the Blanks</option>' +
-          '</select>' +
+        '<div class="admin-form-field" style="margin-bottom:20px">' +
+          '<label>Question Type <span class="req">*</span></label>' +
+          '<div class="pq-type-toggle-group" style="display:flex;gap:4px;margin-top:6px;width:100%;box-sizing:border-box;background:#f1f5f9;padding:4px;border-radius:10px;border:none">' +
+            '<button type="button" class="pq-type-btn" data-value="mcq" onclick="window.setPqFormType(\'mcq\')" style="flex:1;text-align:center;padding:8px 4px;font-size:12px;font-weight:600;transition:all 0.2s;border:none;border-radius:8px;background:transparent;color:#64748b;cursor:pointer">Single Select MCQ</button>' +
+            '<button type="button" class="pq-type-btn" data-value="mcq_multi" onclick="window.setPqFormType(\'mcq_multi\')" style="flex:1;text-align:center;padding:8px 4px;font-size:12px;font-weight:600;transition:all 0.2s;border:none;border-radius:8px;background:transparent;color:#64748b;cursor:pointer">Multi Select MCQ</button>' +
+            '<button type="button" class="pq-type-btn" data-value="fib" onclick="window.setPqFormType(\'fib\')" style="flex:1;text-align:center;padding:8px 4px;font-size:12px;font-weight:600;transition:all 0.2s;border:none;border-radius:8px;background:transparent;color:#64748b;cursor:pointer">Fill in Blank</button>' +
+          '</div>' +
+          '<input type="hidden" id="pq-form-type" value="' + q.type + '">' +
         '</div>' +
         '<div class="admin-form-field">' +
           '<label for="pq-form-title">Question Prompt (Text) <span class="req">*</span></label>' +
@@ -5272,13 +5274,13 @@ LQ.renderEditPracticeQuestionForm = async function (id) {
         '</div>' +
         
         '<div id="pq-options-section" style="margin-top:16px">' +
-          '<label style="font-weight:600;margin-bottom:8px;display:block">MCQ Options (Provide at least 4 options)</label>' +
+          '<label style="font-weight:600;margin-bottom:8px;display:block">MCQ Options (Select the correct radio/checkbox on the left)</label>' +
           '<div id="pq-options-container"></div>' +
           '<button type="button" id="btn-add-pq-option" class="admin-btn admin-btn-outline admin-btn-sm" style="margin-top:8px" onclick="window.addPqFormOption()">+ Add Option</button>' +
         '</div>' +
 
-        '<div class="admin-form-field" style="margin-top:16px">' +
-          '<label id="pq-correct-answer-label">Correct Option</label>' +
+        '<div id="pq-correct-answer-section" class="admin-form-field" style="margin-top:16px">' +
+          '<label id="pq-correct-answer-label" style="font-weight:600;margin-bottom:8px;display:block">Correct Answer Text</label>' +
           '<div id="pq-correct-answer-container"></div>' +
         '</div>' +
 
@@ -5297,7 +5299,7 @@ LQ.renderEditPracticeQuestionForm = async function (id) {
       var selectedVal = groupSelect ? groupSelect.getAttribute('data-selected') : '';
       if (groupSelect && selectedVal) groupSelect.value = selectedVal;
 
-      window.togglePqFormTypeView();
+      window.setPqFormType(q.type);
     }, 100);
   } catch (err) {
     LQ.toast('Failed to load edit form');
@@ -5315,17 +5317,17 @@ LQ._submitPracticeQuestion = async function (e, id) {
   var correctAnswer = '';
 
   if (type === 'mcq') {
-    var radioEl = document.querySelector('.pq-form-correct-radio:checked');
+    var radioEl = document.querySelector('.pq-form-correct-choice:checked');
     correctAnswer = radioEl ? radioEl.value : '';
     if (!correctAnswer) {
-      if (errEl) { errEl.textContent = 'Please configure options and select a correct answer.'; errEl.style.display = 'block'; }
+      if (errEl) { errEl.textContent = 'Please select a correct option on the left.'; errEl.style.display = 'block'; }
       return;
     }
   } else if (type === 'mcq_multi') {
-    var chks = document.querySelectorAll('.pq-form-correct-chk:checked');
+    var chks = document.querySelectorAll('.pq-form-correct-choice:checked');
     var correctList = Array.from(chks).map(c => c.value);
     if (!correctList.length) {
-      if (errEl) { errEl.textContent = 'Please select at least one correct choice.'; errEl.style.display = 'block'; }
+      if (errEl) { errEl.textContent = 'Please select at least one correct option on the left.'; errEl.style.display = 'block'; }
       return;
     }
     correctAnswer = correctList.join(', ');
@@ -5419,6 +5421,25 @@ LQ._populatePqFilterGroups = function () {
   }).join('');
 };
 
+window.setPqFormType = function (val) {
+  var hiddenInput = document.getElementById('pq-form-type');
+  if (hiddenInput) hiddenInput.value = val;
+  document.querySelectorAll('.pq-type-btn').forEach(function (btn) {
+    if (btn.getAttribute('data-value') === val) {
+      btn.style.background = '#2563eb';
+      btn.style.color = '#ffffff';
+      btn.style.boxShadow = '0 2px 6px rgba(37,99,235,0.25)';
+      btn.style.borderColor = '#2563eb';
+    } else {
+      btn.style.background = 'transparent';
+      btn.style.color = '#64748b';
+      btn.style.boxShadow = 'none';
+      btn.style.borderColor = 'transparent';
+    }
+  });
+  window.togglePqFormTypeView();
+};
+
 window.addPqFormOption = function () {
   if (LQ._pqFormOptions.length >= 6) return;
   LQ._pqFormOptions.push('');
@@ -5433,19 +5454,51 @@ window.removePqFormOption = function (idx) {
 
 window.updatePqFormOptionText = function (idx, val) {
   LQ._pqFormOptions[idx] = val;
-  window.renderPqFormCorrectAnswerSelector();
+};
+
+window.updatePqFormCorrectChoiceState = function () {
+  var type = document.getElementById('pq-form-type').value;
+  if (type === 'mcq_multi') {
+    var chks = document.querySelectorAll('.pq-form-correct-choice:checked');
+    LQ._pqFormPrevCorrect = Array.from(chks).map(c => c.value).join(', ');
+  } else {
+    var radio = document.querySelector('.pq-form-correct-choice:checked');
+    LQ._pqFormPrevCorrect = radio ? radio.value : '';
+  }
+  window.renderPqFormOptions();
 };
 
 window.renderPqFormOptions = function () {
   var container = document.getElementById('pq-options-container');
   if (!container) return;
+  var type = document.getElementById('pq-form-type').value;
+  var prevVal = LQ._pqFormPrevCorrect || '';
+  var correctList = prevVal.split(',').map(s => s.trim());
+
   container.innerHTML = LQ._pqFormOptions.map(function (val, idx) {
+    var letter = String.fromCharCode(65 + idx); // A, B, C, D, E, F
+    var isChecked = false;
+    if (type === 'mcq_multi') {
+      isChecked = correctList.includes(letter);
+    } else {
+      isChecked = (letter === prevVal);
+    }
+    var checkedAttr = isChecked ? ' checked' : '';
+
+    var inputType = type === 'mcq_multi' ? 'checkbox' : 'radio';
+    var inputName = type === 'mcq_multi' ? 'pq-correct-chk' : 'pq-correct-radio';
+
     var removeBtn = LQ._pqFormOptions.length > 4 
-      ? '<button type="button" class="admin-btn admin-btn-danger admin-btn-sm" style="padding:4px 8px;margin-left:8px" onclick="window.removePqFormOption(' + idx + ')">✕</button>'
+      ? '<button type="button" class="admin-btn admin-btn-danger admin-btn-sm" style="padding:6px 10px;margin-left:8px;border-radius:8px;font-weight:700" onclick="window.removePqFormOption(' + idx + ')">✕</button>'
       : '';
-    return '<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">' +
-      '<span style="font-weight:600;width:20px;font-size:12px">' + String.fromCharCode(65 + idx) + '</span>' +
-      '<input type="text" class="admin-search-input" style="flex:1" value="' + LQ.esc(val) + '" placeholder="Option ' + (idx + 1) + '" required oninput="window.updatePqFormOptionText(' + idx + ', this.value)">' +
+
+    var activeBgStyle = isChecked ? 'background:#f0fdf4;border-color:#bbf7d0;' : 'background:#ffffff;border-color:#e2e8f0;';
+    var inputHtml = '<input type="' + inputType + '" name="' + inputName + '" class="pq-form-correct-choice" value="' + letter + '"' + checkedAttr + ' onchange="window.updatePqFormCorrectChoiceState()" style="cursor:pointer;width:20px;height:20px;accent-color:#22c55e;margin:0">';
+
+    return '<div class="pq-option-row" style="display:flex;gap:12px;align-items:center;margin-bottom:10px;padding:8px 12px;border:1px solid #e2e8f0;border-radius:10px;transition:all 0.2s;' + activeBgStyle + '">' +
+      inputHtml +
+      '<span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:8px;background:' + (isChecked ? '#dcfce7' : '#f1f5f9') + ';color:' + (isChecked ? '#166534' : '#475569') + ';font-weight:800;font-size:13px;transition:all 0.2s">' + letter + '</span>' +
+      '<input type="text" class="admin-search-input" style="flex:1;border:1px solid #cbd5e1;background:#ffffff;border-radius:8px;padding:8px 12px;font-size:14px" value="' + LQ.esc(val) + '" placeholder="Option ' + (idx + 1) + '" required oninput="window.updatePqFormOptionText(' + idx + ', this.value)">' +
       removeBtn +
       '</div>';
   }).join('');
@@ -5454,58 +5507,21 @@ window.renderPqFormOptions = function () {
   if (addBtn) {
     addBtn.style.display = LQ._pqFormOptions.length < 6 ? 'block' : 'none';
   }
-  window.renderPqFormCorrectAnswerSelector();
-};
-
-window.renderPqFormCorrectAnswerSelector = function () {
-  var container = document.getElementById('pq-correct-answer-container');
-  if (!container) return;
-  var type = document.getElementById('pq-form-type').value;
-  var prevVal = LQ._pqFormPrevCorrect || '';
-
-  if (type === 'mcq_multi') {
-    var correctList = prevVal.split(',').map(s => s.trim());
-    var html = '<div style="display:flex;flex-direction:column;gap:6px;margin-top:6px">';
-    LQ._pqFormOptions.forEach(function (optText, idx) {
-      var val = optText.trim();
-      if (!val) return;
-      var checkedAttr = correctList.includes(val) ? ' checked' : '';
-      html += '<label style="display:flex;align-items:center;gap:8px;font-weight:normal;cursor:pointer;font-size:13px">' +
-        '<input type="checkbox" class="pq-form-correct-chk" value="' + LQ.esc(val) + '"' + checkedAttr + ' onchange="LQ._pqFormPrevCorrect=Array.from(document.querySelectorAll(\'.pq-form-correct-chk:checked\')).map(c=>c.value).join(\', \')" style="cursor:pointer">' +
-        '<span>Option ' + String.fromCharCode(65 + idx) + ': ' + LQ.esc(optText) + '</span>' +
-        '</label>';
-    });
-    html += '</div>';
-    container.innerHTML = html;
-  } else {
-    var html = '<div style="display:flex;flex-direction:column;gap:6px;margin-top:6px">';
-    LQ._pqFormOptions.forEach(function (optText, idx) {
-      var val = optText.trim();
-      if (!val) return;
-      var checkedAttr = (val === prevVal) ? ' checked' : '';
-      html += '<label style="display:flex;align-items:center;gap:8px;font-weight:normal;cursor:pointer;font-size:13px">' +
-        '<input type="radio" name="pq-correct-radio" class="pq-form-correct-radio" value="' + LQ.esc(val) + '"' + checkedAttr + ' onchange="LQ._pqFormPrevCorrect=this.value" style="cursor:pointer">' +
-        '<span>Option ' + String.fromCharCode(65 + idx) + ': ' + LQ.esc(optText) + '</span>' +
-        '</label>';
-    });
-    html += '</div>';
-    container.innerHTML = html;
-  }
 };
 
 window.togglePqFormTypeView = function () {
   var type = document.getElementById('pq-form-type').value;
   var optSection = document.getElementById('pq-options-section');
-  var correctAnsLabel = document.getElementById('pq-correct-answer-label');
+  var correctAnsSection = document.getElementById('pq-correct-answer-section');
   var correctAnsContainer = document.getElementById('pq-correct-answer-container');
   
   if (type === 'mcq' || type === 'mcq_multi') {
-    optSection.style.display = 'block';
-    if (correctAnsLabel) correctAnsLabel.textContent = type === 'mcq_multi' ? 'Correct Option(s) (Select multiple)' : 'Correct Option';
+    if (optSection) optSection.style.display = 'block';
+    if (correctAnsSection) correctAnsSection.style.display = 'none';
     window.renderPqFormOptions();
   } else {
-    optSection.style.display = 'none';
-    if (correctAnsLabel) correctAnsLabel.textContent = 'Correct Answer Text';
+    if (optSection) optSection.style.display = 'none';
+    if (correctAnsSection) correctAnsSection.style.display = 'block';
     var textVal = LQ._pqFormPrevCorrect || '';
     correctAnsContainer.innerHTML = '<input type="text" id="pq-form-correct-answer-text" required class="admin-search-input" style="width:100%;box-sizing:border-box" placeholder="Enter correct answer text" value="' + LQ.esc(textVal) + '">';
   }
