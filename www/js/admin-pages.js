@@ -5779,7 +5779,10 @@ LQ._loadTests = async function () {
               '<button type="button" class="admin-btn admin-btn-sm" style="font-size:16px;padding:2px 8px;font-weight:bold" onclick="event.stopPropagation();LQ.toggleTestActionsMenu(this,\'' + t._id + '\')">⋮</button>' +
               '<div id="actions-menu-' + t._id + '" class="admin-actions-dropdown-content" style="display:none;position:absolute;right:0;top:30px;background:#fff;box-shadow:0 10px 25px -5px rgba(0,0,0,0.1),0 8px 10px -6px rgba(0,0,0,0.1);border:1px solid #e2e8f0;border-radius:8px;z-index:9999;min-width:140px;padding:6px 0;text-align:left">' +
                 (canEdit ? '<button type="button" style="display:block;width:100%;padding:8px 12px;background:none;border:none;text-align:left;font-size:13px;cursor:pointer;color:#334155" onclick="LQ.openEditTestDrawer(\'' + t._id + '\')">📝 Edit</button>' : '') +
-                '<button type="button" style="display:block;width:100%;padding:8px 12px;background:none;border:none;text-align:left;font-size:13px;cursor:pointer;color:#334155" onclick="LQ.openTestAssignDrawer(\'' + t._id + '\')">📅 Assign</button>' +
+                (t.isAssigned && t.startTime && now >= startMs ? 
+                  '<button type="button" style="display:block;width:100%;padding:8px 12px;background:none;border:none;text-align:left;font-size:13px;cursor:pointer;color:#334155" onclick="LQ.openTestAssignDrawer(\'' + t._id + '\')">📅 Update End Date</button>' :
+                  '<button type="button" style="display:block;width:100%;padding:8px 12px;background:none;border:none;text-align:left;font-size:13px;cursor:pointer;color:#334155" onclick="LQ.openTestAssignDrawer(\'' + t._id + '\')">📅 Assign</button>'
+                ) +
                 '<button type="button" style="display:block;width:100%;padding:8px 12px;background:none;border:none;text-align:left;font-size:13px;cursor:pointer;color:#334155" onclick="LQ.openTestCloneModal(\'' + t._id + '\')">👥 Clone</button>' +
                 '<button type="button" style="display:block;width:100%;padding:8px 12px;background:none;border:none;text-align:left;font-size:13px;cursor:pointer;color:#334155" onclick="LQ.openTestConfigDrawer(\'' + t._id + '\')">⚙️ Config</button>' +
                 (t.isDisabled || canDisable ? '<button type="button" style="display:block;width:100%;padding:8px 12px;background:none;border:none;text-align:left;font-size:13px;cursor:pointer;color:#334155" onclick="LQ.toggleTestDisable(\'' + t._id + '\',' + (t.isDisabled ? 'false' : 'true') + ')">' + (t.isDisabled ? '🟢 Enable' : '🔴 Disable') + '</button>' : '') +
@@ -6576,6 +6579,8 @@ LQ.openTestAssignDrawer = async function (id) {
     var startVal = t.startTime ? new Date(t.startTime).toISOString().slice(0, 16) : '';
     var endVal = t.endTime ? new Date(t.endTime).toISOString().slice(0, 16) : '';
 
+    var hasStarted = t.isAssigned && t.startTime && new Date() >= new Date(t.startTime);
+
     var html =
       '<div style="font-family:sans-serif;color:#334155">' +
         '<h3 style="margin:0 0 12px;font-size:16px;color:#0f172a">' + LQ.esc(t.title) + '</h3>' +
@@ -6588,7 +6593,7 @@ LQ.openTestAssignDrawer = async function (id) {
         '<div class="admin-form-grid" style="grid-template-columns:1fr 1fr;gap:14px">' +
           '<div class="admin-form-field">' +
             '<label>Start Date & Time <span class="req">*</span></label>' +
-            '<input type="datetime-local" id="test-assign-start" value="' + startVal + '" required />' +
+            '<input type="datetime-local" id="test-assign-start" value="' + startVal + '" required ' + (hasStarted ? 'disabled' : '') + ' />' +
           '</div>' +
           '<div class="admin-form-field">' +
             '<label>End Date & Time <span class="req">*</span></label>' +
@@ -6597,12 +6602,12 @@ LQ.openTestAssignDrawer = async function (id) {
         '</div>' +
         '<div id="test-assign-error" style="display:none;color:#dc2626;margin-top:8px;font-size:13px;font-weight:600"></div>' +
         '<div class="admin-form-actions" style="margin-top:16px">' +
-          '<button type="button" id="test-assign-btn" class="admin-btn admin-btn-primary" onclick="LQ._submitTestAssign(\'' + id + '\',' + t.totalDurationSec + ')">Assign Test</button>' +
+          '<button type="button" id="test-assign-btn" class="admin-btn admin-btn-primary" onclick="LQ._submitTestAssign(\'' + id + '\',' + t.totalDurationSec + ')">' + (hasStarted ? 'Update End Date' : 'Assign Test') + '</button>' +
           '<button type="button" class="admin-btn admin-btn-outline" onclick="LQ.closeAdminDrawer()">Cancel</button>' +
         '</div>' +
       '</div>';
 
-    LQ.openAdminDrawer('Assign Test', html);
+    LQ.openAdminDrawer(hasStarted ? 'Update End Date' : 'Assign Test', html);
   } catch (err) {
     LQ.toast('Error loading test.');
   }

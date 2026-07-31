@@ -49,7 +49,7 @@ window.LQ = window.LQ || {};
       '<div class="admin-page-header">' +
         '<h2 class="admin-page-title">📊 Organization Reports</h2>' +
       '</div>' +
-      '<div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:20px;margin-top:16px;">' +
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:20px;margin-top:16px;padding:0 20px;box-sizing:border-box;">' +
         // Card 1: Student-wise
         '<div class="report-card" onclick="LQ.selectReportType(\'students\')" style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:24px;cursor:pointer;transition:all 0.2s;box-shadow:0 4px 6px -1px rgba(0,0,0,0.05);" onmouseover="this.style.borderColor=\'#2563eb\';this.style.transform=\'translateY(-2px)\'" onmouseout="this.style.borderColor=\'#e2e8f0\';this.style.transform=\'none\'">' +
           '<div style="font-size:36px;margin-bottom:12px">👩‍🎓</div>' +

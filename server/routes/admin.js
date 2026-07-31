@@ -2662,6 +2662,13 @@ router.put('/tests/:id/assign', requireRole('admin', 'super_admin'), async funct
       return res.status(400).json({ error: 'End time must be after start time.' });
     }
 
+    var now = new Date();
+    if (test.isAssigned && test.startTime && now >= test.startTime) {
+      if (startTime.getTime() !== test.startTime.getTime()) {
+        return res.status(400).json({ error: 'Cannot change the start time of a test that has already started.' });
+      }
+    }
+
     var gapSec = Math.floor((endTime.getTime() - startTime.getTime()) / 1000);
     if (test.totalDurationSec > 0 && gapSec < test.totalDurationSec) {
       var minMins = Math.ceil(test.totalDurationSec / 60);
