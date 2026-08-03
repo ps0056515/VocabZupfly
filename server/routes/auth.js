@@ -10,14 +10,14 @@ const { authenticate } = require('../middleware/auth');
 
 const router = express.Router();
 
-/** Cookie options for access token (15 days) */
+/** Cookie options for access token (7 days) */
 function accessCookieOpts() {
   return {
     httpOnly: true,
     secure: config.COOKIE_SECURE,
     sameSite: config.COOKIE_SAME_SITE,
     domain: config.COOKIE_DOMAIN,
-    maxAge: 15 * 24 * 60 * 60 * 1000, // 15 days
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     path: '/',
   };
 }
@@ -63,6 +63,10 @@ router.post('/login', async function (req, res) {
 
     if (!email || !password) {
       return res.status(400).json({ error: 'Email and password are required.' });
+    }
+
+    if (password.length > 70) {
+      return res.status(400).json({ error: 'Password is too long (maximum 70 characters).' });
     }
 
     var user = await User.findOne({ email: email }).select('+password');
@@ -241,6 +245,10 @@ router.put('/change-password', authenticate, async function (req, res) {
 
     if (!newPassword) {
       return res.status(400).json({ error: 'New password is required.' });
+    }
+
+    if (newPassword.length > 70) {
+      return res.status(400).json({ error: 'Password cannot exceed 70 characters.' });
     }
 
     if (newPassword.length < 6) {

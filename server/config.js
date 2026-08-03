@@ -15,7 +15,7 @@ module.exports = {
   JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET || 'vz-dev-refresh-secret-' + crypto.randomBytes(8).toString('hex'),
 
   /** Token expiration */
-  ACCESS_TOKEN_EXPIRY: '15d',
+  ACCESS_TOKEN_EXPIRY: '7d',
   REFRESH_TOKEN_EXPIRY: '16d',
 
   /** Cookie settings */

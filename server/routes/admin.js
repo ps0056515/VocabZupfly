@@ -182,6 +182,10 @@ router.post('/admins', requireRole('super_admin'), async function (req, res) {
     var orgId = req.body.orgId;
     var password = req.body.password || config.DEFAULT_STUDENT_PASSWORD;
 
+    if (password.length > 70) {
+      return res.status(400).json({ error: 'Password cannot exceed 70 characters.' });
+    }
+
     if (!name || !email) {
       return res.status(400).json({ error: 'Name and email are required.' });
     }
