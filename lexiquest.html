@@ -2105,6 +2105,14 @@ body.native-app .desktop-only-ui{display:none!important}
               onclick="LQ.closeDrawer();goTo('settings')">
         <span class="drawer-icon">⚙️</span> Settings
       </button>
+      <button type="button" class="mobile-drawer-item" data-screen="admin-profile" data-nav="admin-profile"
+              onclick="LQ.closeDrawer();goTo('admin-profile')">
+        <span class="drawer-icon">👤</span> My Profile
+      </button>
+      <button type="button" class="mobile-drawer-item" id="mobile-drawer-logout"
+              onclick="LQ.closeDrawer();LQ.Auth.logout()">
+        <span class="drawer-icon">🚪</span> Logout
+      </button>
 
     </div>
     <div class="mobile-drawer-footer">LexiQuest · VocabZupfly</div>
