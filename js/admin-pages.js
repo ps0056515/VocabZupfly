@@ -976,6 +976,7 @@ LQ._toggleAdminStatus = function (id, isActive, name) {
       } catch (e) {
         LQ.toast('Failed to update admin status');
       }
+    }
   });
 };
 
