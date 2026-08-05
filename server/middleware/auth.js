@@ -12,6 +12,9 @@ const User = require('../models/User');
  */
 function authenticate(req, res, next) {
   var token = req.cookies && req.cookies.vz_access_token;
+  if (!token && req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+    token = req.headers.authorization.split(' ')[1];
+  }
   if (!token) {
     return res.status(401).json({ error: 'Authentication required. Please log in.' });
   }

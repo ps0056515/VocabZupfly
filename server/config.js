@@ -4,23 +4,37 @@
  */
 const crypto = require('crypto');
 
+function sanitizeMongoUri(raw) {
+  if (!raw || typeof raw !== 'string') {
+    return 'mongodb://127.0.0.1:27017/vocabzupfly';
+  }
+  var clean = raw.trim().replace(/^["']+|["']+$/g, '').trim();
+  if (!clean) {
+    return 'mongodb://127.0.0.1:27017/vocabzupfly';
+  }
+  if (!clean.startsWith('mongodb://') && !clean.startsWith('mongodb+srv://')) {
+    clean = 'mongodb://' + clean;
+  }
+  return clean;
+}
+
 module.exports = {
   PORT: parseInt(process.env.PORT || process.env.DEV_PORT || '3456', 10),
 
   /** MongoDB connection string */
-  MONGO_URI: process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/vocabzupfly',
+  MONGO_URI: sanitizeMongoUri(process.env.MONGO_URI),
 
-  /** JWT secrets — MUST override in production */
-  JWT_SECRET: process.env.JWT_SECRET || 'vz-dev-jwt-secret-' + crypto.randomBytes(8).toString('hex'),
-  JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET || 'vz-dev-refresh-secret-' + crypto.randomBytes(8).toString('hex'),
+  /** JWT secrets — static fallback to preserve sessions across restarts */
+  JWT_SECRET: process.env.JWT_SECRET || 'vz-auth-secret-key-vocabzupfly-2026',
+  JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET || 'vz-refresh-secret-key-vocabzupfly-2026',
 
   /** Token expiration */
   ACCESS_TOKEN_EXPIRY: '7d',
   REFRESH_TOKEN_EXPIRY: '16d',
 
-  /** Cookie settings */
-  COOKIE_SECURE: process.env.NODE_ENV === 'production',
-  COOKIE_SAME_SITE: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+  /** Cookie settings (COOKIE_SECURE only if explicitly enabled or on HTTPS) */
+  COOKIE_SECURE: process.env.COOKIE_SECURE === 'true',
+  COOKIE_SAME_SITE: process.env.COOKIE_SAME_SITE || 'lax',
   COOKIE_DOMAIN: process.env.COOKIE_DOMAIN || undefined,
 
   /** Default super admin (used by seed script) */
