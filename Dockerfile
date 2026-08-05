@@ -1,26 +1,29 @@
-# Build stage
 FROM node:18-alpine AS builder
+
 WORKDIR /app
 
-# Copy package files and install dependencies
 COPY package*.json ./
 RUN npm ci
 
-# Copy the rest of the application source code
 COPY . .
 
-# Run the build/prepare scripts to generate the www directory
-RUN npm run prepare:web && cp -r cms www/cms
+RUN npm run prepare:web
 
-# Production stage
+
 FROM nginx:alpine
 
-# Copy the built static files to Nginx public folder
+RUN apk add --no-cache nodejs npm supervisor
+
+WORKDIR /app
+
+COPY --from=builder /app /app
+
 COPY --from=builder /app/www /usr/share/nginx/html
 
-# Copy the custom Nginx configuration
 COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+COPY supervisord.conf /etc/supervisord.conf
 
 EXPOSE 80
 
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["/usr/bin/supervisord","-c","/etc/supervisord.conf"]
