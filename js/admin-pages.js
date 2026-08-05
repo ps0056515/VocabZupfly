@@ -900,6 +900,8 @@ LQ._loadAdmins = async function () {
         ? '<button class="admin-btn admin-btn-danger admin-btn-sm" title="Deactivate admin" onclick="LQ._toggleAdminStatus(\'' + a._id + '\', false, \'' + LQ.esc(a.name) + '\')">Deactivate</button>'
         : '<button class="admin-btn admin-btn-outline admin-btn-sm" style="border-color:#16a34a;color:#16a34a;font-weight:700" title="Activate admin" onclick="LQ._toggleAdminStatus(\'' + a._id + '\', true, \'' + LQ.esc(a.name) + '\')">Activate</button>';
 
+      var resetBtn = '<button class="admin-btn admin-btn-outline admin-btn-sm" style="margin-left: 6px;" title="Reset password to Test@123" onclick="LQ._resetAdminPassword(\'' + a._id + '\', \'' + LQ.esc(a.name) + '\')">Reset Password</button>';
+
       html +=
         '<tr' + (!isActive ? ' style="opacity:0.65;background:#fef2f2"' : '') + '>' +
           '<td><strong>' + LQ.esc(a.name) + '</strong></td>' +
@@ -907,7 +909,7 @@ LQ._loadAdmins = async function () {
           '<td>' + LQ.esc(a.phone || '—') + '</td>' +
           '<td>' + LQ.esc(orgName) + '</td>' +
           '<td>' + statusBadge + '</td>' +
-          '<td>' + toggleBtn + '</td>' +
+          '<td><div style="display:flex;align-items:center;">' + toggleBtn + resetBtn + '</div></td>' +
         '</tr>';
     });
 
@@ -974,6 +976,32 @@ LQ._toggleAdminStatus = function (id, isActive, name) {
       } catch (e) {
         LQ.toast('Failed to update admin status');
       }
+  });
+};
+
+LQ._resetAdminPassword = function (id, name) {
+  LQ.showConfirmModal({
+    title: 'Reset Admin Password',
+    message: 'Are you sure you want to reset the password for admin "' + name + '" to "Test@123"?',
+    icon: '🔑',
+    danger: true,
+    okText: 'Reset Password',
+    onConfirm: async function () {
+      try {
+        var resp = await fetch('/api/admin/admins/' + id + '/reset-password', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include'
+        });
+        var data = await resp.json();
+        if (resp.ok) {
+          LQ.toast('Password reset successfully to Test@123!');
+        } else {
+          LQ.toast(data.error || 'Failed to reset password');
+        }
+      } catch (e) {
+        LQ.toast('Failed to reset password');
+      }
     }
   });
 };
@@ -1008,12 +1036,19 @@ LQ.renderAddAdminForm = async function () {
         '</div>' +
         '<div class="admin-form-field">' +
           '<label>Organization <span class="req">*</span></label>' +
-          '<select id="admin-org" required disabled>' + orgOptions + '</select>' +
-          '<p class="admin-field-hint">Organization is fixed to Panimalar for now.</p>' +
+          '<select id="admin-org" required>' + orgOptions + '</select>' +
         '</div>' +
         '<div class="admin-form-field">' +
           '<label>Password <span class="req">*</span></label>' +
-          '<input type="password" id="admin-password" required placeholder="Set admin password" minlength="6" />' +
+          '<div style="position: relative; display: flex; align-items: center;">' +
+            '<input type="password" id="admin-password" required placeholder="Set admin password" minlength="6" style="width: 100%; padding-right: 40px;" />' +
+            '<button type="button" onclick="LQ.toggleAdminPasswordVisibility()" style="position: absolute; right: 10px; background: none; border: none; cursor: pointer; color: #64748b; display: flex; align-items: center; justify-content: center; padding: 0;">' +
+              '<svg id="pw-toggle-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+                '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>' +
+                '<circle cx="12" cy="12" r="3"></circle>' +
+              '</svg>' +
+            '</button>' +
+          '</div>' +
         '</div>' +
       '</div>' +
       '<p id="add-admin-error" class="admin-error-msg" style="display:none"></p>' +
@@ -1024,6 +1059,19 @@ LQ.renderAddAdminForm = async function () {
     '</form>';
 
   LQ.openAdminDrawer('Add New Admin', formHtml);
+};
+
+LQ.toggleAdminPasswordVisibility = function () {
+  var pwdInput = document.getElementById('admin-password');
+  var toggleIcon = document.getElementById('pw-toggle-icon');
+  if (!pwdInput || !toggleIcon) return;
+  if (pwdInput.type === 'password') {
+    pwdInput.type = 'text';
+    toggleIcon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>';
+  } else {
+    pwdInput.type = 'password';
+    toggleIcon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>';
+  }
 };
 
 LQ._submitAddAdmin = async function (e) {

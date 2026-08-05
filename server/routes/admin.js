@@ -226,6 +226,26 @@ router.post('/admins', requireRole('super_admin'), async function (req, res) {
   }
 });
 
+/**
+ * PUT /api/admin/admins/:id/reset-password — Reset admin password to Test@123
+ */
+router.put('/admins/:id/reset-password', requireRole('super_admin'), async function (req, res) {
+  try {
+    var admin = await User.findById(req.params.id);
+    if (!admin || admin.role !== 'admin') {
+      return res.status(404).json({ error: 'Admin not found.' });
+    }
+
+    admin.password = 'Test@123';
+    await admin.save();
+
+    res.json({ ok: true, message: 'Password reset successfully to Test@123.' });
+  } catch (err) {
+    console.error('[Admin] Admin password reset error:', err);
+    res.status(500).json({ error: 'Failed to reset password.' });
+  }
+});
+
 /* ══════════════════════════════════════════════════
    STUDENT MANAGEMENT (admin + super_admin)
    ══════════════════════════════════════════════════ */
