@@ -10,7 +10,7 @@ RUN npm ci
 COPY . .
 
 # Run the build/prepare scripts to generate the www directory
-RUN npm run prepare:web
+RUN npm run prepare:web && cp -r cms www/cms
 
 # Production stage
 FROM nginx:alpine
