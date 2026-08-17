@@ -479,7 +479,11 @@ LQ.updateLives = function () {
 };
 
 LQ.nextQuiz = function () {
-  if (LQ.dispatchQuizQuestion) LQ.dispatchQuizQuestion();
+  if (LQ.dispatchQuizQuestion) {
+    LQ.dispatchQuizQuestion();
+  } else if (LQ.renderQuizMcq) {
+    LQ.renderQuizMcq();
+  }
 };
 
 LQ.checkQ = function (idx) {
@@ -487,11 +491,15 @@ LQ.checkQ = function (idx) {
   LQ.S.quizAnswered = true;
   LQ._quizAnswered = (LQ._quizAnswered || 0) + 1;
   const btns = document.querySelectorAll('.opt');
-  const correct = LQ.S.quizOpts[idx].word === LQ.S.quizWord.word;
+  const targetWord = LQ.S.quizWord ? LQ.S.quizWord.word : '';
+  const chosenWord = LQ.S.quizOpts && LQ.S.quizOpts[idx] ? LQ.S.quizOpts[idx].word : '';
+  const correct = chosenWord === targetWord;
   if (btns[idx]) btns[idx].classList.add(correct ? 'correct' : 'wrong');
   btns.forEach(function (b, i) {
     b.disabled = true;
-    if (LQ.S.quizOpts[i].word === LQ.S.quizWord.word) b.classList.add('correct');
+    if (LQ.S.quizOpts && LQ.S.quizOpts[i] && LQ.S.quizOpts[i].word === targetWord) {
+      b.classList.add('correct');
+    }
   });
   if (LQ.finishQuizAnswer) LQ.finishQuizAnswer(correct);
 };
@@ -502,7 +510,7 @@ LQ.advanceQuiz = function () {
     LQ._quizAdvanceTimer = null;
   }
   if (!LQ.S.quizAnswered) return;
-  LQ.S.quizIdx++;
+  LQ.S.quizIdx = (LQ.S.quizIdx || 0) + 1;
   LQ.nextQuiz();
 };
 

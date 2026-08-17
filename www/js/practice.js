@@ -594,37 +594,50 @@ LQ.checkQuizSe = function () {
 };
 
 LQ.finishQuizAnswer = function (correct) {
+  var wordObj = LQ.S.quizWord || {};
+  var wordName = wordObj.word || '';
+
   var fb = document.getElementById('qfb');
   if (fb) {
     fb.className = 'quiz-feedback-box show ' + (correct ? 'ok' : 'fail');
     fb.innerHTML = correct
-      ? '✓ <b>' + LQ.esc(LQ.S.quizWord.word) + '</b>'
-      : '✗ Answer: <b>' + LQ.esc(LQ.S.quizWord.word) + '</b>';
+      ? '✓ <b>' + LQ.esc(wordName) + '</b>'
+      : '✗ Answer: <b>' + LQ.esc(wordName) + '</b>';
   }
-  if (correct) {
-    LQ.gainXP(20);
-    LQ._qScore++;
-    LQ.scheduleSrs(LQ.S.quizWord.word, 'good');
-  } else {
-    LQ.S.quizLives--;
-    if (LQ.updateLives) LQ.updateLives();
-    LQ.gainXP(5);
-    LQ._quizMisses = LQ._quizMisses || [];
-    LQ._quizMisses.push(LQ.S.quizWord);
-    if (LQ.S.quizLives <= 0) setTimeout(function () {
-      LQ.showQuizEnd();
-    }, 800);
+
+  try {
+    if (correct) {
+      if (LQ.gainXP) LQ.gainXP(20);
+      LQ._qScore = (LQ._qScore || 0) + 1;
+      if (wordName && LQ.scheduleSrs) LQ.scheduleSrs(wordName, 'good');
+    } else {
+      LQ.S.quizLives = (LQ.S.quizLives !== undefined ? LQ.S.quizLives : 3) - 1;
+      if (LQ.updateLives) LQ.updateLives();
+      if (LQ.gainXP) LQ.gainXP(5);
+      LQ._quizMisses = LQ._quizMisses || [];
+      if (wordObj && wordObj.word) LQ._quizMisses.push(wordObj);
+      if (LQ.S.quizLives <= 0) {
+        setTimeout(function () {
+          if (LQ.showQuizEnd) LQ.showQuizEnd();
+        }, 800);
+      }
+    }
+    if (wordName && LQ.recordActivity) {
+      LQ.recordActivity(wordName, correct ? 'good' : 'miss');
+    }
+  } catch (err) {
+    console.warn('[Quiz] Error in finishQuizAnswer stat updates:', err);
   }
-  LQ.recordActivity(LQ.S.quizWord.word, correct ? 'good' : 'miss');
+
   var nextBtn = document.getElementById('qnext');
   if (nextBtn) nextBtn.classList.add('show');
   if (LQ._quizAdvanceTimer) clearTimeout(LQ._quizAdvanceTimer);
   if (!correct && LQ.S.quizLives <= 0) return;
-  var delay = correct ? 750 : 1100;
+  var delay = correct ? 850 : 1200;
   LQ._quizAdvanceTimer = setTimeout(function () {
     LQ._quizAdvanceTimer = null;
     if (LQ.S.quizLives <= 0) return;
-    LQ.advanceQuiz();
+    if (LQ.advanceQuiz) LQ.advanceQuiz();
   }, delay);
 };
 

@@ -45,6 +45,22 @@ const wordSchema = new mongoose.Schema(
         trim: true,
       },
     ],
+    listId: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+    groupId: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+    difficulty: {
+      type: String,
+      enum: ['easy', 'medium', 'hard'],
+      default: 'medium',
+      trim: true,
+    },
     premium: {
       type: Boolean,
       default: false,

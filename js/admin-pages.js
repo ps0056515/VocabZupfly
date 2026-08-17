@@ -3449,16 +3449,28 @@ LQ._loadAdminWords = async function () {
 
     var html = '<div class="admin-table-responsive"><table class="admin-table">' +
       '<thead><tr>' +
-        '<th>#</th><th>Word</th><th>POS</th><th>Definition</th><th>Premium</th><th>Actions</th>' +
+        '<th>#</th><th>Word</th><th>POS</th><th>Difficulty</th><th>List / Group</th><th>Definition</th><th>Premium</th><th>Actions</th>' +
       '</tr></thead><tbody>';
 
     items.forEach(function (item, idx) {
       var startIdx = (data.page - 1) * 25 + idx + 1;
+      var listGroupText = '—';
+      if (item.listId) {
+        listGroupText = '<code>' + LQ.esc(item.listId) + '</code>' + (item.groupId ? ' <span style="color:#64748b">› ' + LQ.esc(item.groupId) + '</span>' : '');
+      }
+      var diffBadge = '<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;text-transform:capitalize;background:#fef3c7;color:#b45309">Medium</span>';
+      if (item.difficulty === 'easy') {
+        diffBadge = '<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;text-transform:capitalize;background:#dcfce7;color:#15803d">Easy</span>';
+      } else if (item.difficulty === 'hard') {
+        diffBadge = '<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;text-transform:capitalize;background:#fee2e2;color:#b91c1c">Hard</span>';
+      }
       html +=
         '<tr>' +
           '<td>' + startIdx + '</td>' +
           '<td><strong>' + LQ.esc(item.word) + '</strong>' + (item.phonetic ? ' <small style="color:#64748b">' + LQ.esc(item.phonetic) + '</small>' : '') + '</td>' +
           '<td><code>' + LQ.esc(item.pos || 'noun') + '</code></td>' +
+          '<td>' + diffBadge + '</td>' +
+          '<td>' + listGroupText + '</td>' +
           '<td>' + LQ.esc(item.def || '—') + '</td>' +
           '<td>' + (item.premium ? '⭐ Premium' : 'Free') + '</td>' +
           '<td>' +
@@ -3508,7 +3520,23 @@ LQ._loadAdminWords = async function () {
   }
 };
 
-LQ.renderAddWordForm = function () {
+LQ.renderAddWordForm = async function () {
+  var lists = [];
+  try {
+    var resp = await fetch('/api/admin/word-lists?limit=1000', { credentials: 'include' });
+    var data = await resp.json();
+    if (data && data.items) lists = data.items;
+  } catch (e) {
+    console.warn('Failed to load word lists for word form', e);
+  }
+
+  LQ._cachedAdminWordLists = lists;
+
+  var listOptions = '<option value="">-- No List (Standalone) --</option>';
+  lists.forEach(function (l) {
+    listOptions += '<option value="' + LQ.esc(l.id) + '">' + LQ.esc(l.title) + ' (' + LQ.esc(l.id) + ')</option>';
+  });
+
   var formHtml =
     '<form id="add-word-form" class="admin-form" onsubmit="LQ._submitWord(event)">' +
       '<div class="admin-form-grid">' +
@@ -3530,8 +3558,28 @@ LQ.renderAddWordForm = function () {
           '</select>' +
         '</div>' +
         '<div class="admin-form-field">' +
+          '<label>Difficulty</label>' +
+          '<select id="word-difficulty">' +
+            '<option value="easy">Easy</option>' +
+            '<option value="medium" selected>Medium</option>' +
+            '<option value="hard">Hard</option>' +
+          '</select>' +
+        '</div>' +
+        '<div class="admin-form-field">' +
           '<label>Tags (Comma separated)</label>' +
           '<input type="text" id="word-tags" placeholder="e.g. GRE, IELTS, Advanced" />' +
+        '</div>' +
+        '<div class="admin-form-field">' +
+          '<label>Word List</label>' +
+          '<select id="word-list-id" onchange="LQ._onWordListSelected(this.value, \'word-group-id\')">' +
+            listOptions +
+          '</select>' +
+        '</div>' +
+        '<div class="admin-form-field">' +
+          '<label>Group (under List)</label>' +
+          '<select id="word-group-id">' +
+            '<option value="">-- Select List first --</option>' +
+          '</select>' +
         '</div>' +
         '<div class="admin-form-field" style="grid-column:1/-1">' +
           '<label>Definition / Meaning <span class="req">*</span></label>' +
@@ -3564,15 +3612,67 @@ LQ.renderAddWordForm = function () {
   LQ.openAdminDrawer('Add New Word', formHtml);
 };
 
+LQ._onWordListSelected = async function (listId, groupSelectId, preselectedGroupId) {
+  var grpSelect = document.getElementById(groupSelectId);
+  if (!grpSelect) return;
+
+  if (!listId) {
+    grpSelect.innerHTML = '<option value="">-- Select List first --</option>';
+    return;
+  }
+
+  grpSelect.innerHTML = '<option value="">Loading groups...</option>';
+
+  try {
+    var resp = await fetch('/api/admin/word-lists/detail/' + encodeURIComponent(listId), { credentials: 'include' });
+    var data = await resp.json();
+    if (data.ok && data.list) {
+      var list = data.list;
+      var groups = list.groups || [];
+      if (groups.length) {
+        var options = '<option value="">-- Select Group --</option>';
+        groups.sort(function (a, b) { return (a.groupNum || 0) - (b.groupNum || 0); });
+        groups.forEach(function (g) {
+          var isSel = preselectedGroupId && preselectedGroupId === g.id ? ' selected' : '';
+          options += '<option value="' + LQ.esc(g.id) + '"' + isSel + '>' + LQ.esc(g.title) + ' (' + LQ.esc(g.id) + ')</option>';
+        });
+        grpSelect.innerHTML = options;
+      } else {
+        grpSelect.innerHTML = '<option value="">(No groups in this list)</option>';
+      }
+    } else {
+      grpSelect.innerHTML = '<option value="">(Failed to load groups)</option>';
+    }
+  } catch (err) {
+    grpSelect.innerHTML = '<option value="">(Error loading groups)</option>';
+  }
+};
+
 LQ.renderEditWordForm = async function (id) {
   try {
-    var resp = await fetch('/api/admin/words?page=' + LQ._wordsPage + '&limit=10&q=' + encodeURIComponent(LQ._wordsSearchQuery || ''), { credentials: 'include' });
+    var resp = await fetch('/api/admin/words?page=' + LQ._wordsPage + '&limit=25&q=' + encodeURIComponent(LQ._wordsSearchQuery || ''), { credentials: 'include' });
     var data = await resp.json();
     var record = (data.items || []).find(w => w._id === id);
     if (!record) {
       LQ.toast('Loading word details failed.');
       return;
     }
+
+    var lists = [];
+    try {
+      var respL = await fetch('/api/admin/word-lists?limit=1000', { credentials: 'include' });
+      var dataL = await respL.json();
+      if (dataL && dataL.items) lists = dataL.items;
+    } catch (e) {
+      console.warn('Failed to load word lists for edit form', e);
+    }
+    LQ._cachedAdminWordLists = lists;
+
+    var listOptions = '<option value="">-- No List (Standalone) --</option>';
+    lists.forEach(function (l) {
+      var isSel = record.listId && record.listId === l.id ? ' selected' : '';
+      listOptions += '<option value="' + LQ.esc(l.id) + '"' + isSel + '>' + LQ.esc(l.title) + ' (' + LQ.esc(l.id) + ')</option>';
+    });
 
     var formHtml =
       '<form id="edit-word-form" class="admin-form" onsubmit="LQ._submitWord(event, \'' + id + '\')">' +
@@ -3595,8 +3695,28 @@ LQ.renderEditWordForm = async function (id) {
             '</select>' +
           '</div>' +
           '<div class="admin-form-field">' +
+            '<label>Difficulty</label>' +
+            '<select id="word-difficulty">' +
+              '<option value="easy"' + (record.difficulty === 'easy' ? ' selected' : '') + '>Easy</option>' +
+              '<option value="medium"' + (!record.difficulty || record.difficulty === 'medium' ? ' selected' : '') + '>Medium</option>' +
+              '<option value="hard"' + (record.difficulty === 'hard' ? ' selected' : '') + '>Hard</option>' +
+            '</select>' +
+          '</div>' +
+          '<div class="admin-form-field">' +
             '<label>Tags (Comma separated)</label>' +
             '<input type="text" id="word-tags" value="' + LQ.esc((record.tags || []).join(', ')) + '" />' +
+          '</div>' +
+          '<div class="admin-form-field">' +
+            '<label>Word List</label>' +
+            '<select id="word-list-id" onchange="LQ._onWordListSelected(this.value, \'word-group-id\')">' +
+              listOptions +
+            '</select>' +
+          '</div>' +
+          '<div class="admin-form-field">' +
+            '<label>Group (under List)</label>' +
+            '<select id="word-group-id">' +
+              '<option value="">' + (record.listId ? 'Loading groups...' : '-- Select List first --') + '</option>' +
+            '</select>' +
           '</div>' +
           '<div class="admin-form-field" style="grid-column:1/-1">' +
             '<label>Definition / Meaning <span class="req">*</span></label>' +
@@ -3627,6 +3747,10 @@ LQ.renderEditWordForm = async function (id) {
       '</form>';
 
     LQ.openAdminDrawer('Edit Word', formHtml);
+
+    if (record.listId) {
+      LQ._onWordListSelected(record.listId, 'word-group-id', record.groupId);
+    }
   } catch (err) {
     LQ.toast('Failed to load edit form');
   }
@@ -3637,7 +3761,10 @@ LQ._submitWord = async function (e, id) {
   var word = document.getElementById('word-text').value.trim();
   var phonetic = document.getElementById('word-phonetic').value.trim();
   var pos = document.getElementById('word-pos').value;
+  var difficulty = document.getElementById('word-difficulty') ? document.getElementById('word-difficulty').value : 'medium';
   var tagsVal = document.getElementById('word-tags').value;
+  var listId = document.getElementById('word-list-id') ? document.getElementById('word-list-id').value.trim() : '';
+  var groupId = document.getElementById('word-group-id') ? document.getElementById('word-group-id').value.trim() : '';
   var def = document.getElementById('word-def').value.trim();
   var example = document.getElementById('word-example').value.trim();
   var syn = document.getElementById('word-syn').value.trim();
@@ -3652,7 +3779,10 @@ LQ._submitWord = async function (e, id) {
     word: word,
     phonetic: phonetic,
     pos: pos,
+    difficulty: difficulty,
     tags: tags,
+    listId: listId,
+    groupId: groupId,
     def: def,
     example: example,
     syn: syn,
@@ -4007,7 +4137,7 @@ LQ.renderWordsBulkUploadForm = function () {
   var formHtml =
     '<div class="admin-bulk-info">' +
       '<p>Upload a CSV file (<code>Words.csv</code>) containing word database records.</p>' +
-      '<p style="font-size:12px;color:#64748b;margin-top:6px">Columns: <code>word, phonetic, pos, def, example, syn, ant, tags, premium, stub</code></p>' +
+      '<p style="font-size:12px;color:#64748b;margin-top:6px">Columns: <code>word, phonetic, pos, def, example, syn, ant, tags, listName, groupName, difficulty, premium, stub</code></p>' +
       '<a href="/api/admin/templates/words" class="admin-btn admin-btn-outline admin-btn-sm" style="margin-top:10px;display:inline-block;text-decoration:none">📥 Download Template</a>' +
     '</div>' +
     '<form id="bulk-words-form" class="admin-form" onsubmit="LQ._submitWordsBulkUpload(event)">' +

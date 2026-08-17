@@ -1373,6 +1373,73 @@ router.get('/words', requireRole('admin', 'super_admin'), async function (req, r
 });
 
 /**
+ * Helper function to sync a word into a WordList / Group (and optionally clean up from old list/group)
+ */
+async function syncWordToListAndGroup(wordName, newListId, newGroupId, oldListId, oldGroupId) {
+  try {
+    // 1. If oldListId exists and either list changed or group changed or list was cleared, remove word from old list/group
+    if (oldListId && (oldListId !== newListId || oldGroupId !== newGroupId || !newListId)) {
+      var oldList = await WordList.findOne({ id: oldListId });
+      if (oldList) {
+        var oldChanged = false;
+        if (oldList.listType === 'grouped' && oldList.groups && oldList.groups.length) {
+          oldList.groups.forEach(function (g) {
+            var beforeLen = (g.words || []).length;
+            g.words = (g.words || []).filter(function (w) {
+              return (typeof w === 'string' ? w : w.word).toLowerCase() !== wordName.toLowerCase();
+            });
+            if (g.words.length !== beforeLen) oldChanged = true;
+          });
+        } else if (oldList.words && oldList.words.length) {
+          var beforeLen = oldList.words.length;
+          oldList.words = oldList.words.filter(function (w) {
+            return (typeof w === 'string' ? w : w.word).toLowerCase() !== wordName.toLowerCase();
+          });
+          if (oldList.words.length !== beforeLen) oldChanged = true;
+        }
+        if (oldChanged) await oldList.save();
+      }
+    }
+
+    // 2. If newListId is provided, add word to target list / group
+    if (newListId) {
+      var targetList = await WordList.findOne({ id: newListId });
+      if (targetList) {
+        var targetChanged = false;
+        if (targetList.listType === 'grouped') {
+          if (targetList.groups && targetList.groups.length) {
+            var targetGrp = newGroupId ? targetList.groups.find(function (g) { return g.id === newGroupId; }) : targetList.groups[0];
+            if (targetGrp) {
+              var alreadyInGrp = (targetGrp.words || []).some(function (w) {
+                return (typeof w === 'string' ? w : w.word).toLowerCase() === wordName.toLowerCase();
+              });
+              if (!alreadyInGrp) {
+                var nextIdx = (targetGrp.words || []).length + 1;
+                targetGrp.words.push({ word: wordName, index: nextIdx, role: 'normal' });
+                targetChanged = true;
+              }
+            }
+          }
+        } else {
+          // dictionary list
+          targetList.words = targetList.words || [];
+          var alreadyInList = targetList.words.some(function (w) {
+            return (typeof w === 'string' ? w : w.word).toLowerCase() === wordName.toLowerCase();
+          });
+          if (!alreadyInList) {
+            targetList.words.push({ word: wordName, index: targetList.words.length + 1, role: 'normal' });
+            targetChanged = true;
+          }
+        }
+        if (targetChanged) await targetList.save();
+      }
+    }
+  } catch (syncErr) {
+    console.error('[Admin] syncWordToListAndGroup error:', syncErr);
+  }
+}
+
+/**
  * POST /api/admin/words — Create a new word
  */
 router.post('/words', requireRole('admin', 'super_admin'), async function (req, res) {
@@ -1387,6 +1454,11 @@ router.post('/words', requireRole('admin', 'super_admin'), async function (req, 
       return res.status(400).json({ error: 'Word already exists.' });
     }
 
+    var listId = (req.body.listId || '').trim();
+    var groupId = (req.body.groupId || '').trim();
+    var difficulty = (req.body.difficulty || 'medium').trim().toLowerCase();
+    if (['easy', 'medium', 'hard'].indexOf(difficulty) === -1) difficulty = 'medium';
+
     var newWord = await Word.create({
       word: word,
       phonetic: (req.body.phonetic || '').trim(),
@@ -1396,9 +1468,16 @@ router.post('/words', requireRole('admin', 'super_admin'), async function (req, 
       syn: (req.body.syn || '').trim(),
       ant: (req.body.ant || '').trim(),
       tags: Array.isArray(req.body.tags) ? req.body.tags : [],
+      listId: listId,
+      groupId: groupId,
+      difficulty: difficulty,
       premium: !!req.body.premium,
       stub: !!req.body.stub,
     });
+
+    if (listId) {
+      await syncWordToListAndGroup(word, listId, groupId);
+    }
 
     res.status(201).json({ ok: true, item: newWord });
   } catch (err) {
@@ -1417,6 +1496,10 @@ router.put('/words/:id', requireRole('admin', 'super_admin'), async function (re
       return res.status(404).json({ error: 'Word not found.' });
     }
 
+    var oldWordName = item.word;
+    var oldListId = item.listId || '';
+    var oldGroupId = item.groupId || '';
+
     if (req.body.word !== undefined) item.word = String(req.body.word).trim();
     if (req.body.phonetic !== undefined) item.phonetic = String(req.body.phonetic).trim();
     if (req.body.pos !== undefined) item.pos = String(req.body.pos).trim();
@@ -1425,10 +1508,28 @@ router.put('/words/:id', requireRole('admin', 'super_admin'), async function (re
     if (req.body.syn !== undefined) item.syn = String(req.body.syn).trim();
     if (req.body.ant !== undefined) item.ant = String(req.body.ant).trim();
     if (req.body.tags !== undefined) item.tags = Array.isArray(req.body.tags) ? req.body.tags : [];
+    if (req.body.listId !== undefined) item.listId = String(req.body.listId).trim();
+    if (req.body.groupId !== undefined) item.groupId = String(req.body.groupId).trim();
+    if (req.body.difficulty !== undefined) {
+      var d = String(req.body.difficulty).trim().toLowerCase();
+      if (['easy', 'medium', 'hard'].indexOf(d) !== -1) item.difficulty = d;
+    }
     if (req.body.premium !== undefined) item.premium = !!req.body.premium;
     if (req.body.stub !== undefined) item.stub = !!req.body.stub;
 
     await item.save();
+
+    // Sync to WordList and groups if listId or groupId or word name changed
+    var currentListId = item.listId || '';
+    var currentGroupId = item.groupId || '';
+    if (oldWordName !== item.word || oldListId !== currentListId || oldGroupId !== currentGroupId) {
+      if (oldWordName !== item.word) {
+        // Clean old word name from old list
+        await syncWordToListAndGroup(oldWordName, '', '', oldListId, oldGroupId);
+      }
+      await syncWordToListAndGroup(item.word, currentListId, currentGroupId, oldListId, oldGroupId);
+    }
+
     res.json({ ok: true, item: item });
   } catch (err) {
     console.error('[Admin] Update word error:', err);
@@ -1445,6 +1546,12 @@ router.delete('/words/:id', requireRole('admin', 'super_admin'), async function 
     if (!item) {
       return res.status(404).json({ error: 'Word not found.' });
     }
+
+    // Clean word from any word lists/groups
+    if (item.word) {
+      await syncWordToListAndGroup(item.word, '', '', item.listId || '', item.groupId || '');
+    }
+
     res.json({ ok: true, message: 'Word deleted.' });
   } catch (err) {
     console.error('[Admin] Delete word error:', err);
@@ -1663,13 +1770,57 @@ router.post('/import/csv', requireRole('admin', 'super_admin'), async function (
     // 1. Process Words
     if (files['Words.csv']) {
       var rows = parseCsv(files['Words.csv']);
+
+      // Preload all word lists for title/id lookup
+      var allWordLists = await WordList.find().lean();
+
       for (var r of rows) {
         if (!r.word) continue;
         var tags = r.tags ? r.tags.split('|').filter(Boolean) : ['GRE', 'GMAT', 'IELTS'];
+        var rawListName = (r.listName || r.list || r.listTitle || r.listId || '').trim();
+        var rawGroupName = (r.groupName || r.group || r.groupTitle || r.groupId || '').trim();
+        var difficulty = (r.difficulty || 'medium').trim().toLowerCase();
+        if (['easy', 'medium', 'hard'].indexOf(difficulty) === -1) difficulty = 'medium';
+        var wordName = r.word.trim();
+
+        // Resolve listId from listName/listId
+        var targetListId = '';
+        var targetGroupId = '';
+
+        if (rawListName) {
+          var matchedList = allWordLists.find(function (l) {
+            return (l.title && l.title.toLowerCase() === rawListName.toLowerCase()) ||
+                   (l.id && l.id.toLowerCase() === rawListName.toLowerCase());
+          });
+          if (matchedList) {
+            targetListId = matchedList.id;
+            if (rawGroupName && matchedList.groups && matchedList.groups.length) {
+              var matchedGroup = matchedList.groups.find(function (g) {
+                return (g.title && g.title.toLowerCase() === rawGroupName.toLowerCase()) ||
+                       (g.id && g.id.toLowerCase() === rawGroupName.toLowerCase());
+              });
+              if (matchedGroup) {
+                targetGroupId = matchedGroup.id;
+              } else {
+                targetGroupId = rawGroupName;
+              }
+            } else if (rawGroupName) {
+              targetGroupId = rawGroupName;
+            }
+          } else {
+            targetListId = rawListName;
+            targetGroupId = rawGroupName;
+          }
+        }
+
+        var existingWord = await Word.findOne({ word: { $regex: '^' + wordName + '$', $options: 'i' } });
+        var oldListId = existingWord ? existingWord.listId || '' : '';
+        var oldGroupId = existingWord ? existingWord.groupId || '' : '';
+
         await Word.findOneAndUpdate(
-          { word: { $regex: '^' + r.word.trim() + '$', $options: 'i' } },
+          { word: { $regex: '^' + wordName + '$', $options: 'i' } },
           {
-            word: r.word.trim(),
+            word: wordName,
             phonetic: (r.phonetic || '').trim(),
             pos: (r.pos || 'word').trim(),
             def: (r.def || '').trim(),
@@ -1677,11 +1828,19 @@ router.post('/import/csv', requireRole('admin', 'super_admin'), async function (
             syn: (r.syn || '').trim(),
             ant: (r.ant || '').trim(),
             tags: tags,
+            listId: targetListId,
+            groupId: targetGroupId,
+            difficulty: difficulty,
             premium: r.premium === 'true',
             stub: r.stub === 'true'
           },
           { upsert: true, new: true }
         );
+
+        if (targetListId || oldListId) {
+          await syncWordToListAndGroup(wordName, targetListId, targetGroupId, oldListId, oldGroupId);
+        }
+
         wordCount++;
       }
     }
@@ -2073,9 +2232,9 @@ router.post('/word-lists/:id/groups/:groupId/words/remove', requireRole('admin',
  * GET /api/admin/templates/words — Download Words.csv template
  */
 router.get('/templates/words', requireRole('admin', 'super_admin'), function (req, res) {
-  var csv = 'word,phonetic,pos,def,example,syn,ant,tags,premium,stub\n' +
-    'Ephemeral,/ɪˈfem.ər.əl/,adjective,Lasting for a very short time,The morning dew is ephemeral,Fleeting|Transient,Eternal|Permanent,GRE|IELTS,false,false\n' +
-    'Ubiquitous,/juːˈbɪk.wɪ.təs/,adjective,Present everywhere,"Smartphones are ubiquitous in modern life",Omnipresent|Pervasive,Rare|Scarce,GRE|GMAT,false,false\n';
+  var csv = 'word,phonetic,pos,def,example,syn,ant,tags,listName,groupName,difficulty,premium,stub\n' +
+    'Ephemeral,/ɪˈfem.ər.əl/,adjective,Lasting for a very short time,The morning dew is ephemeral,Fleeting|Transient,Eternal|Permanent,GRE|IELTS,GRE Synonym List 1,Agree / Harmony,medium,false,false\n' +
+    'Ubiquitous,/juːˈbɪk.wɪ.təs/,adjective,Present everywhere,"Smartphones are ubiquitous in modern life",Omnipresent|Pervasive,Rare|Scarce,GRE|GMAT,GRE Synonym List 1,Disagree / Conflict,hard,false,false\n';
 
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
   res.setHeader('Content-Disposition', 'attachment; filename="Words_Template.csv"');

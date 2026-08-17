@@ -438,6 +438,22 @@
   box-sizing: border-box;
 }
 
+.admin-form-field select {
+  max-width: 100%;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.admin-form-field select option {
+  max-height: 160px;
+  overflow-y: auto;
+  padding: 6px 10px;
+  font-size: 13px;
+  color: #0f172a;
+}
+
 .admin-form-field input:focus,
 .admin-form-field select:focus,
 .admin-form-field textarea:focus {

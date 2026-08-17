@@ -308,8 +308,8 @@ LQ.setupRoleNavigation = function (user) {
         '<button type="button" class="desktop-rail-item" id="desktop-nav-admin-reports" onclick="goTo(\'admin-reports\')"><span class="rail-icon">📊</span> Reports</button>' +
         '<button type="button" class="desktop-rail-item" id="desktop-nav-admin-practice-questions" onclick="goTo(\'admin-practice-questions\')"><span class="rail-icon">📝</span> Practice Qs</button>' +
         '<button type="button" class="desktop-rail-item" id="desktop-nav-admin-tenses" onclick="goTo(\'admin-tenses\')"><span class="rail-icon">🕒</span> Tenses</button>' +
-        '<button type="button" class="desktop-rail-item" id="desktop-nav-admin-words" onclick="goTo(\'admin-words\')"><span class="rail-icon">📝</span> Words</button>' +
         '<button type="button" class="desktop-rail-item" id="desktop-nav-admin-word-lists" onclick="goTo(\'admin-word-lists\')"><span class="rail-icon">📋</span> Word Lists</button>' +
+        '<button type="button" class="desktop-rail-item" id="desktop-nav-admin-words" onclick="goTo(\'admin-words\')"><span class="rail-icon">📝</span> Words</button>' +
         '<button type="button" class="desktop-rail-item" id="desktop-nav-admin-dictionary" onclick="goTo(\'admin-dictionary\')"><span class="rail-icon">📖</span> Dictionary</button>' +
         '<button type="button" class="desktop-rail-item" id="desktop-nav-admin-bulk" onclick="goTo(\'admin-bulk\')"><span class="rail-icon">📤</span> Bulk Upload</button>' +
         '<button type="button" class="desktop-rail-item" id="desktop-nav-cms" onclick="goTo(\'cms\')"><span class="rail-icon">⚙️</span> Content CMS</button>' +
